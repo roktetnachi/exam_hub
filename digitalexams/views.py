@@ -411,7 +411,10 @@ def delete_assignment_api(request, assignment_id):
 def start_submission(request, recipient_id):
     """Called when a pupil opens an assignment; records when their timed attempt began."""
     recipient = get_object_or_404(Recipient, id=recipient_id)
-    if request.user.role == User.Role.TEACHER:
+    # Anyone who isn't the actual, restricted pupil this work belongs to is "acting as teacher"
+    # in this app (that includes the shared superuser account used for previews) — matches the
+    # frontend's own read-only-preview condition (document.body.dataset.role !== 'pupil').
+    if not is_real_pupil(request):
         return HttpResponseForbidden("Teachers can't start or submit work on a pupil's behalf. Preview a pupil's task list to see it read-only, or have the pupil sign in themselves.")
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
         if recipient.pupil_email.lower() != request.user.email.lower():
@@ -441,7 +444,9 @@ def start_submission(request, recipient_id):
 
 def submission_from_request(request, recipient_id):
     recipient = get_object_or_404(Recipient, id=recipient_id)
-    if request.user.role == User.Role.TEACHER:
+    # Same reasoning as start_submission: block anyone who isn't the actual restricted pupil,
+    # not just accounts with role=TEACHER — a superuser previewing is "acting as teacher" too.
+    if not is_real_pupil(request):
         return None, HttpResponseForbidden("Teachers can't save or submit work on a pupil's behalf. Preview a pupil's task list to see it read-only, or have the pupil sign in themselves.")
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
         if recipient.pupil_email.lower() != request.user.email.lower():

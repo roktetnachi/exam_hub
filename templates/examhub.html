@@ -325,12 +325,66 @@
         <button class="btn outline" id="btnActivityLog">Activity log</button>
       </div>
 
+      <div class="card hidden" id="bulkToolbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--page-bg);box-shadow:none;">
+        <strong id="bulkSelectedCount" style="font-size:13px;"></strong>
+        <div class="grow"></div>
+        <button class="btn small outline" id="bulkEditScheduleBtn">Edit schedule</button>
+        <button class="btn small outline" id="bulkEditDeliveryBtn">Edit delivery mode</button>
+        <button class="btn small outline danger" id="bulkDeleteBtn">Delete selected</button>
+      </div>
       <div class="card">
         <table id="assignmentTable">
-          <thead><tr><th>Title</th><th>Due</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
+          <thead><tr><th style="width:28px;"><input type="checkbox" id="bulkSelectAll"></th><th>Title</th><th>Due</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
           <tbody id="assignmentTbody"></tbody>
         </table>
         <div class="empty hidden" id="assignmentEmpty">No assignments yet. Create one to get started.</div>
+      </div>
+
+      <div class="modal-backdrop hidden" id="bulkScheduleModal">
+        <div class="card" style="width:440px;max-width:92vw;">
+          <h2 style="margin:0 0 6px;">Edit schedule for <span id="bulkScheduleCount"></span> assignments</h2>
+          <p class="sub" style="margin-top:0;">Only the fields you tick below are changed — everything else about each assignment stays as it is.</p>
+          <div class="field">
+            <div class="pupil-check" style="margin-bottom:4px;">
+              <input type="checkbox" id="bulkSetOpensAt">
+              <label for="bulkSetOpensAt">Set opens at</label>
+            </div>
+            <input type="datetime-local" id="bulkOpensAtInput" disabled>
+          </div>
+          <div class="field">
+            <div class="pupil-check" style="margin-bottom:4px;">
+              <input type="checkbox" id="bulkSetDueAt">
+              <label for="bulkSetDueAt">Set due at</label>
+            </div>
+            <input type="datetime-local" id="bulkDueAtInput" disabled>
+          </div>
+          <p id="bulkScheduleError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+          <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+            <button type="button" class="btn outline small" id="cancelBulkScheduleBtn">Cancel</button>
+            <button type="button" class="btn small" id="confirmBulkScheduleBtn">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-backdrop hidden" id="bulkDeliveryModal">
+        <div class="card" style="width:440px;max-width:92vw;">
+          <h2 style="margin:0 0 6px;">Edit delivery mode for <span id="bulkDeliveryCount"></span> assignments</h2>
+          <p class="sub" style="margin-top:0;">Every other setting for each assignment stays as it is.</p>
+          <div class="field">
+            <label>Delivery mode</label>
+            <select id="bulkDeliveryModeSelect" style="padding:9px 10px;border:1px solid var(--border);border-radius:9px;width:100%;">
+              <option value="browser">Any browser</option>
+              <option value="browser_secure">Any browser with security</option>
+              <option value="lockdown">Lockdown app</option>
+              <option value="paper">Paper</option>
+            </select>
+          </div>
+          <p id="bulkDeliveryError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+          <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+            <button type="button" class="btn outline small" id="cancelBulkDeliveryBtn">Cancel</button>
+            <button type="button" class="btn small" id="confirmBulkDeliveryBtn">Apply</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -845,8 +899,8 @@
 
     <div class="modal-backdrop hidden" id="deleteAssignmentModal">
       <div class="card" style="width:440px;max-width:92vw;">
-        <h2 style="margin:0 0 6px;">Delete assignment</h2>
-        <p class="sub" style="margin-top:0;">This permanently deletes "<strong id="deleteAssignmentTitle"></strong>" and every pupil's submission, highlights and notes for it. This can't be undone.</p>
+        <h2 style="margin:0 0 6px;" id="deleteAssignmentHeading">Delete assignment</h2>
+        <p class="sub" style="margin-top:0;" id="deleteAssignmentBody">This permanently deletes "<strong id="deleteAssignmentTitle"></strong>" and every pupil's submission, highlights and notes for it. This can't be undone.</p>
         <div class="field" style="margin-bottom:6px;">
           <label>Type your password to confirm</label>
           <input type="password" id="deleteAssignmentPassword" autocomplete="current-password">
@@ -911,6 +965,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
 
 // ---------------- shared in-memory state (no localStorage per platform rules) ----------------
 const state = {
+  selectedAssignmentIds: new Set(),   // dashboard bulk-select
   pupils: [],          // populated from /api/pupils/ (real accounts an admin or teacher created with role=Pupil)
   pupilEmails: {},
   pupilIds: {},          // name -> id, so the "assign to" checklist can add a not-yet-grouped pupil to a class
@@ -986,10 +1041,13 @@ function renderAssignmentTable(){
   const tbody = document.getElementById('assignmentTbody');
   tbody.innerHTML = '';
   document.getElementById('assignmentEmpty').classList.toggle('hidden', state.assignments.length>0);
+  const liveIds = new Set(state.assignments.map(a=>a.id));
+  Array.from(state.selectedAssignmentIds).forEach(id=>{ if(!liveIds.has(id)) state.selectedAssignmentIds.delete(id); });
   state.assignments.forEach(a=>{
     const submittedCount = Object.values(a.submissions).filter(s=>s.status==='submitted').length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
       <td><strong>${a.title}</strong></td>
       <td>${a.due || '—'}</td>
       <td>${a.assignedTo.length} pupil(s)</td>
@@ -1002,12 +1060,37 @@ function renderAssignmentTable(){
         </div>
       </td>
     `;
+    tr.querySelector('.assignmentRowCheck').addEventListener('change', (e)=>{
+      if(e.target.checked) state.selectedAssignmentIds.add(a.id); else state.selectedAssignmentIds.delete(a.id);
+      updateBulkToolbar();
+    });
     tr.querySelector('[data-action="view"]').addEventListener('click', ()=>showAssignmentDetail(a.id));
     tr.querySelector('[data-action="edit"]').addEventListener('click', ()=>openEditAssignmentModal(a.id));
     tr.querySelector('[data-action="delete"]').addEventListener('click', ()=>openDeleteAssignmentModal(a.id));
     tbody.appendChild(tr);
   });
+  updateBulkToolbar();
 }
+
+function updateBulkToolbar(){
+  const count = state.selectedAssignmentIds.size;
+  const toolbar = document.getElementById('bulkToolbar');
+  toolbar.classList.toggle('hidden', count === 0);
+  document.getElementById('bulkSelectedCount').textContent = count === 1 ? '1 assignment selected' : `${count} assignments selected`;
+  const selectAll = document.getElementById('bulkSelectAll');
+  const total = state.assignments.length;
+  selectAll.checked = total > 0 && count === total;
+  selectAll.indeterminate = count > 0 && count < total;
+}
+document.getElementById('bulkSelectAll').addEventListener('change', (e)=>{
+  if(e.target.checked){ state.assignments.forEach(a=>state.selectedAssignmentIds.add(a.id)); }
+  else { state.selectedAssignmentIds.clear(); }
+  renderAssignmentTable();
+});
+document.getElementById('bulkDeleteBtn').addEventListener('click', ()=>{
+  if(state.selectedAssignmentIds.size===0) return;
+  openDeleteAssignmentModal(Array.from(state.selectedAssignmentIds));
+});
 
 // ---------------- edit assignment (settings only) ----------------
 function toDatetimeLocalValue(iso){
@@ -1020,6 +1103,20 @@ function toDatetimeLocalValue(iso){
   // date fields. Extracting the literal digits keeps prefill-then-save a true no-op.
   const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
   return m ? `${m[1]}T${m[2]}` : '';
+}
+function buildAssignmentUpdatePayload(a, overrides){
+  const base = {
+    title: a.title || '',
+    instructions: a.prompt || '',
+    opensAt: toDatetimeLocalValue(a.opensAt) || a.opensAt || null,
+    dueAt: toDatetimeLocalValue(a.dueAt) || null,
+    durationMinutes: a.durationMinutes || 60,
+    deliveryMode: a.deliveryMode || 'browser',
+    requireJoinCode: !!a.requireJoinCode,
+    allowCalculator: !!a.allowCalculator,
+    allowGraphingCalculator: !!a.allowGraphingCalculator,
+  };
+  return Object.assign(base, overrides || {});
 }
 let editingAssignmentId = null;
 function openEditAssignmentModal(id){
@@ -1082,12 +1179,22 @@ document.getElementById('saveEditAssignmentBtn').addEventListener('click', async
 });
 
 // ---------------- delete assignment (password re-check) ----------------
-let deletingAssignmentId = null;
-function openDeleteAssignmentModal(id){
-  const a = state.assignments.find(x=>x.id===id);
-  if(!a) return;
-  deletingAssignmentId = id;
-  document.getElementById('deleteAssignmentTitle').textContent = a.title || '';
+let deletingAssignmentIds = null;
+function openDeleteAssignmentModal(idOrIds){
+  const ids = Array.isArray(idOrIds) ? idOrIds.slice() : [idOrIds];
+  if(!ids.length) return;
+  deletingAssignmentIds = ids;
+  const heading = document.getElementById('deleteAssignmentHeading');
+  const body = document.getElementById('deleteAssignmentBody');
+  if(ids.length === 1){
+    const a = state.assignments.find(x=>x.id===ids[0]);
+    if(!a) return;
+    heading.textContent = 'Delete assignment';
+    body.innerHTML = `This permanently deletes "<strong>${(a.title||'').replace(/</g,'&lt;')}</strong>" and every pupil's submission, highlights and notes for it. This can't be undone.`;
+  } else {
+    heading.textContent = `Delete ${ids.length} assignments`;
+    body.innerHTML = `This permanently deletes <strong>${ids.length} assignments</strong> and every pupil's submission, highlights and notes for each. This can't be undone.`;
+  }
   document.getElementById('deleteAssignmentPassword').value = '';
   const errorEl = document.getElementById('deleteAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
@@ -1096,11 +1203,11 @@ function openDeleteAssignmentModal(id){
 }
 function closeDeleteAssignmentModal(){
   document.getElementById('deleteAssignmentModal').classList.add('hidden');
-  deletingAssignmentId = null;
+  deletingAssignmentIds = null;
 }
 document.getElementById('cancelDeleteAssignmentBtn').addEventListener('click', closeDeleteAssignmentModal);
 document.getElementById('confirmDeleteAssignmentBtn').addEventListener('click', async ()=>{
-  const id = deletingAssignmentId;
+  const ids = deletingAssignmentIds || [];
   const errorEl = document.getElementById('deleteAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   const password = document.getElementById('deleteAssignmentPassword').value;
@@ -1108,21 +1215,143 @@ document.getElementById('confirmDeleteAssignmentBtn').addEventListener('click', 
   const btn = document.getElementById('confirmDeleteAssignmentBtn');
   btn.disabled = true;
   try {
-    await request(`/api/assignments/${id}/delete/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password})});
-    closeDeleteAssignmentModal();
+    const failures = [];
+    for(const id of ids){
+      try {
+        await request(`/api/assignments/${id}/delete/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password})});
+        state.selectedAssignmentIds.delete(id);
+      } catch(err){
+        failures.push({id, message: err.message || 'Unknown error'});
+      }
+    }
     await loadAssignments();
-    showTeacherDashboard();
-  } catch(error) {
-    errorEl.textContent = error.message || 'Could not delete this assignment.';
-    errorEl.classList.remove('hidden');
-    document.getElementById('deleteAssignmentPassword').value = '';
-    document.getElementById('deleteAssignmentPassword').focus();
+    if(failures.length){
+      const names = failures.map(f=>{ const a = state.assignments.find(x=>x.id===f.id); return (a ? a.title : f.id) + ': ' + f.message; });
+      errorEl.textContent = `Some assignments couldn't be deleted — ${names.join('; ')}`;
+      errorEl.classList.remove('hidden');
+      document.getElementById('deleteAssignmentPassword').value = '';
+      document.getElementById('deleteAssignmentPassword').focus();
+      deletingAssignmentIds = failures.map(f=>f.id);
+      renderAssignmentTable();
+    } else {
+      closeDeleteAssignmentModal();
+      showTeacherDashboard();
+    }
   } finally {
     btn.disabled = false;
   }
 });
 document.getElementById('deleteAssignmentPassword').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('confirmDeleteAssignmentBtn').click(); }
+});
+
+// ---------------- bulk edit: schedule ----------------
+document.getElementById('bulkSetOpensAt').addEventListener('change', (e)=>{
+  document.getElementById('bulkOpensAtInput').disabled = !e.target.checked;
+});
+document.getElementById('bulkSetDueAt').addEventListener('change', (e)=>{
+  document.getElementById('bulkDueAtInput').disabled = !e.target.checked;
+});
+document.getElementById('bulkEditScheduleBtn').addEventListener('click', ()=>{
+  if(state.selectedAssignmentIds.size===0) return;
+  document.getElementById('bulkScheduleCount').textContent = state.selectedAssignmentIds.size;
+  document.getElementById('bulkSetOpensAt').checked = false;
+  document.getElementById('bulkSetDueAt').checked = false;
+  document.getElementById('bulkOpensAtInput').disabled = true;
+  document.getElementById('bulkOpensAtInput').value = '';
+  document.getElementById('bulkDueAtInput').disabled = true;
+  document.getElementById('bulkDueAtInput').value = '';
+  const errorEl = document.getElementById('bulkScheduleError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  document.getElementById('bulkScheduleModal').classList.remove('hidden');
+});
+document.getElementById('cancelBulkScheduleBtn').addEventListener('click', ()=>{
+  document.getElementById('bulkScheduleModal').classList.add('hidden');
+});
+document.getElementById('confirmBulkScheduleBtn').addEventListener('click', async ()=>{
+  const setOpens = document.getElementById('bulkSetOpensAt').checked;
+  const setDue = document.getElementById('bulkSetDueAt').checked;
+  const errorEl = document.getElementById('bulkScheduleError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  if(!setOpens && !setDue){ errorEl.textContent = 'Tick at least one field to change.'; errorEl.classList.remove('hidden'); return; }
+  const opensVal = document.getElementById('bulkOpensAtInput').value;
+  const dueVal = document.getElementById('bulkDueAtInput').value;
+  if(setOpens && !opensVal){ errorEl.textContent = 'Choose an opens-at date and time.'; errorEl.classList.remove('hidden'); return; }
+  const ids = Array.from(state.selectedAssignmentIds);
+  const btn = document.getElementById('confirmBulkScheduleBtn');
+  btn.disabled = true;
+  try {
+    const failures = [];
+    for(const id of ids){
+      const a = state.assignments.find(x=>x.id===id);
+      if(!a) continue;
+      const overrides = {};
+      if(setOpens) overrides.opensAt = opensVal;
+      if(setDue) overrides.dueAt = dueVal || null;
+      const payload = buildAssignmentUpdatePayload(a, overrides);
+      try {
+        await request(`/api/assignments/${id}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      } catch(err){
+        failures.push({id, message: err.message || 'Unknown error'});
+      }
+    }
+    await loadAssignments();
+    renderAssignmentTable();
+    if(failures.length){
+      const names = failures.map(f=>{ const a2 = state.assignments.find(x=>x.id===f.id); return (a2 ? a2.title : f.id) + ': ' + f.message; });
+      errorEl.textContent = `Some assignments couldn't be updated — ${names.join('; ')}`;
+      errorEl.classList.remove('hidden');
+    } else {
+      document.getElementById('bulkScheduleModal').classList.add('hidden');
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------------- bulk edit: delivery mode ----------------
+document.getElementById('bulkEditDeliveryBtn').addEventListener('click', ()=>{
+  if(state.selectedAssignmentIds.size===0) return;
+  document.getElementById('bulkDeliveryCount').textContent = state.selectedAssignmentIds.size;
+  document.getElementById('bulkDeliveryModeSelect').value = 'browser';
+  const errorEl = document.getElementById('bulkDeliveryError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  document.getElementById('bulkDeliveryModal').classList.remove('hidden');
+});
+document.getElementById('cancelBulkDeliveryBtn').addEventListener('click', ()=>{
+  document.getElementById('bulkDeliveryModal').classList.add('hidden');
+});
+document.getElementById('confirmBulkDeliveryBtn').addEventListener('click', async ()=>{
+  const mode = document.getElementById('bulkDeliveryModeSelect').value;
+  const ids = Array.from(state.selectedAssignmentIds);
+  const errorEl = document.getElementById('bulkDeliveryError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  const btn = document.getElementById('confirmBulkDeliveryBtn');
+  btn.disabled = true;
+  try {
+    const failures = [];
+    for(const id of ids){
+      const a = state.assignments.find(x=>x.id===id);
+      if(!a) continue;
+      const payload = buildAssignmentUpdatePayload(a, {deliveryMode: mode});
+      try {
+        await request(`/api/assignments/${id}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      } catch(err){
+        failures.push({id, message: err.message || 'Unknown error'});
+      }
+    }
+    await loadAssignments();
+    renderAssignmentTable();
+    if(failures.length){
+      const names = failures.map(f=>{ const a2 = state.assignments.find(x=>x.id===f.id); return (a2 ? a2.title : f.id) + ': ' + f.message; });
+      errorEl.textContent = `Some assignments couldn't be updated — ${names.join('; ')}`;
+      errorEl.classList.remove('hidden');
+    } else {
+      document.getElementById('bulkDeliveryModal').classList.add('hidden');
+    }
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 const ITEM_TYPE_LABELS = {
@@ -1288,6 +1517,13 @@ function activePillValue(containerId, dataAttr){
 document.getElementById('dashboardSebLaunchBtn').addEventListener('click', (e)=>{
   e.currentTarget.href = sebProtocolLink();
 });
+document.getElementById('sebMenuBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  document.getElementById('sebMenuDropdown').classList.toggle('hidden');
+});
+document.getElementById('sebMenuDropdown').addEventListener('click', (e)=>e.stopPropagation());
+document.addEventListener('click', ()=>document.getElementById('sebMenuDropdown').classList.add('hidden'));
+if(document.body.dataset.role === 'pupil'){ document.getElementById('sebMenuBtn').classList.add('hidden'); }
 wirePillPicker('deliveryModePicker', 'mode', (mode)=>{
   document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES[mode] || '';
 });
@@ -2449,11 +2685,15 @@ document.getElementById('openChatFromTaskBtn').addEventListener('click', ()=>{
 async function openStudentTask(assignmentId){
   const gateAssignment = state.assignments.find(x=>x.id===assignmentId);
   const gateSub = gateAssignment.submissions[state.currentPupil];
-  if(gateAssignment.deliveryMode === 'lockdown' && gateSub.status !== 'submitted'){
+  // Teachers previewing a pupil's task read-only never need the SEB/join-code gates — those
+  // exist to control how a REAL pupil starts their own attempt, and a preview never starts one
+  // (ensureSubmissionStarted below is itself blocked for teachers server-side).
+  const isRealPupilView = document.body.dataset.role === 'pupil';
+  if(isRealPupilView && gateAssignment.deliveryMode === 'lockdown' && gateSub.status !== 'submitted'){
     const proceed = await gateWithSeb(gateAssignment);
     if(!proceed) return; // pupil backed out — stay on the task list
   }
-  if(gateAssignment.requireJoinCode && gateSub.status !== 'submitted' && !gateSub.startedAt){
+  if(isRealPupilView && gateAssignment.requireJoinCode && gateSub.status !== 'submitted' && !gateSub.startedAt){
     const ok = await gateWithJoinCode(gateAssignment, gateSub);
     if(!ok) return; // pupil cancelled, or never entered a correct code — stay on the task list
   }
