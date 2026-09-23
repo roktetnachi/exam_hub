@@ -12,10 +12,12 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
@@ -26,6 +28,7 @@ SECRET_KEY = 'django-insecure-)8k6@2+lp@1&8018xraqszdl5#0fhv4%!@nkk1+5sa7%vlno=(
 DEBUG = True
 
 import os
+import dj_database_url
 
 
 ALLOWED_HOSTS = [
@@ -38,6 +41,22 @@ CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://examhub-production-57c
 
 
 
+import os
+import dj_database_url
+DATABASE_URL = os.environ.get("DATABASE_URL")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not configured")
+
+DATABASES = {
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
 # Application definition
 
 INSTALLED_APPS = [
@@ -91,16 +110,6 @@ WSGI_APPLICATION = 'examhub.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'digi_exams',
-        'USER': 'postgres',
-        'PASSWORD': 'computerscience',
-        'HOST': 'localhost',  # Set to the host where your PostgreSQL server is running
-        'PORT': '5432',           # Use the default PostgreSQL port (5432)
-    }
-}
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 

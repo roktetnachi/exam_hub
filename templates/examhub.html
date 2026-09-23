@@ -166,6 +166,11 @@
   .resource-thumb .thumb-label{font-size:10px;text-align:center;padding:2px 0;color:var(--muted);background:#fff;}
   .resource-thumb.question-thumb{padding:14px 6px 6px;text-align:center;}
   .resource-thumb.question-thumb .q-icon{font-size:20px;}
+  .resource-section{padding:2px 10px 4px;border-bottom:1px solid var(--border);}
+  .resource-section summary{font-size:12px;font-weight:700;color:var(--text);padding:8px 0;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;}
+  .resource-section summary::-webkit-details-marker{display:none;}
+  .resource-section summary .badge{font-size:10px;padding:2px 8px;}
+  .resource-section .resource-group{padding-left:6px;}
 
   .pdf-pane{flex:1.5;display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0;}
   .pdf-toolbar{
@@ -2293,27 +2298,40 @@ async function showReview(assignmentId, pupil){
   document.getElementById('reviewMeta').textContent = `Submitted ${sub.submittedAt}`;
   const responseSections = a.items.map(item=>{
     const raw = (sub.responses || {})[item.id] ?? (sub.responses || {})[String(item.id)];
-    const body = (item.type === 'pdf' || item.type === 'long_answer')
+    const isContentOnly = item.type === 'pdf' || item.type === 'image' || item.type === 'video';
+    const body = (isContentOnly || item.type === 'long_answer')
       ? (raw || '<em>No response written.</em>')
       : readableAnswer(item, raw);
-    return `<h3 style="font-size:14px">${item.type === 'pdf' ? 'Response' : 'Answer'} — ${item.label}</h3>${body}`;
+    return `<h3 style="font-size:14px">${isContentOnly ? 'Response' : 'Answer'} — ${item.label}</h3>${body}`;
   }).join('<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0">');
   document.getElementById('reviewResponse').innerHTML = `<h3 style="font-size:14px">Notepad (outline)</h3>${sub.outlineHtml || '<em>No notepad content.</em>'}<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0">${responseSections}`;
 
-  const pdfItems = a.items.filter(item=>item.type === 'pdf');
+  const refItems = a.items.filter(item=>['pdf','image','video'].includes(item.type));
   const reviewPdfPane = document.getElementById('reviewPdfPane');
-  reviewPdfPane.classList.toggle('hidden', pdfItems.length === 0);
-  if(pdfItems.length === 0) return;
+  reviewPdfPane.classList.toggle('hidden', refItems.length === 0);
+  if(refItems.length === 0) return;
 
   const sel = document.getElementById('reviewTextSelect');
-  sel.innerHTML = pdfItems.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
-  sel.value = String(pdfItems[0].id);
+  sel.innerHTML = refItems.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
+  sel.value = String(refItems[0].id);
 
   let reviewTextId = Number(sel.value);
   let reviewDoc = null, page = 1;
 
   async function loadReviewDoc(){
-    const text = pdfItems.find(t=>t.id===reviewTextId);
+    const text = refItems.find(t=>t.id===reviewTextId);
+    if(text.type !== 'pdf'){
+      reviewDoc = null;
+      document.getElementById('reviewPageLabel').textContent = '';
+      const stage = document.getElementById('reviewStage');
+      stage.style.width = ''; stage.style.height = '';
+      if(text.type === 'image'){
+        stage.innerHTML = `<img src="${text.imageUrl}" style="max-width:100%;max-height:70vh;border-radius:10px;">`;
+      } else {
+        stage.innerHTML = `<video src="${text.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;"></video>`;
+      }
+      return;
+    }
     reviewDoc = await pdfjsLib.getDocument(text.pdfUrl).promise;
     page = 1;
     renderReviewPage();
@@ -2363,8 +2381,8 @@ async function showReview(assignmentId, pupil){
       }
     });
   }
-  document.getElementById('reviewPrevPage').onclick = ()=>{ if(page>1){page--; renderReviewPage();} };
-  document.getElementById('reviewNextPage').onclick = ()=>{ if(page<reviewDoc.numPages){page++; renderReviewPage();} };
+  document.getElementById('reviewPrevPage').onclick = ()=>{ if(reviewDoc && page>1){page--; renderReviewPage();} };
+  document.getElementById('reviewNextPage').onclick = ()=>{ if(reviewDoc && page<reviewDoc.numPages){page++; renderReviewPage();} };
   sel.onchange = ()=>{ reviewTextId = Number(sel.value); loadReviewDoc(); };
   loadReviewDoc();
 }
@@ -2855,48 +2873,69 @@ const QUESTION_TYPE_ICONS = {
 async function buildResourcesPanel(a, sub){
   const list = document.getElementById('resourcesList');
   list.innerHTML = '';
+  // Group consecutive items sharing a non-empty `section` label under one collapsible header
+  // with a point-total badge; items with no section render exactly as before (ungrouped).
+  const blocks = [];
   for(const item of a.items){
-    const group = document.createElement('div');
-    group.className = 'resource-group';
-    group.innerHTML = `<div class="resource-group-label">${item.label}</div>`;
-    if(item.type === 'pdf'){
-      try {
-        const doc = await pdfjsLib.getDocument(item.pdfUrl).promise;
-        state.textDocs[item.id] = doc;
-        for(let p=1; p<=doc.numPages; p++){
-          const thumb = document.createElement('div');
-          thumb.className = 'resource-thumb';
-          thumb.dataset.textId = item.id;
-          thumb.dataset.page = p;
-          thumb.innerHTML = `<div class="thumb-label">${doc.numPages > 1 ? `Page ${p}` : item.label}</div>`;
-          thumb.addEventListener('click', ()=>{
-            state.currentTextId = item.id;
-            state.currentPage = p;
-            renderCurrentItem();
-          });
-          group.appendChild(thumb);
-          // Thumbnail canvases are rendered lazily just below, in parallel with each other —
-          // one slow/broken page shouldn't block the rest of the panel from appearing.
-          renderThumbCanvas(doc, p, thumb).catch(()=>{});
-        }
-      } catch(error) {
-        console.error('ExamHub: could not load PDF for', item.label, error);
-        group.innerHTML += `<div class="sub" style="padding:6px 4px;">Couldn't load this PDF.</div>`;
-      }
-    } else {
-      const thumb = document.createElement('div');
-      thumb.className = 'resource-thumb question-thumb';
-      thumb.dataset.textId = item.id;
-      thumb.dataset.page = 1;
-      thumb.innerHTML = `<div class="q-icon">${QUESTION_TYPE_ICONS[item.type] || '?'}</div><div class="thumb-label">${item.label}</div>`;
-      thumb.addEventListener('click', ()=>{
-        state.currentTextId = item.id;
-        state.currentPage = 1;
-        renderCurrentItem();
-      });
-      group.appendChild(thumb);
+    const sectionName = (item.section || '').trim();
+    const last = blocks[blocks.length - 1];
+    if(sectionName && last && last.section === sectionName){ last.items.push(item); }
+    else { blocks.push({section: sectionName, items: [item]}); }
+  }
+  for(const block of blocks){
+    let container = list;
+    if(block.section){
+      const totalPoints = block.items.reduce((sum,it)=>sum + (Number(it.points)||0), 0);
+      const details = document.createElement('details');
+      details.className = 'resource-section';
+      details.open = true;
+      details.innerHTML = `<summary>${block.section} <span class="badge" style="background:var(--blue);">${totalPoints}</span></summary>`;
+      list.appendChild(details);
+      container = details;
     }
-    list.appendChild(group);
+    for(const item of block.items){
+      const group = document.createElement('div');
+      group.className = 'resource-group';
+      group.innerHTML = `<div class="resource-group-label">${item.label}</div>`;
+      if(item.type === 'pdf'){
+        try {
+          const doc = await pdfjsLib.getDocument(item.pdfUrl).promise;
+          state.textDocs[item.id] = doc;
+          for(let p=1; p<=doc.numPages; p++){
+            const thumb = document.createElement('div');
+            thumb.className = 'resource-thumb';
+            thumb.dataset.textId = item.id;
+            thumb.dataset.page = p;
+            thumb.innerHTML = `<div class="thumb-label">${doc.numPages > 1 ? `Page ${p}` : item.label}</div>`;
+            thumb.addEventListener('click', ()=>{
+              state.currentTextId = item.id;
+              state.currentPage = p;
+              renderCurrentItem();
+            });
+            group.appendChild(thumb);
+            // Thumbnail canvases are rendered lazily just below, in parallel with each other —
+            // one slow/broken page shouldn't block the rest of the panel from appearing.
+            renderThumbCanvas(doc, p, thumb).catch(()=>{});
+          }
+        } catch(error) {
+          console.error('ExamHub: could not load PDF for', item.label, error);
+          group.innerHTML += `<div class="sub" style="padding:6px 4px;">Couldn't load this PDF.</div>`;
+        }
+      } else {
+        const thumb = document.createElement('div');
+        thumb.className = 'resource-thumb question-thumb';
+        thumb.dataset.textId = item.id;
+        thumb.dataset.page = 1;
+        thumb.innerHTML = `<div class="q-icon">${QUESTION_TYPE_ICONS[item.type] || '?'}</div><div class="thumb-label">${item.label}</div>`;
+        thumb.addEventListener('click', ()=>{
+          state.currentTextId = item.id;
+          state.currentPage = 1;
+          renderCurrentItem();
+        });
+        group.appendChild(thumb);
+      }
+      container.appendChild(group);
+    }
   }
   highlightActiveThumb();
 }
