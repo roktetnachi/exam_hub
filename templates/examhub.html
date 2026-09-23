@@ -93,6 +93,14 @@
   .pill-tabs button{border:none;background:transparent;padding:9px 18px;border-radius:var(--pill-radius);
     font-size:13px;font-weight:700;color:var(--muted);}
   .pill-tabs button.active{background:var(--blue);color:#fff;}
+  .itemtype-groups{display:flex;flex-direction:column;gap:14px;margin-top:6px;}
+  .itemtype-group-label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+  .itemtype-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;}
+  .itemtype-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    border:1px solid var(--border);background:#fff;border-radius:12px;padding:14px 8px;cursor:pointer;text-align:center;}
+  .itemtype-tile:hover{border-color:var(--blue);background:#f5f9fc;}
+  .itemtype-tile .itemtype-icon{font-size:22px;color:var(--blue);line-height:1;}
+  .itemtype-tile .itemtype-label{font-size:11.5px;font-weight:700;color:var(--text);}
   .stat-tiles{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
   .stat-tile{background:#fff;box-shadow:var(--card-shadow);border-radius:14px;padding:14px 22px;min-width:110px;text-align:center;}
   .stat-tile .num{font-size:22px;font-weight:800;color:var(--text);}
@@ -393,6 +401,14 @@
       <h2>New assignment</h2>
       <div class="card">
         <p class="sub" id="teacherIdentityNote" style="margin-top:0;"></p>
+
+        <div class="pill-tabs" id="createWizardTabs" style="margin-bottom:14px;">
+          <button type="button" class="active" data-step="content">1. Content &amp; questions</button>
+          <button type="button" data-step="delivery">2. Delivery mode</button>
+          <button type="button" data-step="assign">3. Assign</button>
+        </div>
+
+        <div id="createStep-content" class="wizard-step">
         <div class="field">
           <label>Title</label>
           <input type="text" id="aTitle" placeholder="e.g. Paper 1 — Guided Analysis Practice">
@@ -404,19 +420,46 @@
         <div class="field">
           <label>Content &amp; questions (add as many as you need, in any mix — a PDF text to annotate, or a question)</label>
           <div id="itemsRows"></div>
-          <div class="row" style="gap:8px;align-items:center;margin-top:6px;">
-            <select id="newItemTypeSelect" style="padding:8px;border-radius:9px;border:1px solid var(--border);">
-              <option value="pdf">PDF text (annotate + write about it)</option>
-              <option value="long_answer">Long answer</option>
-              <option value="mcq_single">Multiple choice (single answer)</option>
-              <option value="mcq_multiple">Multiple choice (multiple answers)</option>
-              <option value="true_false">True / False</option>
-              <option value="fill_text">Fill in the blank</option>
-              <option value="table">Table</option>
-            </select>
-            <button type="button" class="btn small outline" id="addItemRowBtn">+ Add</button>
+          <div class="itemtype-groups" id="itemTypeGrid">
+            <div class="itemtype-group">
+              <div class="itemtype-group-label">Content</div>
+              <div class="itemtype-tiles">
+                <button type="button" class="itemtype-tile" data-add-type="pdf" title="PDF text (annotate + write about it)">
+                  <span class="itemtype-icon">&#9636;</span><span class="itemtype-label">PDF text</span>
+                </button>
+              </div>
+            </div>
+            <div class="itemtype-group">
+              <div class="itemtype-group-label">Questions</div>
+              <div class="itemtype-tiles">
+                <button type="button" class="itemtype-tile" data-add-type="long_answer" title="Long answer">
+                  <span class="itemtype-icon">&#9998;</span><span class="itemtype-label">Long answer</span>
+                </button>
+                <button type="button" class="itemtype-tile" data-add-type="mcq_single" title="Multiple choice (single answer)">
+                  <span class="itemtype-icon">&#9673;</span><span class="itemtype-label">Multiple choice (single)</span>
+                </button>
+                <button type="button" class="itemtype-tile" data-add-type="mcq_multiple" title="Multiple choice (multiple answers)">
+                  <span class="itemtype-icon">&#9745;</span><span class="itemtype-label">Multiple choice (multiple)</span>
+                </button>
+                <button type="button" class="itemtype-tile" data-add-type="true_false" title="True / False">
+                  <span class="itemtype-icon">&#9878;</span><span class="itemtype-label">True / False</span>
+                </button>
+                <button type="button" class="itemtype-tile" data-add-type="fill_text" title="Fill in the blank">
+                  <span class="itemtype-icon">&#9645;</span><span class="itemtype-label">Fill in the blank</span>
+                </button>
+                <button type="button" class="itemtype-tile" data-add-type="table" title="Table">
+                  <span class="itemtype-icon">&#9638;</span><span class="itemtype-label">Table</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+        <div class="row" style="justify-content:flex-end;margin-top:6px;">
+            <button type="button" class="btn small" id="createNextToDelivery">Next: Delivery mode &rarr;</button>
+          </div>
+        </div>
+
+        <div id="createStep-delivery" class="wizard-step hidden">
         <div class="field">
           <label>Delivery mode</label>
           <div class="pill-tabs" id="deliveryModePicker">
@@ -471,6 +514,13 @@
             <label for="aAllowGraphingCalculator">Allow graphing calculator <span style="color:var(--muted)">(not yet available to pupils)</span></label>
           </div>
         </div>
+        <div class="row" style="justify-content:space-between;margin-top:6px;">
+            <button type="button" class="btn small outline" id="createBackToContent">&larr; Back</button>
+            <button type="button" class="btn small" id="createNextToAssign">Next: Assign &rarr;</button>
+          </div>
+        </div>
+
+        <div id="createStep-assign" class="wizard-step hidden">
         <div class="field">
           <label>Assign to</label>
           <p class="sub" style="margin:0 0 8px;">Tick a class to select everyone in it, or tick individual pupils below.</p>
@@ -481,7 +531,11 @@
           </div>
           <div id="pupilChecklist"></div>
         </div>
-        <button class="btn" id="btnCreateAssignment">Create &amp; assign</button>
+          <div class="row" style="justify-content:space-between;margin-top:6px;">
+            <button type="button" class="btn small outline" id="createBackToDelivery">&larr; Back</button>
+            <button class="btn" id="btnCreateAssignment">Create &amp; assign</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1450,8 +1504,8 @@ function addItemRow(type, defaultLabel){
   }
   rows.appendChild(row);
 }
-document.getElementById('addItemRowBtn').addEventListener('click', ()=>{
-  addItemRow(document.getElementById('newItemTypeSelect').value);
+document.querySelectorAll('#itemTypeGrid .itemtype-tile').forEach(tile=>{
+  tile.addEventListener('click', ()=>addItemRow(tile.dataset.addType));
 });
 function collectItemsForSubmit(){
   const items = [];
@@ -1720,9 +1774,22 @@ document.getElementById('createPupilBtn').addEventListener('click', async ()=>{
   }
 });
 
+function switchCreateStep(step){
+  document.querySelectorAll('#createWizardTabs button').forEach(b=>b.classList.toggle('active', b.dataset.step===step));
+  document.querySelectorAll('.wizard-step').forEach(el=>el.classList.toggle('hidden', el.id !== 'createStep-'+step));
+}
+document.querySelectorAll('#createWizardTabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>switchCreateStep(btn.dataset.step));
+});
+document.getElementById('createNextToDelivery').addEventListener('click', ()=>switchCreateStep('delivery'));
+document.getElementById('createBackToContent').addEventListener('click', ()=>switchCreateStep('content'));
+document.getElementById('createNextToAssign').addEventListener('click', ()=>switchCreateStep('assign'));
+document.getElementById('createBackToDelivery').addEventListener('click', ()=>switchCreateStep('delivery'));
+
 document.getElementById('btnNewAssignment').addEventListener('click', async ()=>{
   hideAll('#teacherView > div');
   document.getElementById('teacherCreate').classList.remove('hidden');
+  switchCreateStep('content');
   document.getElementById('teacherIdentityNote').textContent =
     `Creating as ${document.body.dataset.fullname} (${document.body.dataset.email || 'no email on file — ask your admin to add one'})`;
   document.getElementById('aTitle').value='';
@@ -1739,7 +1806,6 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
     c.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', i===0));
   });
   document.getElementById('itemsRows').innerHTML = '';
-  document.getElementById('newItemTypeSelect').value = 'pdf';
   addItemRow('pdf', 'Text 1');
   const checklist = document.getElementById('pupilChecklist');
   checklist.innerHTML = '<p class="sub">Loading pupils…</p>';
