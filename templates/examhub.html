@@ -285,10 +285,24 @@
 
 <div class="brandbar">
   <div class="brand"><span class="dot"></span>ExamHub</div>
-  <div style="margin-left:auto;margin-right:16px;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:#0ea5b7;cursor:pointer;margin-left:8px">Sign out</button></form></div>
-  <div class="role-toggle">
+  <div style="margin-left:auto;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:var(--blue);cursor:pointer;margin-left:8px">Sign out</button></form></div>
+  <div class="role-toggle" style="margin:0 12px;">
     <button id="btnTeacherRole" class="active">Teacher</button>
     <button id="btnStudentRole">Student</button>
+  </div>
+  <div style="position:relative;">
+    <button class="icon-btn" id="sebMenuBtn" title="Safe Exam Browser setup" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      SEB
+    </button>
+    <div class="hidden" id="sebMenuDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:320px;background:#fff;border-radius:14px;box-shadow:var(--card-shadow);padding:14px;z-index:50;">
+      <strong style="font-size:13px;">Safe Exam Browser setup</strong>
+      <p class="sub" style="margin:6px 0 10px;">For assignments delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — one-time setup: open this config in a real SEB install once, it'll show you a key, and paste that into Django admin under "Allowed Browser Exam Keys" (do this once per platform your pupils use). Until at least one key is added, lockdown assignments will refuse every real pupil.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a class="btn outline small" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
+        <a class="btn outline small" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -309,10 +323,7 @@
         <button class="btn" id="btnNewAssignment">+ New assignment</button>
         <button class="btn outline" id="btnManageRoster">Manage classes &amp; pupils</button>
         <button class="btn outline" id="btnActivityLog">Activity log</button>
-        <a class="btn outline" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
-        <a class="btn outline" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
       </div>
-      <p class="sub" style="margin-top:-8px;">For assignments delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — one-time setup: open this config in a real SEB install once, it'll show you a key, and paste that into Django admin under "Allowed Browser Exam Keys" (do this once per platform your pupils use). Until at least one key is added, lockdown assignments will refuse every real pupil.</p>
 
       <div class="card">
         <table id="assignmentTable">
@@ -533,6 +544,7 @@
         <button class="btn small outline" id="openChatFromTaskBtn">Message teacher</button>
       </div>
       <div id="taskGradeBanner" class="hidden"></div>
+      <div id="previewNotice" class="hidden" style="background:var(--danger-bg);color:var(--danger-dark);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px;">Preview only — you're viewing this as a pupil would see it, but teachers can't answer or submit on a pupil's behalf. Have the pupil sign in with their own account to actually complete this.</div>
       <div class="viewer">
         <div class="resources-panel" id="resourcesPanel">
           <div class="resources-head">Resources</div>
@@ -768,7 +780,7 @@
               <input type="email" id="newPupilEmail" placeholder="Email" style="margin-bottom:6px;">
               <button class="btn small" id="createPupilBtn" type="button">Add pupil</button>
               <p id="pupilFormError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
-              <p id="pupilFormSuccess" class="hidden" style="color:#0ea5b7;font-size:12.5px;margin:6px 0 0;"></p>
+              <p id="pupilFormSuccess" class="hidden" style="color:var(--blue);font-size:12.5px;margin:6px 0 0;"></p>
             </div>
           </div>
         </div>
@@ -2203,7 +2215,8 @@ function clearExamTimer(){
 function setupExamTimer(a, sub, readOnly){
   clearExamTimer();
   const timerEl = document.getElementById('examTimer');
-  if(readOnly){ timerEl.textContent = 'Submitted'; timerEl.classList.remove('warn'); return; }
+  if(sub.status === 'submitted'){ timerEl.textContent = 'Submitted'; timerEl.classList.remove('warn'); return; }
+  if(readOnly){ timerEl.textContent = 'Preview'; timerEl.classList.remove('warn'); return; }
   if(!sub.startedAt || !a.durationMinutes){ timerEl.textContent = '--:--'; timerEl.classList.remove('warn'); return; }
   const endTime = new Date(sub.startedAt).getTime() + (a.durationMinutes + (sub.extraMinutes||0))*60000;
   function tick(){
@@ -2385,7 +2398,7 @@ function buildAnswerWidget(item, existingValue, readOnly, onChange){
 // ---------------- per-item response tabs (one answer/response per item; one shared notepad) ----------------
 function buildResponseTabs(a, sub){
   sub.responses = sub.responses || {};
-  const readOnly = sub.status === 'submitted';
+  const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
   const tabs = document.getElementById('responseTabs');
   const holder = document.getElementById('responseEditables');
   tabs.innerHTML = '';
@@ -2461,12 +2474,15 @@ async function openStudentTask(assignmentId){
   document.getElementById('taskPrompt').textContent = a.prompt;
   document.getElementById('openCalculatorBtn').classList.toggle('hidden', !a.allowCalculator);
   renderTaskGradeBanner(sub);
+  document.getElementById('previewNotice').classList.toggle('hidden',
+    !(document.body.dataset.role !== 'pupil' && sub.status !== 'submitted'));
   document.getElementById('calculatorModal').classList.add('hidden');
   buildResponseTabs(a, sub);
 
-  const readOnly = sub.status === 'submitted';
+  const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
   document.getElementById('btnSaveDraft').style.display = readOnly ? 'none' : 'inline-block';
-  document.getElementById('btnSubmit').textContent = readOnly ? 'Already submitted' : 'Submit to teacher';
+  document.getElementById('btnSubmit').textContent = sub.status === 'submitted' ? 'Already submitted'
+    : (readOnly ? "Preview only — teachers can't submit for a pupil" : 'Submit to teacher');
   document.getElementById('btnSubmit').disabled = readOnly;
   document.getElementById('hideNotesBtn').classList.remove('active');
   document.getElementById('pdfStage').classList.remove('notes-hidden', 'erase-mode');
