@@ -1,0 +1,3188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<title>ExamHub — Teacher &amp; Student Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --blue:#4b91c5; --blue-dark:#28186f; --border:#e3e8f2;
+    --page-bg:#edf1f9; --text:#232733; --muted:#6b7280;
+    --yellow:#ffe873; --green:#8bdc7a; --cyan:#7fe0f0; --magenta:#f56fd0;
+    --ok:#16a34a; --warn:#d97706; --idle:#94a0b0;
+    --danger:#d9231a; --danger-dark:#a91c15; --danger-bg:#fbeae9;
+    --card-radius:18px; --pill-radius:999px;
+    --card-shadow:0 1px 2px rgba(30,41,59,.04), 0 10px 28px -14px rgba(30,41,59,.16);
+    --band-low:#fef0da; --band-mid:#f9fbe4; --band-high:#e4f3e4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;color:var(--text);background:var(--page-bg);}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;}
+
+  /* ---- top brand bar ---- */
+  .brandbar{
+    height:60px;background:#fff;box-shadow:0 1px 0 rgba(30,41,59,.05);
+    display:flex;align-items:center;justify-content:space-between;padding:0 22px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--blue-dark);}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--blue);}
+  .role-toggle{display:flex;background:var(--page-bg);border-radius:var(--pill-radius);overflow:hidden;padding:3px;}
+  .role-toggle button{
+    border:none;background:transparent;padding:8px 20px;border-radius:var(--pill-radius);font-size:13px;font-weight:600;color:var(--muted);
+  }
+  .role-toggle button.active{background:var(--blue);color:#fff;}
+
+  .app{padding:26px 26px 40px;max-width:1300px;margin:0 auto;}
+  .hidden{display:none !important;}
+
+  h2{font-size:20px;margin:0 0 4px 0;}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px 0;}
+
+  .card{
+    background:#fff;border:none;box-shadow:var(--card-shadow);border-radius:var(--card-radius);padding:20px;margin-bottom:16px;
+  }
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .field input[type=text], .field input[type=number], .field input[type=date], .field input[type=datetime-local],
+  .field input[type=email], .field input[type=password], .field textarea, .field select{
+    width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:#fbfcfe;
+  }
+  .field textarea{min-height:70px;resize:vertical;}
+  .pupil-check{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;}
+  .class-group{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;}
+  .class-group-header{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;}
+  .class-group .pupil-check{padding-left:22px;font-weight:400;}
+  .roster-class-card{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+  .roster-class-card-head{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:14px;}
+  .roster-class-card .chip{display:inline-flex;align-items:center;gap:4px;background:var(--page-bg);border-radius:999px;padding:3px 10px;font-size:12px;margin:4px 4px 0 0;}
+  .roster-pupil-row{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .roster-pupil-row:last-child{border-bottom:none;}
+  .link-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0;}
+
+  .btn{
+    border:none;background:var(--blue);color:#fff;padding:10px 20px;border-radius:var(--pill-radius);
+    font-size:13px;font-weight:700;
+  }
+  .btn:hover{background:var(--blue-dark);}
+  .btn.outline{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+  .btn.outline:hover{background:#eaf7f8;}
+  .btn.small{padding:7px 14px;font-size:12px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn.danger{background:var(--danger);}
+  .btn.danger:hover{background:var(--danger-dark);}
+  .btn.outline.danger{background:#fff;color:var(--danger);border:1px solid var(--danger);}
+  .btn.outline.danger:hover{background:var(--danger-bg);}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:10px;border-bottom:1px solid var(--border);}
+  td{padding:12px 10px;border-bottom:1px solid #f0f2f8;vertical-align:middle;}
+  tr:hover td{background:#f7f9fd;}
+
+  .badge{padding:4px 11px;border-radius:var(--pill-radius);font-size:11.5px;font-weight:700;color:#fff;display:inline-block;}
+  .badge.submitted{background:var(--ok);}
+  .badge.progress{background:var(--warn);}
+  .badge.idle{background:var(--idle);}
+
+  /* ---- AssessPrep-style pill tab bar (assignment detail view) ---- */
+  .pill-tabs{display:flex;gap:6px;background:#fff;border-radius:var(--pill-radius);padding:4px;box-shadow:var(--card-shadow);
+    width:fit-content;margin-bottom:18px;flex-wrap:wrap;}
+  .pill-tabs button{border:none;background:transparent;padding:9px 18px;border-radius:var(--pill-radius);
+    font-size:13px;font-weight:700;color:var(--muted);}
+  .pill-tabs button.active{background:var(--blue);color:#fff;}
+  .stat-tiles{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+  .stat-tile{background:#fff;box-shadow:var(--card-shadow);border-radius:14px;padding:14px 22px;min-width:110px;text-align:center;}
+  .stat-tile .num{font-size:22px;font-weight:800;color:var(--text);}
+  .stat-tile .num.started{color:var(--warn);} .stat-tile .num.ended{color:var(--danger);} .stat-tile .num.submitted{color:var(--ok);}
+  .stat-tile .label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+  .phase-placeholder{background:#fff;box-shadow:var(--card-shadow);border-radius:var(--card-radius);padding:40px 24px;
+    text-align:center;color:var(--muted);font-size:13.5px;}
+  .phase-placeholder strong{display:block;color:var(--text);font-size:15px;margin-bottom:6px;}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:60;display:flex;align-items:center;justify-content:center;}
+
+  .grade-item-card{margin-bottom:10px;}
+  .grade-item-card textarea{width:100%;margin-top:8px;min-height:44px;font-family:inherit;font-size:12.5px;
+    padding:6px 8px;border:1px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box;}
+  .grade-score-input{width:64px;padding:6px;border:1px solid var(--border);border-radius:8px;text-align:right;font-size:13px;}
+  .grade-answer-preview{background:#f7f9fd;border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+  .chat-thread{max-height:320px;min-height:120px;overflow-y:auto;padding:4px 2px;display:flex;flex-direction:column;gap:8px;}
+  .chat-msg{max-width:82%;padding:7px 11px;border-radius:12px;font-size:13px;line-height:1.4;word-break:break-word;}
+  .chat-msg.mine{align-self:flex-end;background:var(--blue);color:#fff;}
+  .chat-msg.theirs{align-self:flex-start;background:#f0f2f8;color:var(--text);}
+  .chat-msg .meta{font-size:10.5px;opacity:.75;margin-top:3px;}
+  .activity-row{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .activity-row:last-child{border-bottom:none;}
+  .activity-row .meta{color:var(--muted);font-size:11.5px;margin-top:2px;}
+  #taskGradeBanner{background:#eaf7f8;border:1px solid #b7e4e8;border-radius:10px;padding:12px 16px;margin-bottom:12px;}
+  #taskGradeBanner .score{font-size:20px;font-weight:800;color:var(--blue-dark);}
+
+  .calc-body{padding:12px;}
+  .calc-display{background:#f7f9fd;border:1px solid var(--border);border-radius:9px;padding:12px 10px;text-align:right;
+    font-size:22px;font-variant-numeric:tabular-nums;margin-bottom:10px;overflow-x:auto;white-space:nowrap;}
+  .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .calc-btn{border:none;background:#f0f2f8;border-radius:8px;padding:10px 0;font-size:14px;font-weight:700;color:var(--text);}
+  .calc-btn:hover{background:#e3e8f2;}
+  .calc-btn.calc-op{background:#eaf7f8;color:var(--blue-dark);}
+  .calc-btn.calc-op:hover{background:#d8f0f2;}
+  .calc-btn.calc-eq{background:var(--blue);color:#fff;}
+  .calc-btn.calc-eq:hover{background:var(--blue-dark);}
+
+  select#pupilSelect{max-width:280px;}
+
+  .text-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .text-row input.text-label{width:120px;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:13px;}
+  .text-row input.text-pdf{flex:1;font-size:13px;}
+  .item-row{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fbfbfd;}
+  .item-row-head{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .item-row-head input.item-label{flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;}
+  .item-row-head .item-type-badge{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .item-row textarea.item-prompt{width:100%;min-height:56px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;margin-bottom:8px;}
+  .item-option-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
+  .item-option-row input[type="text"]{flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:7px;font-size:13px;}
+  .item-row .remove-item-row{margin-top:4px;}
+
+  /* ---- task viewer (reused exam UI) ---- */
+  .viewer{
+    display:flex;height:76vh;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;
+  }
+  .resources-panel{width:140px;flex-shrink:0;border-right:1px solid var(--border);background:#fafbfc;overflow-y:auto;}
+  .resources-head{padding:10px 10px 6px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .resource-group{padding:2px 10px 8px;}
+  .resource-group-label{font-size:12px;font-weight:700;color:var(--text);margin:6px 0 4px;}
+  .resource-thumb{border:2px solid transparent;border-radius:4px;cursor:pointer;margin-bottom:8px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+  .resource-thumb.active{border-color:var(--blue);}
+  .resource-thumb canvas{display:block;width:100%;height:auto;pointer-events:none;}
+  .resource-thumb .thumb-label{font-size:10px;text-align:center;padding:2px 0;color:var(--muted);background:#fff;}
+  .resource-thumb.question-thumb{padding:14px 6px 6px;text-align:center;}
+  .resource-thumb.question-thumb .q-icon{font-size:20px;}
+
+  .pdf-pane{flex:1.5;display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0;}
+  .pdf-toolbar{
+    display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;
+  }
+  .pdf-toolbar .grow{flex:1;}
+  .swatch{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.15);}
+  .swatch.y{background:var(--yellow);} .swatch.g{background:var(--green);}
+  .swatch.c{background:var(--cyan);} .swatch.m{background:var(--magenta);}
+  .swatch.erase{background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--danger);}
+  .swatch.selected{outline:2px solid var(--blue);outline-offset:1px;}
+  .icon-btn{
+    border:1px solid var(--border);background:#fff;border-radius:5px;padding:6px 9px;font-size:12px;color:#3c4552;
+    display:flex;align-items:center;gap:5px;
+  }
+  .icon-btn svg{display:block;}
+  .icon-btn.active{background:#e0f5f6;color:var(--blue);border-color:var(--blue);}
+  .mode-btn{
+    border:1px solid var(--border);background:#fff;border-radius:5px;padding:6px 10px;font-size:12px;color:var(--muted);
+  }
+  .mode-btn.active{background:#e0f5f6;color:var(--blue);border-color:var(--blue);}
+  .timer-chip{margin-left:2px;padding:5px 12px;border-radius:14px;background:#eef1f4;font-weight:700;font-size:13px;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .timer-chip.warn{background:var(--danger-bg);color:var(--danger);}
+
+  .pdf-scroll{flex:1;overflow:auto;background:#eceff2;display:flex;justify-content:center;padding:16px;}
+  .question-prompt-pane{flex:1;overflow:auto;background:#fff;padding:28px 32px;}
+  .question-prompt-label{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+  .question-prompt-text{font-size:16px;line-height:1.6;white-space:pre-wrap;}
+  .answer-widget{margin-top:20px;max-width:520px;}
+  .answer-option{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;background:#fff;}
+  .answer-option:hover{border-color:var(--blue);}
+  .answer-option input{width:16px;height:16px;flex-shrink:0;}
+  .tf-toggle{display:flex;gap:10px;}
+  .tf-toggle button{flex:1;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;font-size:14px;cursor:pointer;}
+  .tf-toggle button.selected{border-color:var(--blue);background:#eaf7f8;color:var(--blue);font-weight:600;}
+  .fill-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:15px;}
+  .answer-table{border-collapse:collapse;width:100%;}
+  .answer-table td{border:1px solid var(--border);padding:2px;}
+  .answer-table input{width:100%;border:none;padding:8px;font-size:14px;background:transparent;}
+  .answer-table th{border:1px solid var(--border);padding:8px;background:var(--page-bg);font-size:12.5px;}
+  .answer-readonly-note{color:var(--muted);font-size:13px;margin-top:10px;}
+  .pdf-stage{position:relative;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+  .pdf-stage canvas{display:block;position:relative;z-index:1;}
+
+  .hl-layer{position:absolute;top:0;left:0;z-index:2;pointer-events:none;}
+  .hl-box{position:absolute;opacity:.45;border-radius:1px;pointer-events:none;}
+  .hl-box.y{background:var(--yellow);} .hl-box.g{background:var(--green);}
+  .hl-box.c{background:var(--cyan);} .hl-box.m{background:var(--magenta);}
+  .pdf-stage.erase-mode .hl-box{pointer-events:auto;cursor:pointer;}
+
+  .textLayer{position:absolute;top:0;left:0;overflow:hidden;line-height:1;z-index:3;transform-origin:0 0;}
+  .textLayer span, .textLayer br{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%;}
+  .textLayer ::selection{background:rgba(14,165,183,.3);}
+
+  .note-layer{position:absolute;top:0;left:0;z-index:4;pointer-events:none;}
+  .note-layer > *{pointer-events:auto;}
+
+  .hl-note-btn{position:absolute;width:17px;height:17px;line-height:15px;text-align:center;font-size:11px;
+    background:#fff;border:1px solid var(--border);border-radius:50%;cursor:pointer;color:var(--blue-dark);padding:0;z-index:5;}
+  .hl-note-btn:hover{background:#eaf7f8;}
+  .hl-note-pop{position:absolute;width:190px;background:#fff;border:1px solid var(--border);border-radius:6px;
+    box-shadow:0 3px 10px rgba(0,0,0,.18);z-index:8;padding:7px;}
+  .hl-note-pop textarea{width:100%;height:60px;border:1px solid var(--border);border-radius:4px;padding:5px;font-size:12px;resize:vertical;}
+  .hl-note-pop.readonly-note{pointer-events:none;background:#fbfbfc;}
+
+  .img-note-menu{position:absolute;background:#fff;border:1px solid var(--border);border-radius:6px;
+    box-shadow:0 3px 10px rgba(0,0,0,.2);z-index:9;padding:6px;display:flex;flex-direction:column;gap:4px;width:220px;}
+  .img-note-menu button{border:1px solid var(--border);background:#fff;border-radius:5px;padding:7px 8px;font-size:12px;text-align:left;color:var(--text);}
+  .img-note-menu button:hover{background:#eaf7f8;}
+
+  .note{
+    position:absolute;width:170px;min-height:90px;background:#fdf6b2;border:1px solid #e2d27a;
+    box-shadow:0 3px 8px rgba(0,0,0,.15);border-radius:2px;z-index:6;
+  }
+  .note-head{height:18px;background:#f7e979;cursor:move;border-bottom:1px solid #e2d27a;
+    display:flex;justify-content:flex-end;}
+  .note-head button{border:none;background:none;font-size:11px;cursor:pointer;color:#5b5326;width:18px;}
+  .note textarea{width:100%;height:70px;border:none;background:transparent;resize:none;padding:6px;font-size:12.5px;outline:none;}
+  .note.minimized{width:28px;min-height:28px;border-radius:50%;background:#f7e979;border:2px solid #d5bd30;overflow:hidden;}
+  .note.minimized .note-head{height:28px;border:none;align-items:center;justify-content:center;color:#6b5710;}
+  .note.minimized .note-head::before{content:'✎';font-size:15px;}
+  .note.minimized textarea,.note.minimized .del{display:none;}
+
+  .pdf-stage.notes-hidden .hl-box,.pdf-stage.notes-hidden .note,
+  .pdf-stage.notes-hidden .hl-note-btn,.pdf-stage.notes-hidden .hl-note-pop{display:none !important;}
+
+  .page-nav{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+
+  .resp-pane{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .resp-top{padding:14px 16px 8px 16px;}
+  .resp-top .prompt{font-size:14px;color:var(--text);}
+  .response-tabs{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}
+  .rich-toolbar{display:flex;flex-wrap:wrap;gap:3px;padding:6px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);align-items:center;}
+  .rich-toolbar button{min-width:26px;height:26px;border:none;background:none;border-radius:4px;font-size:13px;color:#3c4552;display:flex;align-items:center;justify-content:center;}
+  .rich-toolbar button:hover{background:#eef1f4;}
+  .rich-toolbar select{height:26px;border:1px solid var(--border);border-radius:4px;font-size:12px;margin:0 3px;}
+  .rich-toolbar .sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+  .color-input-label{display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:#3c4552;cursor:pointer;padding:0 3px;}
+  .color-input-label input[type=color]{width:16px;height:16px;border:none;padding:0;background:none;cursor:pointer;}
+
+  .notepad-modal{
+    position:fixed;top:90px;right:40px;width:420px;max-width:90vw;background:#fff;border:1px solid var(--border);
+    border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:50;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .notepad-modal-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:16px;cursor:move;}
+  .notepad-modal-header button{border:none;background:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;}
+  .notepad-modal .rich-toolbar{padding:6px 10px;}
+  .notepad-modal .editable{padding:12px 14px;overflow-y:auto;}
+  .editable{flex:1;padding:14px 16px;font-size:14.5px;line-height:1.55;outline:none;overflow-y:auto;}
+  .editable:empty::before{content:"Write your response here...";color:#a7afb8;}
+  .viewer-footer{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);}
+
+  .readonly-note{opacity:1;}
+  .readonly-tag{font-size:11px;color:var(--muted);margin-left:8px;}
+
+  .back-link{color:var(--blue);font-size:13px;background:none;border:none;padding:0;margin-bottom:12px;font-weight:600;}
+  .empty{color:var(--muted);font-size:13.5px;padding:20px 0;text-align:center;}
+  .note-banner{
+    background:#eaf7f8;border:1px solid #b7e4e8;color:var(--blue-dark);
+    padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px;
+  }
+</style>
+</head>
+<body data-role="{% if request.user.is_superuser %}teacher{% else %}{{ request.user.role }}{% endif %}" data-username="{{ request.user.username }}" data-email="{{ request.user.email }}" data-fullname="{{ request.user.get_full_name|default:request.user.username }}">
+
+<div class="brandbar">
+  <div class="brand"><span class="dot"></span>ExamHub</div>
+  <div style="margin-left:auto;margin-right:16px;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:#0ea5b7;cursor:pointer;margin-left:8px">Sign out</button></form></div>
+  <div class="role-toggle">
+    <button id="btnTeacherRole" class="active">Teacher</button>
+    <button id="btnStudentRole">Student</button>
+  </div>
+</div>
+
+<div class="app">
+
+  <div class="note-banner">
+    Assign one or more texts (PDFs) to individual pupils, set an opening and closing time and an exam duration, and review their highlights, notes and outlines when they submit.
+  </div>
+
+  <!-- ============ TEACHER SIDE ============ -->
+  <div id="teacherView">
+
+    <div id="teacherDashboard">
+      <h2>Teacher dashboard</h2>
+      <p class="sub">Create assignments, send them to specific pupils, and review what comes back.</p>
+
+      <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn" id="btnNewAssignment">+ New assignment</button>
+        <button class="btn outline" id="btnManageRoster">Manage classes &amp; pupils</button>
+        <button class="btn outline" id="btnActivityLog">Activity log</button>
+        <a class="btn outline" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
+        <a class="btn outline" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
+      </div>
+      <p class="sub" style="margin-top:-8px;">For assignments delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — one-time setup: open this config in a real SEB install once, it'll show you a key, and paste that into Django admin under "Allowed Browser Exam Keys" (do this once per platform your pupils use). Until at least one key is added, lockdown assignments will refuse every real pupil.</p>
+
+      <div class="card">
+        <table id="assignmentTable">
+          <thead><tr><th>Title</th><th>Due</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
+          <tbody id="assignmentTbody"></tbody>
+        </table>
+        <div class="empty hidden" id="assignmentEmpty">No assignments yet. Create one to get started.</div>
+      </div>
+    </div>
+
+    <div id="teacherCreate" class="hidden">
+      <button class="back-link" id="backFromCreate">&larr; Back to dashboard</button>
+      <h2>New assignment</h2>
+      <div class="card">
+        <p class="sub" id="teacherIdentityNote" style="margin-top:0;"></p>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="aTitle" placeholder="e.g. Paper 1 — Guided Analysis Practice">
+        </div>
+        <div class="field">
+          <label>Prompt / instructions for pupils</label>
+          <textarea id="aPrompt" placeholder="e.g. Write a guided analysis of text 1 or text 2."></textarea>
+        </div>
+        <div class="field">
+          <label>Content &amp; questions (add as many as you need, in any mix — a PDF text to annotate, or a question)</label>
+          <div id="itemsRows"></div>
+          <div class="row" style="gap:8px;align-items:center;margin-top:6px;">
+            <select id="newItemTypeSelect" style="padding:8px;border-radius:9px;border:1px solid var(--border);">
+              <option value="pdf">PDF text (annotate + write about it)</option>
+              <option value="long_answer">Long answer</option>
+              <option value="mcq_single">Multiple choice (single answer)</option>
+              <option value="mcq_multiple">Multiple choice (multiple answers)</option>
+              <option value="true_false">True / False</option>
+              <option value="fill_text">Fill in the blank</option>
+              <option value="table">Table</option>
+            </select>
+            <button type="button" class="btn small outline" id="addItemRowBtn">+ Add</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Delivery mode</label>
+          <div class="pill-tabs" id="deliveryModePicker">
+            <button type="button" class="active" data-mode="browser">Any browser</button>
+            <button type="button" data-mode="browser_secure">Any browser with security</button>
+            <button type="button" data-mode="lockdown">Lockdown app</button>
+            <button type="button" data-mode="paper">Paper</button>
+          </div>
+          <p class="sub" id="deliveryModeNote" style="margin:6px 0 0"></p>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Start condition</label>
+            <div class="pill-tabs" id="startConditionPicker">
+              <button type="button" class="active" data-cond="any">Any time</button>
+              <button type="button" data-cond="scheduled">Scheduled time</button>
+            </div>
+          </div>
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Opens at</label>
+            <input type="datetime-local" id="aOpen" disabled>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Close condition</label>
+            <div class="pill-tabs" id="closeConditionPicker">
+              <button type="button" class="active" data-cond="manual">Manual</button>
+              <button type="button" data-cond="scheduled">Scheduled</button>
+            </div>
+          </div>
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Closes at</label>
+            <input type="datetime-local" id="aDue" disabled>
+          </div>
+        </div>
+        <div class="field">
+          <label>Exam duration (minutes)</label>
+          <input type="number" id="aDuration" min="1" value="60">
+        </div>
+        <div class="field">
+          <div class="pupil-check">
+            <input type="checkbox" id="aRequireJoinCode">
+            <label for="aRequireJoinCode">Require a join code to start the assessment</label>
+          </div>
+          <div class="pupil-check">
+            <input type="checkbox" id="aAllowCalculator">
+            <label for="aAllowCalculator">Allow on-screen calculator</label>
+          </div>
+          <div class="pupil-check">
+            <input type="checkbox" id="aAllowGraphingCalculator">
+            <label for="aAllowGraphingCalculator">Allow graphing calculator <span style="color:var(--muted)">(not yet available to pupils)</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Assign to</label>
+          <p class="sub" style="margin:0 0 8px;">Tick a class to select everyone in it, or tick individual pupils below.</p>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button type="button" class="btn small outline" id="quickNewClassBtn">+ New class</button>
+            <button type="button" class="btn small outline" id="quickNewPupilBtn">+ New pupil</button>
+            <button type="button" class="btn small outline" id="manageRosterBtn">Manage classes &amp; pupils</button>
+          </div>
+          <div id="pupilChecklist"></div>
+        </div>
+        <button class="btn" id="btnCreateAssignment">Create &amp; assign</button>
+      </div>
+    </div>
+
+    <div id="teacherAssignmentDetail" class="hidden">
+      <button class="back-link" id="backFromDetail">&larr; Back to dashboard</button>
+      <h2 id="detailTitle"></h2>
+      <p class="sub" id="detailPrompt"></p>
+
+      <div class="pill-tabs" id="detailTabs">
+        <button type="button" data-detail-tab="create">Create</button>
+        <button type="button" data-detail-tab="deliver">Deliver</button>
+        <button type="button" class="active" data-detail-tab="monitor">Monitor</button>
+        <button type="button" data-detail-tab="grade">Grade</button>
+        <button type="button" data-detail-tab="analyse">Analyse</button>
+      </div>
+
+      <div id="detailPanel-create" class="detail-panel hidden">
+        <div class="phase-placeholder">
+          <strong>Editing an assignment's texts &amp; prompt is coming soon</strong>
+          For now, assignments are set up from the New Assignment form on the dashboard.
+        </div>
+      </div>
+
+      <div id="detailPanel-deliver" class="detail-panel hidden">
+        <div class="card" id="deliverSummaryCard"></div>
+      </div>
+
+      <div id="detailPanel-monitor" class="detail-panel">
+        <div class="stat-tiles" id="detailStatTiles"></div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Pupil</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <tbody id="detailTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="detailPanel-grade" class="detail-panel hidden">
+        <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <label class="sub" style="margin:0;">Pupil</label>
+          <select id="gradePupilSelect" style="padding:7px;border-radius:9px;border:1px solid var(--border);min-width:220px;"></select>
+          <div class="grow"></div>
+          <button class="btn small outline" id="publishAllGradesBtn">Publish all graded</button>
+        </div>
+        <div id="gradeBody"></div>
+      </div>
+
+      <div id="detailPanel-analyse" class="detail-panel hidden">
+        <div class="phase-placeholder">
+          <strong>Class &amp; question analytics are coming soon</strong>
+        </div>
+      </div>
+    </div>
+
+    <div id="teacherReview" class="hidden">
+      <button class="back-link" id="backFromReview">&larr; Back to assignment</button>
+      <h2 id="reviewHeading"></h2>
+      <p class="sub" id="reviewMeta"></p>
+      <div class="viewer">
+        <div class="pdf-pane" style="flex:1.5;" id="reviewPdfPane">
+          <div class="pdf-toolbar">
+            <span class="page-nav">Annotated source <span class="readonly-tag">(read-only)</span></span>
+            <select id="reviewTextSelect" style="margin-left:8px;font-size:12px;padding:4px;"></select>
+            <div class="grow"></div>
+            <div class="page-nav">
+              <button class="mode-btn small" id="reviewPrevPage">&lsaquo;</button>
+              <span id="reviewPageLabel">Page 1</span>
+              <button class="mode-btn small" id="reviewNextPage">&rsaquo;</button>
+            </div>
+          </div>
+          <div class="pdf-scroll"><div class="pdf-stage" id="reviewStage"></div></div>
+        </div>
+        <div class="resp-pane">
+          <div class="resp-top"><strong>Pupil's response / outline</strong></div>
+          <div class="editable" id="reviewResponse" style="pointer-events:none;background:#fbfbfc;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ STUDENT SIDE ============ -->
+  <div id="studentView" class="hidden">
+
+    <div id="studentLogin">
+      <h2>Preview as a pupil</h2>
+      <p class="sub">Real pupils never see this screen — they log in with their own account and go straight to their task list. This picker is only for you to preview what a chosen pupil would see.</p>
+      <div class="card" style="max-width:400px;">
+        <div class="field">
+          <label>Preview as</label>
+          <select id="pupilSelect"></select>
+        </div>
+        <button class="btn" id="btnStudentLogin">View my assignments</button>
+      </div>
+    </div>
+
+    <div id="studentTaskList" class="hidden">
+      <button class="back-link" id="backFromTaskList">&larr; Switch pupil</button>
+      <h2 id="studentGreeting"></h2>
+      <p class="sub">Your assigned tasks</p>
+      <div class="card">
+        <table>
+          <thead><tr><th>Title</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody id="studentTbody"></tbody>
+        </table>
+        <div class="empty hidden" id="studentEmpty">No assignments yet.</div>
+      </div>
+    </div>
+
+    <div id="studentTask" class="hidden">
+      <button class="back-link" id="backFromTask">&larr; Back to my tasks</button>
+      <div class="row" style="justify-content:space-between;align-items:flex-start;">
+        <h2 id="taskTitle"></h2>
+        <button class="btn small outline" id="openChatFromTaskBtn">Message teacher</button>
+      </div>
+      <div id="taskGradeBanner" class="hidden"></div>
+      <div class="viewer">
+        <div class="resources-panel" id="resourcesPanel">
+          <div class="resources-head">Resources</div>
+          <div id="resourcesList"></div>
+        </div>
+        <div class="pdf-pane">
+          <div class="pdf-toolbar">
+            <span id="pdfOnlyControls" style="display:contents;">
+              <div class="swatch y selected" data-color="y" title="Yellow"></div>
+              <div class="swatch g" data-color="g" title="Green"></div>
+              <div class="swatch c" data-color="c" title="Cyan"></div>
+              <div class="swatch m" data-color="m" title="Magenta"></div>
+              <div class="swatch erase" data-color="erase" title="Erase highlight">&times;</div>
+              <button class="icon-btn active" id="modeHighlight" title="Highlight text, or click an image to add a note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
+                Highlight
+              </button>
+            </span>
+            <button class="icon-btn" id="openNotepadBtn" title="Notepad (your own outline notes)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Notepad
+            </button>
+            <button class="icon-btn hidden" id="openCalculatorBtn" title="Calculator">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/><line x1="8" y1="19" x2="8" y2="19.01"/><line x1="12" y1="19" x2="12" y2="19.01"/></svg>
+              Calculator
+            </button>
+            <span id="pdfOnlyControls2" style="display:contents;">
+              <button class="icon-btn" id="hideNotesBtn" title="Hide all highlights and notes">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Hide notes
+              </button>
+            </span>
+            <div class="grow"></div>
+            <span class="timer-chip" id="examTimer" title="Time remaining in this exam">--:--</span>
+            <div class="page-nav" id="pageNavControls">
+              <button class="mode-btn small" id="prevPage">&lsaquo;</button>
+              <span id="pageLabel">Page 1</span>
+              <button class="mode-btn small" id="nextPage">&rsaquo;</button>
+            </div>
+            <span id="textLayerDiag" style="font-size:11px;color:var(--muted);margin-left:8px;" title="Diagnostic: how many selectable text spans pdf.js rendered on this page"></span>
+          </div>
+          <div class="pdf-scroll" id="pdfScroll"><div class="pdf-stage" id="pdfStage"></div></div>
+          <div class="question-prompt-pane hidden" id="questionPromptPane">
+            <div class="question-prompt-label" id="questionPromptLabel"></div>
+            <div class="question-prompt-text" id="questionPromptText"></div>
+          </div>
+        </div>
+        <div class="resp-pane">
+          <div class="resp-top">
+            <div class="prompt" id="taskPrompt"></div>
+            <div class="response-tabs" id="responseTabs"></div>
+          </div>
+          <div class="rich-toolbar" id="responseToolbar">
+            <button data-cmd="bold" title="Bold"><b>B</b></button>
+            <button data-cmd="italic" title="Italic"><i>I</i></button>
+            <button data-cmd="underline" title="Underline"><u>U</u></button>
+            <button data-cmd="superscript" title="Superscript">x²</button>
+            <button data-cmd="subscript" title="Subscript">x₂</button>
+            <span class="sep"></span>
+            <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
+            <button data-cmd="insertUnorderedList" title="Bulleted list">&#8226;</button>
+            <button data-cmd="outdent" title="Decrease indent">⇤</button>
+            <button data-cmd="indent" title="Increase indent">⇥</button>
+            <span class="sep"></span>
+            <button data-cmd="justifyLeft" title="Align left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg></button>
+            <button data-cmd="justifyCenter" title="Align center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+            <button data-cmd="justifyRight" title="Align right"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="6" y1="18" x2="20" y2="18"/></svg></button>
+            <button data-cmd="justifyFull" title="Justify"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+            <span class="sep"></span>
+            <button class="insert-table-btn" title="Insert table"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="16" x2="21" y2="16"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg></button>
+            <button data-cmd="undo" title="Undo">↩</button>
+            <button data-cmd="redo" title="Redo">↪</button>
+            <span class="sep"></span>
+            <select class="font-family-select" title="Font">
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+              <option value="'Times New Roman'">Times New Roman</option>
+              <option value="'Courier New'">Courier New</option>
+              <option value="Verdana">Verdana</option>
+            </select>
+            <select class="font-size-select" title="Size">
+              <option value="12">12px</option>
+              <option value="14">14px</option>
+              <option value="16" selected>16px</option>
+              <option value="18">18px</option>
+              <option value="20">20px</option>
+              <option value="24">24px</option>
+            </select>
+          </div>
+          <div id="responseEditables"></div>
+        </div>
+      </div>
+      <div class="viewer-footer">
+        <button class="btn outline" id="btnSaveDraft">Save draft</button>
+        <button class="btn" id="btnSubmit">Submit to teacher</button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="joinCodeBackdrop">
+      <div class="card" style="width:340px;max-width:90vw;">
+        <h2 style="margin-bottom:6px;">Enter join code</h2>
+        <p class="sub">This assessment requires a join code from your teacher before you can start.</p>
+        <input type="text" id="joinCodeInput" placeholder="e.g. 4F7K2Q" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;font-size:16px;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:6px;">
+        <p id="joinCodeError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="btn outline small" id="joinCodeCancelBtn" type="button">Cancel</button>
+          <button class="btn small" id="joinCodeConfirmBtn" type="button">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="sebGateBackdrop">
+      <div class="card" style="width:420px;max-width:92vw;">
+        <h2 style="margin-bottom:6px;">Safe Exam Browser required</h2>
+        <p class="sub">This assessment must be opened in Safe Exam Browser (SEB), not a regular browser.</p>
+        <p class="sub" id="sebGateMessage" style="margin-top:10px;"></p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+          <a class="btn outline" href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">1. Install Safe Exam Browser (if you haven't already)</a>
+          <a class="btn" id="sebGateLaunchBtn" href="#">2. Open in Safe Exam Browser</a>
+          <a class="btn outline small" href="/api/seb/config/" download style="align-self:center;">Not opening automatically? Download the lockdown file manually</a>
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="btn outline small" id="sebGateCancelBtn" type="button">Back</button>
+          <button class="btn small" id="sebGateRetryBtn" type="button">I've opened this in SEB — try again</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="notepad-modal hidden" id="notepadModal">
+      <div class="notepad-modal-header" id="notepadHeader">
+        <span>Notepad</span>
+        <button type="button" id="closeNotepadBtn" title="Close">&times;</button>
+      </div>
+      <div class="rich-toolbar" id="notepadToolbar">
+        <button data-cmd="undo" title="Undo">↩</button>
+        <button data-cmd="redo" title="Redo">↪</button>
+        <span class="sep"></span>
+        <button data-cmd="bold" title="Bold"><b>B</b></button>
+        <button data-cmd="italic" title="Italic"><i>I</i></button>
+        <button data-cmd="underline" title="Underline"><u>U</u></button>
+        <span class="sep"></span>
+        <button data-cmd="justifyLeft" title="Align left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg></button>
+        <button data-cmd="justifyCenter" title="Align center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+        <button data-cmd="justifyRight" title="Align right"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="6" y1="18" x2="20" y2="18"/></svg></button>
+        <button data-cmd="justifyFull" title="Justify"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+        <span class="sep"></span>
+        <button data-cmd="insertUnorderedList" title="Bulleted list">&#8226;</button>
+        <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
+        <button data-cmd="help" title="Help" id="notepadHelpBtn">?</button>
+        <br style="flex-basis:100%;height:0;">
+        <button class="insert-table-btn" title="Insert table"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="16" x2="21" y2="16"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg></button>
+        <select class="font-family-select" title="Font">
+          <option value="Arial">Arial</option>
+          <option value="Georgia">Georgia</option>
+          <option value="'Times New Roman'">Times New Roman</option>
+          <option value="'Courier New'">Courier New</option>
+          <option value="Verdana">Verdana</option>
+        </select>
+        <select class="font-size-select" title="Size">
+          <option value="12">12px</option>
+          <option value="14">14px</option>
+          <option value="16" selected>16px</option>
+          <option value="18">18px</option>
+          <option value="20">20px</option>
+          <option value="24">24px</option>
+        </select>
+        <label class="color-input-label" title="Text color">A<input type="color" class="font-color-input" value="#1f2328"></label>
+        <label class="color-input-label" title="Highlight color"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg><input type="color" class="hilite-color-input" value="#ffe873"></label>
+      </div>
+      <div class="editable" id="notepadEditable" contenteditable="true" style="min-height:180px;max-height:320px;"></div>
+    </div>
+
+    <div class="notepad-modal hidden" id="calculatorModal" style="width:230px;">
+      <div class="notepad-modal-header" id="calculatorHeader">
+        <span>Calculator</span>
+        <button type="button" id="closeCalculatorBtn" title="Close">&times;</button>
+      </div>
+      <div class="calc-body">
+        <div class="calc-display" id="calcDisplay">0</div>
+        <div class="calc-grid">
+          <button type="button" class="calc-btn calc-op" data-calc="clear">C</button>
+          <button type="button" class="calc-btn calc-op" data-calc="backspace">&larr;</button>
+          <button type="button" class="calc-btn calc-op" data-calc="%">%</button>
+          <button type="button" class="calc-btn calc-op" data-calc="/">&divide;</button>
+          <button type="button" class="calc-btn" data-calc="7">7</button>
+          <button type="button" class="calc-btn" data-calc="8">8</button>
+          <button type="button" class="calc-btn" data-calc="9">9</button>
+          <button type="button" class="calc-btn calc-op" data-calc="*">&times;</button>
+          <button type="button" class="calc-btn" data-calc="4">4</button>
+          <button type="button" class="calc-btn" data-calc="5">5</button>
+          <button type="button" class="calc-btn" data-calc="6">6</button>
+          <button type="button" class="calc-btn calc-op" data-calc="-">&minus;</button>
+          <button type="button" class="calc-btn" data-calc="1">1</button>
+          <button type="button" class="calc-btn" data-calc="2">2</button>
+          <button type="button" class="calc-btn" data-calc="3">3</button>
+          <button type="button" class="calc-btn calc-op" data-calc="+">+</button>
+          <button type="button" class="calc-btn" data-calc="0">0</button>
+          <button type="button" class="calc-btn" data-calc=".">.</button>
+          <button type="button" class="calc-btn calc-eq" data-calc="=" style="grid-column:span 2;">=</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+    <div class="modal-backdrop hidden" id="rosterModal">
+      <div class="card" style="width:720px;max-width:94vw;max-height:86vh;overflow:auto;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;">Classes &amp; pupils</h2>
+          <button type="button" class="btn outline small" id="closeRosterBtn">Close</button>
+        </div>
+        <p class="sub">Shared across all teachers — anyone can add a class or pupil here, or create them in Django admin.</p>
+        <div class="row" style="gap:18px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="flex:1;min-width:280px;">
+            <h3 style="margin:10px 0 6px;font-size:14px;">Classes</h3>
+            <div id="rosterClassList"></div>
+            <div class="field" style="margin-top:10px;">
+              <label>New class name</label>
+              <div class="row" style="gap:8px;">
+                <input type="text" id="newClassName" placeholder="e.g. Grade 10 — Newton" style="flex:1;">
+                <button class="btn small" id="createClassBtn" type="button">Add class</button>
+              </div>
+              <p id="classFormError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+            </div>
+          </div>
+          <div style="flex:1;min-width:280px;">
+            <h3 style="margin:10px 0 6px;font-size:14px;">Pupils</h3>
+            <div id="rosterPupilList" style="max-height:220px;overflow:auto;"></div>
+            <div class="field" style="margin-top:10px;">
+              <label>New pupil</label>
+              <input type="text" id="newPupilFirstName" placeholder="First name" style="margin-bottom:6px;">
+              <input type="text" id="newPupilLastName" placeholder="Last name (optional)" style="margin-bottom:6px;">
+              <input type="email" id="newPupilEmail" placeholder="Email" style="margin-bottom:6px;">
+              <button class="btn small" id="createPupilBtn" type="button">Add pupil</button>
+              <p id="pupilFormError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+              <p id="pupilFormSuccess" class="hidden" style="color:#0ea5b7;font-size:12.5px;margin:6px 0 0;"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="editAssignmentModal">
+      <div class="card" style="width:520px;max-width:94vw;max-height:86vh;overflow:auto;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;">Edit assignment</h2>
+          <button type="button" class="btn outline small" id="closeEditAssignmentBtn">Close</button>
+        </div>
+        <p class="sub">Settings only — to change the PDFs or questions themselves, delete and recreate the assignment for now.</p>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="editAssignmentTitle">
+        </div>
+        <div class="field">
+          <label>Instructions (optional)</label>
+          <textarea id="editAssignmentInstructions" rows="2"></textarea>
+        </div>
+        <div class="row" style="gap:10px;">
+          <div class="field" style="flex:1;">
+            <label>Opens at</label>
+            <input type="datetime-local" id="editAssignmentOpensAt">
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Due at (optional)</label>
+            <input type="datetime-local" id="editAssignmentDueAt">
+          </div>
+        </div>
+        <div class="row" style="gap:10px;">
+          <div class="field" style="flex:1;">
+            <label>Exam duration (minutes)</label>
+            <input type="number" min="1" id="editAssignmentDuration">
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Delivery mode</label>
+            <select id="editAssignmentDeliveryMode">
+              <option value="browser">Any browser</option>
+              <option value="browser_secure">Browser with security</option>
+              <option value="lockdown">Lockdown mode</option>
+            </select>
+          </div>
+        </div>
+        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
+          <input type="checkbox" id="editAssignmentJoinCode"> Require a join code
+        </label>
+        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
+          <input type="checkbox" id="editAssignmentCalculator"> Allow on-screen calculator
+        </label>
+        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
+          <input type="checkbox" id="editAssignmentGraphingCalculator"> Allow graphing calculator
+        </label>
+        <p id="editAssignmentError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:6px 0 0;"></p>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button type="button" class="btn outline small" id="cancelEditAssignmentBtn">Cancel</button>
+          <button type="button" class="btn small" id="saveEditAssignmentBtn">Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="deleteAssignmentModal">
+      <div class="card" style="width:440px;max-width:92vw;">
+        <h2 style="margin:0 0 6px;">Delete assignment</h2>
+        <p class="sub" style="margin-top:0;">This permanently deletes "<strong id="deleteAssignmentTitle"></strong>" and every pupil's submission, highlights and notes for it. This can't be undone.</p>
+        <div class="field" style="margin-bottom:6px;">
+          <label>Type your password to confirm</label>
+          <input type="password" id="deleteAssignmentPassword" autocomplete="current-password">
+        </div>
+        <p id="deleteAssignmentError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button type="button" class="btn outline small" id="cancelDeleteAssignmentBtn">Cancel</button>
+          <button type="button" class="btn small danger" id="confirmDeleteAssignmentBtn">Delete permanently</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="accommodationModal">
+      <div class="card" style="width:380px;max-width:92vw;">
+        <h2 style="margin:0 0 6px;" id="accommodationTitle">Accommodations</h2>
+        <p class="sub" style="margin-top:0;">Extra time and/or early access for this pupil, on top of the assignment's own schedule.</p>
+        <div class="field">
+          <label>Extra time (minutes)</label>
+          <input type="number" min="0" id="accommodationExtraMinutes" value="0">
+        </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label>Early access from (optional)</label>
+          <input type="datetime-local" id="accommodationOpensOverride">
+        </div>
+        <p id="accommodationError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button type="button" class="btn outline small" id="cancelAccommodationBtn">Cancel</button>
+          <button type="button" class="btn small" id="saveAccommodationBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="chatModal">
+      <div class="card" style="width:420px;max-width:92vw;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;" id="chatModalTitle">Messages</h2>
+          <button type="button" class="link-btn" id="closeChatModalBtn" style="color:var(--muted);font-size:18px;">&times;</button>
+        </div>
+        <div class="chat-thread" id="chatThread"></div>
+        <div class="row" style="gap:8px;margin-top:8px;">
+          <input type="text" id="chatInput" placeholder="Write a message…" style="flex:1;padding:9px 10px;border:1px solid var(--border);border-radius:9px;">
+          <button type="button" class="btn small" id="chatSendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="activityLogModal">
+      <div class="card" style="width:480px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;">Activity log</h2>
+          <button type="button" class="link-btn" id="closeActivityLogBtn" style="color:var(--muted);font-size:18px;">&times;</button>
+        </div>
+        <p class="sub" style="margin:2px 0 8px;">Recent actions across the shared teacher account — not exhaustive.</p>
+        <div id="activityLogBody" style="overflow-y:auto;flex:1;"></div>
+      </div>
+    </div>
+
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+// ---------------- shared in-memory state (no localStorage per platform rules) ----------------
+const state = {
+  pupils: [],          // populated from /api/pupils/ (real accounts an admin or teacher created with role=Pupil)
+  pupilEmails: {},
+  pupilIds: {},          // name -> id, so the "assign to" checklist can add a not-yet-grouped pupil to a class
+  classes: [],          // populated from /api/classes/ — [{id,name,teacherNames,pupils:[{id,name,email}]}]
+  assignments: [], // {id,title,prompt,items:[{id,type,label,order,...}],assignedTo:[],submissions:{pupil:{status,annotations:[],responses:{itemId:...},outlineHtml,submittedAt}}}
+  currentPupil: null,
+  currentPupilEmail: null,
+  currentAssignmentId: null,
+  currentTextId: null,
+  currentPage: 1,
+  textDocs: {},        // itemId (pdf items only) -> pdfjs document
+  textThumbBuilt: false,
+  highlightColor: 'y',
+  mode: 'highlight',   // 'highlight' | 'erase'
+  notesHidden: false,
+  pendingImageNote: null,
+  examTimerInterval: null,
+  examExpiredHandled: false,
+  monitorPollInterval: null   // Phase 3: keeps the Monitor tab's status/table fresh while open
+};
+
+function csrfToken(){ return document.cookie.match(/(?:^|; )csrftoken=([^;]*)/)?.[1] || document.querySelector('meta[name="csrf-token"]').content || ''; }
+async function request(url, options={}){
+  const response = await fetch(url, {...options, headers:{'X-CSRFToken':csrfToken(), ...(options.headers||{})}});
+  if(!response.ok) throw new Error(await response.text() || 'Something went wrong.');
+  return response.json();
+}
+function apiErrorMessage(error){
+  let message = error.message || 'Something went wrong.';
+  try { message = JSON.parse(error.message).detail || message; } catch(_) { /* not JSON, use as-is */ }
+  return message;
+}
+function apiAssignment(a){
+  const submissions={};
+  a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responses:r.responses||{}, outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, startedAt:r.startedAt||null,
+    extraMinutes:r.extraMinutes||0, opensOverride:r.opensOverride||null,
+    itemScores:r.itemScores||{}, totalScore:r.totalScore ?? null, maxScore:r.maxScore ?? null,
+    gradedAt:r.gradedAt||null, published:!!r.published}; });
+  return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? new Date(a.dueAt).toLocaleString() : '—', dueAt:a.dueAt, opensAt:a.opensAt,durationMinutes:a.durationMinutes||60,items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
+    teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'',
+    deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
+    allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator};
+}
+async function loadAssignments(pupilEmail=''){
+  const result=await request('/api/assignments/' + (pupilEmail ? '?pupil_email='+encodeURIComponent(pupilEmail) : ''));
+  state.assignments=result.assignments.map(apiAssignment);
+}
+
+// ---------------- role toggle ----------------
+document.getElementById('btnTeacherRole').addEventListener('click', ()=>switchRole('teacher'));
+document.getElementById('btnStudentRole').addEventListener('click', ()=>switchRole('student'));
+function switchRole(role){
+  if(document.body.dataset.role==='pupil' && role==='teacher') return;
+  if(role==='student') stopMonitorPolling();
+  document.getElementById('btnTeacherRole').classList.toggle('active', role==='teacher');
+  document.getElementById('btnStudentRole').classList.toggle('active', role==='student');
+  document.getElementById('teacherView').classList.toggle('hidden', role!=='teacher');
+  document.getElementById('studentView').classList.toggle('hidden', role!=='student');
+  if(role==='teacher') showTeacherDashboard();
+  if(role==='student') showStudentLogin();
+}
+
+// ================= TEACHER SIDE =================
+function showTeacherDashboard(){
+  stopMonitorPolling();
+  hideAll('#teacherView > div');
+  document.getElementById('teacherDashboard').classList.remove('hidden');
+  renderAssignmentTable();
+}
+function hideAll(selector){ document.querySelectorAll(selector).forEach(el=>el.classList.add('hidden')); }
+
+function renderAssignmentTable(){
+  const tbody = document.getElementById('assignmentTbody');
+  tbody.innerHTML = '';
+  document.getElementById('assignmentEmpty').classList.toggle('hidden', state.assignments.length>0);
+  state.assignments.forEach(a=>{
+    const submittedCount = Object.values(a.submissions).filter(s=>s.status==='submitted').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${a.title}</strong></td>
+      <td>${a.due || '—'}</td>
+      <td>${a.assignedTo.length} pupil(s)</td>
+      <td>${submittedCount} / ${a.assignedTo.length}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn small outline" data-action="view" data-id="${a.id}">View</button>
+          <button class="btn small outline" data-action="edit" data-id="${a.id}">Edit</button>
+          <button class="btn small outline danger" data-action="delete" data-id="${a.id}">Delete</button>
+        </div>
+      </td>
+    `;
+    tr.querySelector('[data-action="view"]').addEventListener('click', ()=>showAssignmentDetail(a.id));
+    tr.querySelector('[data-action="edit"]').addEventListener('click', ()=>openEditAssignmentModal(a.id));
+    tr.querySelector('[data-action="delete"]').addEventListener('click', ()=>openDeleteAssignmentModal(a.id));
+    tbody.appendChild(tr);
+  });
+}
+
+// ---------------- edit assignment (settings only) ----------------
+function toDatetimeLocalValue(iso){
+  if(!iso) return '';
+  // Deliberately NOT a `new Date()` conversion: the create-assignment form sends its
+  // datetime-local value straight through as a raw wall-clock string (no timezone math), and
+  // the backend stores/returns it the same way. Converting through Date() here would apply the
+  // browser's local UTC offset on the way in without undoing it on the way out, silently
+  // drifting opensAt/dueAt by that offset on every single edit — even ones that never touch the
+  // date fields. Extracting the literal digits keeps prefill-then-save a true no-op.
+  const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  return m ? `${m[1]}T${m[2]}` : '';
+}
+let editingAssignmentId = null;
+function openEditAssignmentModal(id){
+  const a = state.assignments.find(x=>x.id===id);
+  if(!a) return;
+  editingAssignmentId = id;
+  document.getElementById('editAssignmentTitle').value = a.title || '';
+  document.getElementById('editAssignmentInstructions').value = a.prompt || '';
+  document.getElementById('editAssignmentOpensAt').value = toDatetimeLocalValue(a.opensAt);
+  document.getElementById('editAssignmentDueAt').value = toDatetimeLocalValue(a.dueAt);
+  document.getElementById('editAssignmentDuration').value = a.durationMinutes || 60;
+  document.getElementById('editAssignmentDeliveryMode').value = a.deliveryMode || 'browser';
+  document.getElementById('editAssignmentJoinCode').checked = !!a.requireJoinCode;
+  document.getElementById('editAssignmentCalculator').checked = !!a.allowCalculator;
+  document.getElementById('editAssignmentGraphingCalculator').checked = !!a.allowGraphingCalculator;
+  const errorEl = document.getElementById('editAssignmentError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  document.getElementById('editAssignmentModal').classList.remove('hidden');
+}
+function closeEditAssignmentModal(){
+  document.getElementById('editAssignmentModal').classList.add('hidden');
+  editingAssignmentId = null;
+}
+document.getElementById('closeEditAssignmentBtn').addEventListener('click', closeEditAssignmentModal);
+document.getElementById('cancelEditAssignmentBtn').addEventListener('click', closeEditAssignmentModal);
+document.getElementById('saveEditAssignmentBtn').addEventListener('click', async ()=>{
+  const id = editingAssignmentId;
+  const errorEl = document.getElementById('editAssignmentError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  const title = document.getElementById('editAssignmentTitle').value.trim();
+  if(!title){ errorEl.textContent = 'Give the assignment a title.'; errorEl.classList.remove('hidden'); return; }
+  const durationMinutes = parseInt(document.getElementById('editAssignmentDuration').value, 10);
+  if(!durationMinutes || durationMinutes < 1){ errorEl.textContent = 'Exam duration must be a whole number of minutes.'; errorEl.classList.remove('hidden'); return; }
+  const payload = {
+    title,
+    instructions: document.getElementById('editAssignmentInstructions').value.trim(),
+    opensAt: document.getElementById('editAssignmentOpensAt').value || null,
+    dueAt: document.getElementById('editAssignmentDueAt').value || null,
+    durationMinutes,
+    deliveryMode: document.getElementById('editAssignmentDeliveryMode').value,
+    requireJoinCode: document.getElementById('editAssignmentJoinCode').checked,
+    allowCalculator: document.getElementById('editAssignmentCalculator').checked,
+    allowGraphingCalculator: document.getElementById('editAssignmentGraphingCalculator').checked,
+  };
+  const btn = document.getElementById('saveEditAssignmentBtn');
+  btn.disabled = true;
+  try {
+    await request(`/api/assignments/${id}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    await loadAssignments();
+    closeEditAssignmentModal();
+    renderAssignmentTable();
+    // If this assignment's detail view happens to be open, refresh it too.
+    if(state.currentAssignmentId === id) showAssignmentDetail(id);
+  } catch(error) {
+    errorEl.textContent = error.message || 'Could not save changes.';
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------------- delete assignment (password re-check) ----------------
+let deletingAssignmentId = null;
+function openDeleteAssignmentModal(id){
+  const a = state.assignments.find(x=>x.id===id);
+  if(!a) return;
+  deletingAssignmentId = id;
+  document.getElementById('deleteAssignmentTitle').textContent = a.title || '';
+  document.getElementById('deleteAssignmentPassword').value = '';
+  const errorEl = document.getElementById('deleteAssignmentError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  document.getElementById('deleteAssignmentModal').classList.remove('hidden');
+  document.getElementById('deleteAssignmentPassword').focus();
+}
+function closeDeleteAssignmentModal(){
+  document.getElementById('deleteAssignmentModal').classList.add('hidden');
+  deletingAssignmentId = null;
+}
+document.getElementById('cancelDeleteAssignmentBtn').addEventListener('click', closeDeleteAssignmentModal);
+document.getElementById('confirmDeleteAssignmentBtn').addEventListener('click', async ()=>{
+  const id = deletingAssignmentId;
+  const errorEl = document.getElementById('deleteAssignmentError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  const password = document.getElementById('deleteAssignmentPassword').value;
+  if(!password){ errorEl.textContent = 'Enter your password to confirm.'; errorEl.classList.remove('hidden'); return; }
+  const btn = document.getElementById('confirmDeleteAssignmentBtn');
+  btn.disabled = true;
+  try {
+    await request(`/api/assignments/${id}/delete/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password})});
+    closeDeleteAssignmentModal();
+    await loadAssignments();
+    showTeacherDashboard();
+  } catch(error) {
+    errorEl.textContent = error.message || 'Could not delete this assignment.';
+    errorEl.classList.remove('hidden');
+    document.getElementById('deleteAssignmentPassword').value = '';
+    document.getElementById('deleteAssignmentPassword').focus();
+  } finally {
+    btn.disabled = false;
+  }
+});
+document.getElementById('deleteAssignmentPassword').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('confirmDeleteAssignmentBtn').click(); }
+});
+
+const ITEM_TYPE_LABELS = {
+  pdf: 'PDF text', long_answer: 'Long answer', mcq_single: 'Multiple choice (single)',
+  mcq_multiple: 'Multiple choice (multiple)', true_false: 'True / False',
+  fill_text: 'Fill in the blank', table: 'Table',
+};
+function optionRowHtml(id, text){
+  return `<div class="item-option-row" data-option-id="${id}">
+    <input type="text" class="item-option-text" placeholder="Option text" value="${text ? text.replace(/"/g,'&quot;') : ''}">
+    <button type="button" class="link-btn remove-option-row" style="color:var(--muted);">Remove</button>
+  </div>`;
+}
+function addItemRow(type, defaultLabel){
+  const rows = document.getElementById('itemsRows');
+  const idx = rows.children.length;
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.dataset.itemType = type;
+  const label = defaultLabel || `Item ${idx + 1}`;
+  let bodyHtml = '';
+  if(type === 'pdf'){
+    bodyHtml = `<input type="file" class="item-pdf-file" accept="application/pdf" style="width:100%;">`;
+  } else {
+    bodyHtml = `<textarea class="item-prompt" placeholder="Question prompt…"></textarea>`;
+    if(type === 'mcq_single' || type === 'mcq_multiple'){
+      bodyHtml += `<div class="item-options-list">${optionRowHtml('opt1')}${optionRowHtml('opt2')}</div>
+        <button type="button" class="btn small outline add-option-btn" style="margin-bottom:8px;">+ Add option</button>
+        <p class="sub" style="margin:0 0 6px;">Mark the correct answer${type === 'mcq_multiple' ? '(s)' : ''} below once options are filled in.</p>
+        <div class="item-correct-picker"></div>`;
+    } else if(type === 'true_false'){
+      bodyHtml += `<div class="tf-toggle" style="max-width:220px;">
+        <button type="button" class="item-tf-choice" data-value="true">True</button>
+        <button type="button" class="item-tf-choice" data-value="false">False</button>
+      </div>`;
+    } else if(type === 'fill_text'){
+      bodyHtml += `<label class="sub" style="display:block;margin-bottom:4px;">Accepted answer(s), comma-separated</label>
+        <input type="text" class="item-accepted-answers" placeholder="e.g. Paris, paris" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;">`;
+    } else if(type === 'table'){
+      bodyHtml += `<div class="row" style="gap:10px;">
+        <label class="sub">Rows <input type="number" class="item-table-rows" min="1" value="3" style="width:56px;margin-left:4px;"></label>
+        <label class="sub">Columns <input type="number" class="item-table-cols" min="1" value="3" style="width:56px;margin-left:4px;"></label>
+      </div>`;
+    }
+  }
+  row.innerHTML = `
+    <div class="item-row-head">
+      <span class="item-type-badge">${ITEM_TYPE_LABELS[type] || type}</span>
+      <input type="text" class="item-label" placeholder="Label" value="${label}">
+      <label class="sub" style="display:flex;align-items:center;gap:4px;white-space:nowrap;">Points
+        <input type="number" class="item-points" min="0.5" step="0.5" value="1" style="width:56px;padding:5px;border:1px solid var(--border);border-radius:6px;">
+      </label>
+      <button type="button" class="link-btn remove-item-row" style="color:var(--muted);">Remove</button>
+    </div>
+    ${bodyHtml}
+  `;
+  row.querySelector('.remove-item-row').addEventListener('click', ()=>{
+    if(document.getElementById('itemsRows').children.length > 1) row.remove();
+  });
+  if(type === 'mcq_single' || type === 'mcq_multiple'){
+    let optionCounter = 2;
+    function refreshCorrectPicker(){
+      const picker = row.querySelector('.item-correct-picker');
+      const options = Array.from(row.querySelectorAll('.item-option-row')).map(r=>({
+        id: r.dataset.optionId, text: r.querySelector('.item-option-text').value.trim() || '(untitled option)'
+      }));
+      const inputType = type === 'mcq_single' ? 'radio' : 'checkbox';
+      const checkedIds = Array.from(picker.querySelectorAll(`input:checked`)).map(i=>i.value);
+      picker.innerHTML = options.map(o=>`<label class="pupil-check"><input type="${inputType}" name="correct_${row.dataset.rowId}" value="${o.id}" ${checkedIds.includes(o.id) ? 'checked' : ''}> ${o.text}</label>`).join('');
+    }
+    row.dataset.rowId = 'r' + Math.random().toString(36).slice(2, 9);
+    row.querySelectorAll('.item-option-text').forEach(inp=>inp.addEventListener('input', refreshCorrectPicker));
+    row.querySelector('.add-option-btn').addEventListener('click', ()=>{
+      optionCounter++;
+      const list = row.querySelector('.item-options-list');
+      const div = document.createElement('div');
+      div.innerHTML = optionRowHtml('opt' + optionCounter);
+      const newRow = div.firstElementChild;
+      list.appendChild(newRow);
+      newRow.querySelector('.item-option-text').addEventListener('input', refreshCorrectPicker);
+      newRow.querySelector('.remove-option-row').addEventListener('click', ()=>{ newRow.remove(); refreshCorrectPicker(); });
+      refreshCorrectPicker();
+    });
+    row.querySelectorAll('.remove-option-row').forEach(btn=>btn.addEventListener('click', (e)=>{
+      e.target.closest('.item-option-row').remove(); refreshCorrectPicker();
+    }));
+    refreshCorrectPicker();
+  }
+  if(type === 'true_false'){
+    row.querySelectorAll('.item-tf-choice').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        row.querySelectorAll('.item-tf-choice').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+  }
+  rows.appendChild(row);
+}
+document.getElementById('addItemRowBtn').addEventListener('click', ()=>{
+  addItemRow(document.getElementById('newItemTypeSelect').value);
+});
+function collectItemsForSubmit(){
+  const items = [];
+  const pdfFiles = [];
+  let error = null;
+  Array.from(document.querySelectorAll('#itemsRows .item-row')).forEach(row=>{
+    if(error) return;
+    const type = row.dataset.itemType;
+    const label = row.querySelector('.item-label').value.trim() || undefined;
+    const pointsInput = row.querySelector('.item-points');
+    const points = pointsInput ? (parseFloat(pointsInput.value) || 1) : 1;
+    if(type === 'pdf'){
+      const file = row.querySelector('.item-pdf-file').files[0];
+      if(file){ pdfFiles.push(file); items.push({type, label, points}); }
+      return; // a PDF row with no file chosen is simply skipped, not an error
+    }
+    const prompt = row.querySelector('.item-prompt') ? row.querySelector('.item-prompt').value.trim() : '';
+    if(type === 'long_answer'){
+      items.push({type, label, prompt, points});
+    } else if(type === 'mcq_single' || type === 'mcq_multiple'){
+      const options = Array.from(row.querySelectorAll('.item-option-row')).map(r=>({
+        id: r.dataset.optionId, text: r.querySelector('.item-option-text').value.trim()
+      })).filter(o=>o.text);
+      const checked = Array.from(row.querySelectorAll('.item-correct-picker input:checked')).map(i=>i.value);
+      const correctAnswer = type === 'mcq_single' ? {optionId: checked[0] || null} : {optionIds: checked};
+      items.push({type, label, prompt, options, correctAnswer, points});
+    } else if(type === 'true_false'){
+      const chosen = row.querySelector('.item-tf-choice.selected');
+      items.push({type, label, prompt, correctAnswer: {value: chosen ? chosen.dataset.value === 'true' : null}, points});
+    } else if(type === 'fill_text'){
+      const accepted = row.querySelector('.item-accepted-answers').value.split(',').map(s=>s.trim()).filter(Boolean);
+      items.push({type, label, prompt, correctAnswer: {accepted}, points});
+    } else if(type === 'table'){
+      const rowsN = Math.max(1, parseInt(row.querySelector('.item-table-rows').value, 10) || 3);
+      const colsN = Math.max(1, parseInt(row.querySelector('.item-table-cols').value, 10) || 3);
+      items.push({type, label, prompt, options: {rows: rowsN, cols: colsN}, points});
+    }
+  });
+  return {items, pdfFiles, error};
+}
+
+// ---------------- generic pill-picker helper (delivery mode / start-close condition / assign-to) ----------------
+const DELIVERY_MODE_NOTES = {
+  browser: 'No extra restrictions — pupils can use any browser normally.',
+  browser_secure: 'Adds soft anti-copy measures (disables right-click and clipboard copy) in the pupil\'s browser. This is a deterrent, not real lockdown security.',
+  lockdown: 'Pupils must open this in Safe Exam Browser (SEB) — ExamHub verifies this server-side and blocks starting/saving/submitting otherwise. Download the shared lockdown config from the dashboard and see Django admin \u2192 Allowed Browser Exam Keys for one-time setup.',
+  paper: 'For a paper-based sitting. The assignment is recorded but pupils won\'t open it in ExamHub.',
+};
+function wirePillPicker(containerId, dataAttr, onChange){
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      container.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.dataset[dataAttr]);
+    });
+  });
+}
+function activePillValue(containerId, dataAttr){
+  const active = document.querySelector(`#${containerId} button.active`);
+  return active ? active.dataset[dataAttr] : null;
+}
+document.getElementById('dashboardSebLaunchBtn').addEventListener('click', (e)=>{
+  e.currentTarget.href = sebProtocolLink();
+});
+wirePillPicker('deliveryModePicker', 'mode', (mode)=>{
+  document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES[mode] || '';
+});
+wirePillPicker('startConditionPicker', 'cond', (cond)=>{
+  const input = document.getElementById('aOpen');
+  input.disabled = cond !== 'scheduled';
+  if(cond !== 'scheduled') input.value = '';
+});
+wirePillPicker('closeConditionPicker', 'cond', (cond)=>{
+  const input = document.getElementById('aDue');
+  input.disabled = cond !== 'scheduled';
+  if(cond !== 'scheduled') input.value = '';
+});
+async function loadPupils(){
+  try {
+    const result = await request('/api/pupils/');
+    state.pupils = result.pupils.map(p=>p.name);
+    state.pupilEmails = {};
+    state.pupilIds = {};
+    result.pupils.forEach(p=>{ state.pupilEmails[p.name] = p.email; state.pupilIds[p.name] = p.id; });
+  } catch(error) {
+    state.pupils = []; state.pupilEmails = {}; state.pupilIds = {};
+  }
+}
+
+async function loadClasses(){
+  try {
+    const result = await request('/api/classes/');
+    state.classes = result.classes;
+  } catch(error) {
+    state.classes = [];
+  }
+}
+
+// ---------------- classes & pupils: shared roster used by the assignment picker and the Manage modal ----------------
+function pupilRowHtml(p){
+  const safeId = `chk_p_${p.id}`;
+  return `<div class="pupil-check"><input type="checkbox" value="${p.name}" data-pupil-id="${p.id}" id="${safeId}"><label for="${safeId}">${p.name} <span style="color:#5b6470;font-weight:normal">(${p.email})</span></label></div>`;
+}
+
+function renderPupilChecklist(){
+  const checklist = document.getElementById('pupilChecklist');
+  checklist.innerHTML = '';
+  if(state.pupils.length === 0){
+    checklist.innerHTML = '<p class="sub">No pupil accounts yet — add one with "+ New pupil" above, or ask your admin to create some in Django admin (role: Pupil, with an email set).</p>';
+    return;
+  }
+  const groupedIds = new Set();
+  state.classes.forEach(cls=>{
+    const group = document.createElement('div');
+    group.className = 'class-group';
+    const memberIds = cls.pupils.map(p=>String(p.id));
+    memberIds.forEach(id=>groupedIds.add(id));
+    const headerId = `chk_class_${cls.id}`;
+    group.innerHTML = `<div class="class-group-header"><input type="checkbox" id="${headerId}" data-class-toggle="${cls.id}"><label for="${headerId}">${cls.name} <span style="color:var(--muted);font-weight:normal">(${cls.pupils.length} pupil${cls.pupils.length===1?'':'s'})</span></label></div>` +
+      cls.pupils.map(pupilRowHtml).join('');
+    checklist.appendChild(group);
+    group.querySelector(`[data-class-toggle="${cls.id}"]`).addEventListener('change', (e)=>{
+      group.querySelectorAll(`.pupil-check input[type="checkbox"]`).forEach(cb=>{ cb.checked = e.target.checked; });
+    });
+  });
+  const ungrouped = state.pupils.filter(name=>{
+    const match = state.classes.some(cls=>cls.pupils.some(p=>p.name===name));
+    return !match;
+  });
+  if(ungrouped.length){
+    const wrap = document.createElement('div');
+    if(state.classes.length) wrap.innerHTML = '<p class="sub" style="margin:8px 0 4px;">Not in a class yet</p>';
+    ungrouped.forEach(name=>{
+      const row = document.createElement('div');
+      row.className = 'pupil-check';
+      row.innerHTML = `<input type="checkbox" value="${name}" data-pupil-id="${state.pupilIds[name] ?? ''}" id="chk_${name.replace(/\s/g,'')}"><label for="chk_${name.replace(/\s/g,'')}">${name} <span style="color:#5b6470;font-weight:normal">(${state.pupilEmails[name]})</span></label>`;
+      wrap.appendChild(row);
+    });
+    checklist.appendChild(wrap);
+  }
+}
+
+async function refreshRosterAndChecklist(){
+  await Promise.all([loadPupils(), loadClasses()]);
+  renderPupilChecklist();
+}
+
+function renderRosterModal(){
+  const classList = document.getElementById('rosterClassList');
+  classList.innerHTML = state.classes.length ? '' : '<p class="sub">No classes yet.</p>';
+  state.classes.forEach(cls=>{
+    const card = document.createElement('div');
+    card.className = 'roster-class-card';
+    card.innerHTML = `<div class="roster-class-card-head"><span>${cls.name}</span><button type="button" class="link-btn" data-delete-class="${cls.id}">Delete</button></div>` +
+      `<div>${cls.pupils.map(p=>`<span class="chip">${p.name} <button type="button" class="link-btn" data-remove-pupil="${p.id}" data-from-class="${cls.id}" style="color:var(--muted);">×</button></span>`).join('') || '<span class="sub">No pupils yet.</span>'}</div>` +
+      `<div style="margin-top:8px;"><select data-add-to-class="${cls.id}" style="font-size:12.5px;padding:5px;border-radius:8px;border:1px solid var(--border);"><option value="">+ Add pupil to class…</option>${state.pupils.filter(name=>!cls.pupils.some(p=>p.name===name)).map(name=>`<option value="${name}">${name}</option>`).join('')}</select></div>`;
+    classList.appendChild(card);
+  });
+  classList.querySelectorAll('[data-delete-class]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Delete this class? Pupils keep their accounts — only the grouping is removed.')) return;
+      await request(`/api/classes/${btn.dataset.deleteClass}/delete/`, {method:'POST'});
+      await refreshRosterAndChecklist();
+      renderRosterModal();
+    });
+  });
+  classList.querySelectorAll('[data-remove-pupil]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const classId = btn.dataset.fromClass;
+      const cls = state.classes.find(c=>String(c.id)===classId);
+      const remainingIds = cls.pupils.map(p=>p.id).filter(id=>String(id)!==btn.dataset.removePupil);
+      await request(`/api/classes/${classId}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pupilIds:remainingIds})});
+      await refreshRosterAndChecklist();
+      renderRosterModal();
+    });
+  });
+  classList.querySelectorAll('[data-add-to-class]').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      if(!sel.value) return;
+      const classId = sel.dataset.addToClass;
+      const cls = state.classes.find(c=>String(c.id)===classId);
+      // #pupilChecklist always reflects the current roster (refreshed just before this modal
+      // opens), even while hidden behind it, so it's a reliable name -> id lookup here.
+      const idMatch = document.querySelector(`#pupilChecklist input[value="${CSS.escape(sel.value)}"]`);
+      const pupilId = idMatch ? idMatch.dataset.pupilId : null;
+      const nextIds = cls.pupils.map(p=>p.id);
+      if(pupilId) nextIds.push(Number(pupilId));
+      await request(`/api/classes/${classId}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pupilIds:nextIds})});
+      await refreshRosterAndChecklist();
+      renderRosterModal();
+    });
+  });
+
+  const pupilList = document.getElementById('rosterPupilList');
+  pupilList.innerHTML = state.pupils.length ? '' : '<p class="sub">No pupil accounts yet.</p>';
+  state.pupils.forEach(name=>{
+    const row = document.createElement('div');
+    row.className = 'roster-pupil-row';
+    row.innerHTML = `<span>${name}</span><span class="sub">${state.pupilEmails[name]}</span>`;
+    pupilList.appendChild(row);
+  });
+}
+
+function openRosterModal(){
+  document.getElementById('rosterModal').classList.remove('hidden');
+  document.getElementById('classFormError').classList.add('hidden');
+  document.getElementById('pupilFormError').classList.add('hidden');
+  document.getElementById('pupilFormSuccess').classList.add('hidden');
+  renderRosterModal();
+}
+['btnManageRoster','manageRosterBtn'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); });
+});
+document.getElementById('quickNewClassBtn').addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); document.getElementById('newClassName').focus(); });
+document.getElementById('quickNewPupilBtn').addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); document.getElementById('newPupilFirstName').focus(); });
+document.getElementById('closeRosterBtn').addEventListener('click', async ()=>{
+  document.getElementById('rosterModal').classList.add('hidden');
+  // The assignment picker may be open behind the modal — keep it in sync with any roster changes.
+  if(!document.getElementById('teacherCreate').classList.contains('hidden')) renderPupilChecklist();
+});
+document.getElementById('createClassBtn').addEventListener('click', async ()=>{
+  const nameInput = document.getElementById('newClassName');
+  const errorEl = document.getElementById('classFormError');
+  errorEl.classList.add('hidden');
+  const name = nameInput.value.trim();
+  if(!name){ errorEl.textContent = 'Give the class a name.'; errorEl.classList.remove('hidden'); return; }
+  try {
+    await request('/api/classes/create/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
+    nameInput.value = '';
+    await refreshRosterAndChecklist();
+    renderRosterModal();
+  } catch(error) {
+    errorEl.textContent = error.message || 'Could not create that class.';
+    errorEl.classList.remove('hidden');
+  }
+});
+document.getElementById('createPupilBtn').addEventListener('click', async ()=>{
+  const firstName = document.getElementById('newPupilFirstName').value.trim();
+  const lastName = document.getElementById('newPupilLastName').value.trim();
+  const email = document.getElementById('newPupilEmail').value.trim();
+  const errorEl = document.getElementById('pupilFormError');
+  const successEl = document.getElementById('pupilFormSuccess');
+  errorEl.classList.add('hidden'); successEl.classList.add('hidden');
+  if(!firstName || !email){ errorEl.textContent = 'First name and email are required.'; errorEl.classList.remove('hidden'); return; }
+  try {
+    const pupil = await request('/api/pupils/create/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({firstName, lastName, email})});
+    document.getElementById('newPupilFirstName').value = '';
+    document.getElementById('newPupilLastName').value = '';
+    document.getElementById('newPupilEmail').value = '';
+    successEl.textContent = `Added ${pupil.name}. Temporary password: ${pupil.tempPassword} — share this with them so they can sign in (username: ${pupil.username}).`;
+    successEl.classList.remove('hidden');
+    await refreshRosterAndChecklist();
+    renderRosterModal();
+  } catch(error) {
+    errorEl.textContent = error.message || 'Could not create that pupil.';
+    errorEl.classList.remove('hidden');
+  }
+});
+
+document.getElementById('btnNewAssignment').addEventListener('click', async ()=>{
+  hideAll('#teacherView > div');
+  document.getElementById('teacherCreate').classList.remove('hidden');
+  document.getElementById('teacherIdentityNote').textContent =
+    `Creating as ${document.body.dataset.fullname} (${document.body.dataset.email || 'no email on file — ask your admin to add one'})`;
+  document.getElementById('aTitle').value='';
+  document.getElementById('aPrompt').value='';
+  document.getElementById('aOpen').value=''; document.getElementById('aOpen').disabled = true;
+  document.getElementById('aDue').value=''; document.getElementById('aDue').disabled = true;
+  document.getElementById('aDuration').value='60';
+  document.getElementById('aRequireJoinCode').checked = false;
+  document.getElementById('aAllowCalculator').checked = false;
+  document.getElementById('aAllowGraphingCalculator').checked = false;
+  document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES.browser;
+  ['deliveryModePicker','startConditionPicker','closeConditionPicker'].forEach(id=>{
+    const c = document.getElementById(id);
+    c.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', i===0));
+  });
+  document.getElementById('itemsRows').innerHTML = '';
+  document.getElementById('newItemTypeSelect').value = 'pdf';
+  addItemRow('pdf', 'Text 1');
+  const checklist = document.getElementById('pupilChecklist');
+  checklist.innerHTML = '<p class="sub">Loading pupils…</p>';
+  await refreshRosterAndChecklist();
+});
+document.getElementById('backFromCreate').addEventListener('click', showTeacherDashboard);
+
+document.getElementById('btnCreateAssignment').addEventListener('click', async ()=>{
+  const title = document.getElementById('aTitle').value.trim();
+  const prompt = document.getElementById('aPrompt').value.trim();
+  const startCondition = activePillValue('startConditionPicker', 'cond');
+  const closeCondition = activePillValue('closeConditionPicker', 'cond');
+  const opensAt = startCondition === 'scheduled' ? document.getElementById('aOpen').value : '';
+  const due = closeCondition === 'scheduled' ? document.getElementById('aDue').value : '';
+  const duration = document.getElementById('aDuration').value.trim() || '60';
+  const assignedTo = Array.from(document.querySelectorAll('#pupilChecklist input:checked')).map(c=>c.value);
+
+  const {items, pdfFiles} = collectItemsForSubmit();
+  const form = new FormData();
+  pdfFiles.forEach(f=>form.append('pdfs', f));
+
+  if(closeCondition === 'scheduled' && !due){
+    alert('Pick a closing date and time, or switch the close condition to Manual.');
+    return;
+  }
+  if(startCondition === 'scheduled' && !opensAt){
+    alert('Pick an opening date and time, or switch the start condition to Any time.');
+    return;
+  }
+  if(!title || items.length===0 || assignedTo.length===0){
+    alert('Please add a title, at least one text or question, and at least one pupil.');
+    return;
+  }
+  try {
+    form.append('title', title); form.append('instructions', prompt);
+    form.append('opens_at', opensAt); form.append('due_at', due); form.append('duration_minutes', duration);
+    form.append('delivery_mode', activePillValue('deliveryModePicker', 'mode') || 'browser');
+    form.append('require_join_code', document.getElementById('aRequireJoinCode').checked ? 'true' : 'false');
+    form.append('allow_calculator', document.getElementById('aAllowCalculator').checked ? 'true' : 'false');
+    form.append('allow_graphing_calculator', document.getElementById('aAllowGraphingCalculator').checked ? 'true' : 'false');
+    form.append('items_meta', JSON.stringify(items));
+    form.append('recipients', JSON.stringify(assignedTo.map(name=>({name,email:state.pupilEmails[name]}))));
+    await request('/api/assignments/create/', {method:'POST', body:form});
+    await loadAssignments(); showTeacherDashboard();
+  } catch(error) { alert(error.message); }
+});
+
+const DELIVERY_MODE_LABELS = {
+  browser: 'Any browser', browser_secure: 'Any browser with security', lockdown: 'Lockdown app', paper: 'Paper',
+};
+function deliverRow(label, value){
+  return `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:10px 0;">
+    <span style="color:var(--muted);font-size:13px;">${label}</span><span style="font-weight:700;font-size:13.5px;">${value}</span></div>`;
+}
+function renderDeliverSummary(a){
+  const rows = [
+    deliverRow('Delivery mode', DELIVERY_MODE_LABELS[a.deliveryMode] || a.deliveryMode),
+    deliverRow('Start condition', a.opensAt ? `Scheduled — ${new Date(a.opensAt).toLocaleString()}` : 'Any time'),
+    deliverRow('Close condition', a.dueAt ? `Scheduled — ${new Date(a.dueAt).toLocaleString()}` : 'Manual (no close date)'),
+    deliverRow('Exam duration', `${a.durationMinutes} minutes`),
+    deliverRow('Join code', a.requireJoinCode ? `Required — <span style="font-family:monospace;letter-spacing:.05em;">${a.joinCode || '(hidden)'}</span>` : 'Not required'),
+    deliverRow('On-screen calculator', a.allowCalculator ? 'Allowed' : 'Not allowed'),
+    deliverRow('Graphing calculator', a.allowGraphingCalculator ? 'Allowed (not yet available to pupils)' : 'Not allowed'),
+  ];
+  document.getElementById('deliverSummaryCard').innerHTML = `<h2 style="margin-bottom:14px;">Delivery settings</h2>` + rows.join('');
+}
+function switchDetailTab(tab){
+  document.querySelectorAll('#detailTabs button').forEach(b=>b.classList.toggle('active', b.dataset.detailTab===tab));
+  document.querySelectorAll('.detail-panel').forEach(p=>{
+    p.classList.toggle('hidden', p.id !== 'detailPanel-' + tab);
+  });
+  if(tab === 'grade'){
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    if(a) renderGradeTab(a);
+  }
+}
+
+// ---------------- Phase 5: grading & publishing ----------------
+const AUTO_GRADED_TYPES = ['mcq_single','mcq_multiple','true_false','fill_text'];
+function renderGradeTab(a){
+  const sel = document.getElementById('gradePupilSelect');
+  const prev = sel.value;
+  sel.innerHTML = a.assignedTo.map(p=>{
+    const sub = a.submissions[p];
+    let tag = '';
+    if(sub.status !== 'submitted') tag = ' — not submitted';
+    else if(sub.published) tag = ' — published';
+    else if(sub.gradedAt) tag = ' — graded';
+    else tag = ' — needs grading';
+    return `<option value="${escapeHtml(p)}">${escapeHtml(p)}${tag}</option>`;
+  }).join('');
+  if(prev && a.assignedTo.includes(prev)) sel.value = prev;
+  renderGradeBody(a, sel.value);
+}
+document.getElementById('gradePupilSelect').addEventListener('change', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(a) renderGradeBody(a, document.getElementById('gradePupilSelect').value);
+});
+function gradeScoreCellHtml(item, existing){
+  const isAutoType = AUTO_GRADED_TYPES.includes(item.type);
+  const hasAnswerKey = item.correctAnswer && Object.keys(item.correctAnswer).length > 0;
+  const isOverridden = existing.auto === false;
+  if(isAutoType && hasAnswerKey && !isOverridden){
+    const scoreLabel = existing.score != null ? `${existing.score} / ${item.points}` : `— / ${item.points}`;
+    return `<div data-mode="auto"><span class="badge ${existing.score ? 'submitted' : 'idle'}">Auto: ${scoreLabel}</span>
+      <button type="button" class="link-btn override-score-btn" style="display:block;margin-top:4px;font-size:11.5px;color:var(--blue);">Override</button></div>`;
+  }
+  return `<div data-mode="manual"><input type="number" class="grade-score-input" min="0" max="${item.points}" step="0.5" value="${existing.score != null ? existing.score : ''}"> <span class="sub">/ ${item.points}</span></div>`;
+}
+function renderGradeBody(a, pupil){
+  const body = document.getElementById('gradeBody');
+  if(!pupil){ body.innerHTML = '<div class="empty">No pupils assigned yet.</div>'; return; }
+  const sub = a.submissions[pupil];
+  if(!sub || sub.status !== 'submitted'){
+    body.innerHTML = `<div class="phase-placeholder"><strong>Not submitted yet</strong>${escapeHtml(pupil)} hasn't submitted this assignment.</div>`;
+    return;
+  }
+  const scores = sub.itemScores || {};
+  const rows = a.items.map(item=>{
+    const raw = (sub.responses||{})[item.id] ?? (sub.responses||{})[String(item.id)];
+    const existing = scores[String(item.id)] || {};
+    const answerHtml = (item.type==='pdf' || item.type==='long_answer')
+      ? (raw ? `<div class="grade-answer-preview">${raw}</div>` : '<em>No response written.</em>')
+      : readableAnswer(item, raw);
+    return `<div class="card grade-item-card" data-item-id="${item.id}">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;">${escapeHtml(item.label)}</div>
+          <div style="font-size:13px;margin-top:4px;">${answerHtml}</div>
+        </div>
+        <div class="grade-score-cell" style="min-width:150px;text-align:right;">${gradeScoreCellHtml(item, existing)}</div>
+      </div>
+      <textarea class="grade-feedback-input" placeholder="Feedback for this pupil (optional)">${existing.feedback || ''}</textarea>
+    </div>`;
+  }).join('');
+  const totalLine = sub.gradedAt
+    ? `<p class="sub">Total: <strong>${sub.totalScore}</strong> / ${sub.maxScore} · Graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? 'Published to pupil' : 'Not yet published'}</p>`
+    : '<p class="sub">Not graded yet — enter scores below and save.</p>';
+  body.innerHTML = `${totalLine}${rows}
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
+      <button class="btn outline" id="saveGradeBtn">Save grades</button>
+      <button class="btn" id="togglePublishBtn">${sub.published ? 'Unpublish' : 'Publish to pupil'}</button>
+    </div>`;
+  body.querySelectorAll('.override-score-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const card = btn.closest('.grade-item-card');
+      const itemId = card.dataset.itemId;
+      const item = a.items.find(it=>String(it.id)===itemId);
+      const existing = (scores[itemId] || {});
+      card.querySelector('.grade-score-cell').innerHTML =
+        `<div data-mode="manual"><input type="number" class="grade-score-input" min="0" max="${item.points}" step="0.5" value="${existing.score != null ? existing.score : ''}" autofocus> <span class="sub">/ ${item.points}</span></div>`;
+    });
+  });
+  document.getElementById('saveGradeBtn').addEventListener('click', ()=>saveGrade(a.id, pupil));
+  document.getElementById('togglePublishBtn').addEventListener('click', ()=>togglePublish(a.id, pupil));
+}
+async function saveGrade(assignmentId, pupil){
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[pupil];
+  const scores = {};
+  document.querySelectorAll('#gradeBody .grade-item-card').forEach(card=>{
+    const itemId = card.dataset.itemId;
+    const mode = card.querySelector('[data-mode]')?.dataset.mode;
+    const feedback = card.querySelector('.grade-feedback-input').value;
+    const entry = {feedback};
+    if(mode === 'manual'){
+      const scoreEl = card.querySelector('.grade-score-input');
+      if(scoreEl && scoreEl.value !== '') entry.score = parseFloat(scoreEl.value);
+    }
+    scores[itemId] = entry;
+  });
+  const btn = document.getElementById('saveGradeBtn');
+  btn.disabled = true;
+  try {
+    const result = await request(`/api/submissions/${sub.recipientId}/grade/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({scores})});
+    sub.itemScores = result.itemScores; sub.totalScore = result.totalScore; sub.maxScore = result.maxScore;
+    sub.gradedAt = result.gradedAt; sub.published = result.published;
+    renderGradeTab(a);
+  } catch(error) { alert(error.message || 'Could not save grades.'); }
+  finally { btn.disabled = false; }
+}
+async function togglePublish(assignmentId, pupil){
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[pupil];
+  try {
+    const result = await request(`/api/submissions/${sub.recipientId}/publish/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({publish: !sub.published})});
+    sub.published = result.published;
+    renderGradeTab(a);
+  } catch(error) { alert(error.message || 'Could not update publish state.'); }
+}
+document.getElementById('publishAllGradesBtn').addEventListener('click', async ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a) return;
+  const btn = document.getElementById('publishAllGradesBtn');
+  btn.disabled = true;
+  try {
+    const result = await request(`/api/assignments/${a.id}/publish-grades/`, {method:'POST'});
+    a.assignedTo.forEach(p=>{
+      const sub = a.submissions[p];
+      if(sub.gradedAt) sub.published = true;
+    });
+    renderGradeTab(a);
+    alert(result.published ? `Published grades for ${result.published} pupil(s).` : 'Nothing new to publish — grade some submissions first.');
+  } catch(error) { alert(error.message || 'Could not publish grades.'); }
+  finally { btn.disabled = false; }
+});
+document.querySelectorAll('#detailTabs button').forEach(b=>{
+  b.addEventListener('click', ()=>switchDetailTab(b.dataset.detailTab));
+});
+
+// ---------------- Phase 4: per-pupil accommodations (extra time / early access) ----------------
+let accommodatingRecipientId = null;
+function openAccommodationModal(recipientId, pupilName){
+  accommodatingRecipientId = recipientId;
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a && Object.values(a.submissions).find(su=>su.recipientId===recipientId);
+  document.getElementById('accommodationTitle').textContent = pupilName ? `Accommodations — ${pupilName}` : 'Accommodations';
+  document.getElementById('accommodationExtraMinutes').value = sub ? (sub.extraMinutes || 0) : 0;
+  document.getElementById('accommodationOpensOverride').value = sub ? toDatetimeLocalValue(sub.opensOverride) : '';
+  const errorEl = document.getElementById('accommodationError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  document.getElementById('accommodationModal').classList.remove('hidden');
+}
+function closeAccommodationModal(){
+  document.getElementById('accommodationModal').classList.add('hidden');
+  accommodatingRecipientId = null;
+}
+document.getElementById('cancelAccommodationBtn').addEventListener('click', closeAccommodationModal);
+document.getElementById('saveAccommodationBtn').addEventListener('click', async ()=>{
+  const recipientId = accommodatingRecipientId;
+  const errorEl = document.getElementById('accommodationError');
+  errorEl.classList.add('hidden'); errorEl.textContent = '';
+  const extraMinutes = parseInt(document.getElementById('accommodationExtraMinutes').value, 10) || 0;
+  if(extraMinutes < 0){ errorEl.textContent = 'Extra time can\'t be negative.'; errorEl.classList.remove('hidden'); return; }
+  const opensOverride = document.getElementById('accommodationOpensOverride').value || null;
+  const btn = document.getElementById('saveAccommodationBtn');
+  btn.disabled = true;
+  try {
+    const result = await request(`/api/recipients/${recipientId}/accommodations/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({extraMinutes, opensOverride})});
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    if(a){
+      const sub = Object.values(a.submissions).find(su=>su.recipientId===recipientId);
+      if(sub){ sub.extraMinutes = result.extraMinutes; sub.opensOverride = result.opensOverride; }
+    }
+    closeAccommodationModal();
+  } catch(error) {
+    errorEl.textContent = error.message || 'Could not save accommodations.';
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------------- Phase 4: lightweight 1:1 chat, scoped to one recipient ----------------
+let chatRecipientId = null;
+let chatPollInterval = null;
+// Which side of the conversation THIS OPEN MODAL represents — set per-open by whichever
+// button opened it (Monitor's "Message" vs. the pupil's "Message teacher"). This drives both
+// how a sent message is attributed server-side and which bubbles render as "mine" here.
+// Deliberately NOT derived from document.body.dataset.role/is_superuser: a teacher or a
+// superuser test account previewing "as a pupil" still authenticates as that same account,
+// so a role/is_superuser check alone would misattribute every message it sends from the
+// pupil-side UI as coming from the teacher, and the two sides would show identical bubbles.
+let chatAsPupil = false;
+function renderChatMessages(messages){
+  const myRole = chatAsPupil ? 'pupil' : 'teacher';
+  const thread = document.getElementById('chatThread');
+  thread.innerHTML = messages.length ? messages.map(m=>`
+    <div class="chat-msg ${m.senderRole===myRole ? 'mine' : 'theirs'}">
+      <div>${escapeHtml(m.text)}</div>
+      <div class="meta">${escapeHtml(m.senderName)} · ${new Date(m.createdAt).toLocaleString()}</div>
+    </div>`).join('') : '<p class="sub" style="text-align:center;">No messages yet — say hello.</p>';
+  thread.scrollTop = thread.scrollHeight;
+}
+async function pollChatOnce(){
+  if(!chatRecipientId) return;
+  try {
+    const result = await request(`/api/recipients/${chatRecipientId}/messages/`);
+    if(chatRecipientId) renderChatMessages(result.messages);
+  } catch(error) { /* a dropped poll just tries again next tick */ }
+}
+function openChatModal(recipientId, title, asPupil=false){
+  chatRecipientId = recipientId;
+  chatAsPupil = asPupil;
+  document.getElementById('chatModalTitle').textContent = title || 'Messages';
+  document.getElementById('chatThread').innerHTML = '<p class="sub" style="text-align:center;">Loading…</p>';
+  document.getElementById('chatInput').value = '';
+  document.getElementById('chatModal').classList.remove('hidden');
+  pollChatOnce();
+  if(chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = setInterval(pollChatOnce, 4000);
+  document.getElementById('chatInput').focus();
+}
+function closeChatModal(){
+  document.getElementById('chatModal').classList.add('hidden');
+  chatRecipientId = null;
+  if(chatPollInterval){ clearInterval(chatPollInterval); chatPollInterval = null; }
+}
+document.getElementById('closeChatModalBtn').addEventListener('click', closeChatModal);
+async function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || !chatRecipientId) return;
+  const recipientId = chatRecipientId;
+  const asPupil = chatAsPupil;
+  const btn = document.getElementById('chatSendBtn');
+  btn.disabled = true;
+  try {
+    await request(`/api/recipients/${recipientId}/messages/send/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text, asPupil})});
+    input.value = '';
+    await pollChatOnce();
+  } catch(error) { alert(error.message || 'Could not send message.'); }
+  finally { btn.disabled = false; }
+}
+document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); } });
+
+// ---------------- Phase 4: activity log ----------------
+async function openActivityLogModal(){
+  document.getElementById('activityLogModal').classList.remove('hidden');
+  const body = document.getElementById('activityLogBody');
+  body.innerHTML = '<p class="sub" style="text-align:center;">Loading…</p>';
+  try {
+    const result = await request('/api/activity-log/');
+    body.innerHTML = result.entries.length ? result.entries.map(e=>`
+      <div class="activity-row">
+        <div>${escapeHtml(e.description)}</div>
+        <div class="meta">${escapeHtml(e.actorName || 'Someone')} · ${new Date(e.createdAt).toLocaleString()}</div>
+      </div>`).join('') : '<p class="sub" style="text-align:center;">No activity recorded yet.</p>';
+  } catch(error) {
+    body.innerHTML = `<p class="sub" style="text-align:center;color:var(--danger);">${escapeHtml(error.message || 'Could not load the activity log.')}</p>`;
+  }
+}
+document.getElementById('btnActivityLog').addEventListener('click', openActivityLogModal);
+document.getElementById('closeActivityLogBtn').addEventListener('click', ()=>{
+  document.getElementById('activityLogModal').classList.add('hidden');
+});
+
+// ---------------- Phase 3: Monitor tab, kept live with lightweight polling ----------------
+// Renders from whatever's currently in state (either the full assignment load, or a status-only
+// poll response merged into it) — one function so the initial paint and every poll tick look the same.
+function renderMonitorPanel(a){
+  const statuses = a.assignedTo.map(p=>a.submissions[p].status);
+  const counts = {
+    all: statuses.length,
+    started: statuses.filter(s=>s==='progress').length,
+    ended: 0, // no "time expired but not submitted" distinct state is tracked yet
+    submitted: statuses.filter(s=>s==='submitted').length,
+  };
+  document.getElementById('detailStatTiles').innerHTML = `
+    <div class="stat-tile"><div class="num">${counts.all}</div><div class="label">All</div></div>
+    <div class="stat-tile"><div class="num started">${counts.started}</div><div class="label">Started</div></div>
+    <div class="stat-tile"><div class="num ended">${counts.ended}</div><div class="label">Ended</div></div>
+    <div class="stat-tile"><div class="num submitted">${counts.submitted}</div><div class="label">Submitted</div></div>
+  `;
+
+  const tbody = document.getElementById('detailTbody');
+  tbody.innerHTML = '';
+  a.assignedTo.forEach(p=>{
+    const sub = a.submissions[p];
+    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
+    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p}</td>
+      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      <td>${sub.submittedAt || '—'}</td>
+      <td class="row-actions" style="gap:6px;">
+        ${sub.status==='submitted' ? `<button class="btn small outline" data-row-action="review">Review</button>` : ''}
+        <button class="btn small outline" data-row-action="accommodate">Accommodate</button>
+        <button class="btn small outline" data-row-action="message">Message</button>
+      </td>
+    `;
+    tr.querySelector('[data-row-action="review"]')?.addEventListener('click', ()=>showReview(a.id, p));
+    tr.querySelector('[data-row-action="accommodate"]').addEventListener('click', ()=>openAccommodationModal(sub.recipientId, p));
+    tr.querySelector('[data-row-action="message"]').addEventListener('click', ()=>openChatModal(sub.recipientId, `${p} — ${a.title}`, false));
+    tbody.appendChild(tr);
+  });
+}
+function stopMonitorPolling(){
+  if(state.monitorPollInterval){ clearInterval(state.monitorPollInterval); state.monitorPollInterval = null; }
+}
+async function pollMonitorOnce(assignmentId){
+  let result;
+  try {
+    result = await request(`/api/assignments/${assignmentId}/status/`);
+  } catch(error) {
+    return; // a dropped poll just tries again next tick — no need to alarm the teacher over it
+  }
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  if(!a || state.currentAssignmentId !== assignmentId) return; // teacher navigated away mid-request
+  result.recipients.forEach(r=>{
+    const sub = a.submissions[r.name];
+    if(!sub) return;
+    sub.status = r.status==='not_started' ? 'idle' : (r.status==='draft' ? 'progress' : r.status);
+    sub.startedAt = r.startedAt;
+    sub.submittedAt = r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null;
+  });
+  const monitorVisible = !document.getElementById('detailPanel-monitor').classList.contains('hidden');
+  if(monitorVisible) renderMonitorPanel(a);
+}
+function startMonitorPolling(assignmentId){
+  stopMonitorPolling();
+  state.monitorPollInterval = setInterval(()=>pollMonitorOnce(assignmentId), 6000);
+}
+
+function showAssignmentDetail(id){
+  state.currentAssignmentId = id;
+  const a = state.assignments.find(x=>x.id===id);
+  hideAll('#teacherView > div');
+  document.getElementById('teacherAssignmentDetail').classList.remove('hidden');
+  document.getElementById('detailTitle').textContent = a.title;
+  document.getElementById('detailPrompt').textContent = a.prompt;
+  switchDetailTab('monitor');
+  renderDeliverSummary(a);
+  renderMonitorPanel(a);
+  startMonitorPolling(id);
+}
+document.getElementById('backFromDetail').addEventListener('click', ()=>{ stopMonitorPolling(); showTeacherDashboard(); });
+
+function readableAnswer(item, value){
+  if(value == null || value === '') return '<em>No answer.</em>';
+  if(item.type === 'mcq_single'){
+    const opt = (item.options||[]).find(o=>o.id===value.optionId);
+    return opt ? escapeHtml(opt.text) : '<em>No answer.</em>';
+  }
+  if(item.type === 'mcq_multiple'){
+    const ids = value.optionIds || [];
+    if(!ids.length) return '<em>No answer.</em>';
+    const labels = ids.map(id=>{ const opt=(item.options||[]).find(o=>o.id===id); return opt ? opt.text : id; });
+    return escapeHtml(labels.join(', '));
+  }
+  if(item.type === 'true_false'){
+    return value.value === true ? 'True' : (value.value === false ? 'False' : '<em>No answer.</em>');
+  }
+  if(item.type === 'fill_text'){
+    return value.text ? escapeHtml(value.text) : '<em>No answer.</em>';
+  }
+  if(item.type === 'table'){
+    const cells = value.cells || [];
+    if(!cells.length) return '<em>No answer.</em>';
+    return '<table class="answer-table">' + cells.map(row=>'<tr>' + row.map(c=>`<td>${escapeHtml(c||'')}</td>`).join('') + '</tr>').join('') + '</table>';
+  }
+  return '<em>No answer.</em>';
+}
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function showReview(assignmentId, pupil){
+  hideAll('#teacherView > div');
+  document.getElementById('teacherReview').classList.remove('hidden');
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[pupil];
+  document.getElementById('reviewHeading').textContent = `${a.title} — ${pupil}`;
+  document.getElementById('reviewMeta').textContent = `Submitted ${sub.submittedAt}`;
+  const responseSections = a.items.map(item=>{
+    const raw = (sub.responses || {})[item.id] ?? (sub.responses || {})[String(item.id)];
+    const body = (item.type === 'pdf' || item.type === 'long_answer')
+      ? (raw || '<em>No response written.</em>')
+      : readableAnswer(item, raw);
+    return `<h3 style="font-size:14px">${item.type === 'pdf' ? 'Response' : 'Answer'} — ${item.label}</h3>${body}`;
+  }).join('<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0">');
+  document.getElementById('reviewResponse').innerHTML = `<h3 style="font-size:14px">Notepad (outline)</h3>${sub.outlineHtml || '<em>No notepad content.</em>'}<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0">${responseSections}`;
+
+  const pdfItems = a.items.filter(item=>item.type === 'pdf');
+  const reviewPdfPane = document.getElementById('reviewPdfPane');
+  reviewPdfPane.classList.toggle('hidden', pdfItems.length === 0);
+  if(pdfItems.length === 0) return;
+
+  const sel = document.getElementById('reviewTextSelect');
+  sel.innerHTML = pdfItems.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
+  sel.value = String(pdfItems[0].id);
+
+  let reviewTextId = Number(sel.value);
+  let reviewDoc = null, page = 1;
+
+  async function loadReviewDoc(){
+    const text = pdfItems.find(t=>t.id===reviewTextId);
+    reviewDoc = await pdfjsLib.getDocument(text.pdfUrl).promise;
+    page = 1;
+    renderReviewPage();
+  }
+  async function renderReviewPage(){
+    document.getElementById('reviewPageLabel').textContent = `Page ${page} of ${reviewDoc.numPages}`;
+    const stage = document.getElementById('reviewStage');
+    stage.innerHTML = '';
+    const pg = await reviewDoc.getPage(page);
+    const viewport = pg.getViewport({scale:1.2});
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    stage.style.width = viewport.width+'px'; stage.style.height = viewport.height+'px';
+    await pg.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
+    stage.appendChild(canvas);
+    const overlay = document.createElement('div');
+    overlay.className='note-layer'; overlay.style.width=viewport.width+'px'; overlay.style.height=viewport.height+'px';
+    stage.appendChild(overlay);
+    sub.annotations.filter(an=>an.textId===reviewTextId && an.page===page).forEach(an=>{
+      if(an.type==='highlight'){
+        (an.rects||[]).forEach(r=>{
+          const box = document.createElement('div');
+          box.className = `hl-box ${an.color}`;
+          box.style.left=r.x+'px'; box.style.top=r.y+'px'; box.style.width=r.w+'px'; box.style.height=r.h+'px';
+          overlay.appendChild(box);
+        });
+        if(an.note){
+          const lastRect = (an.rects || [])[an.rects.length-1] || {x:0,y:0,w:0,h:0};
+          const tag = document.createElement('div');
+          tag.className = 'hl-note-pop readonly-note';
+          tag.style.left = lastRect.x+'px'; tag.style.top = (lastRect.y+lastRect.h+4)+'px';
+          tag.innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Note on highlight</div><div style="font-size:12px;">${an.note.replace(/</g,'&lt;')}</div>`;
+          overlay.appendChild(tag);
+        }
+      } else if(an.type==='image-note'){
+        if(an.scope==='full'){
+          const box = document.createElement('div');
+          box.className = `hl-box ${an.color || 'y'}`;
+          box.style.left=an.imgX+'px'; box.style.top=an.imgY+'px'; box.style.width=an.imgW+'px'; box.style.height=an.imgH+'px';
+          overlay.appendChild(box);
+        }
+        const note = document.createElement('div');
+        note.className='note readonly-note'; if(an.minimized) note.classList.add('minimized');
+        note.style.left=an.x+'px'; note.style.top=an.y+'px';
+        note.innerHTML = `<div class="note-head"></div><div style="padding:6px;font-size:12.5px;">${(an.text||'').replace(/</g,'&lt;')}</div>`;
+        overlay.appendChild(note);
+      }
+    });
+  }
+  document.getElementById('reviewPrevPage').onclick = ()=>{ if(page>1){page--; renderReviewPage();} };
+  document.getElementById('reviewNextPage').onclick = ()=>{ if(page<reviewDoc.numPages){page++; renderReviewPage();} };
+  sel.onchange = ()=>{ reviewTextId = Number(sel.value); loadReviewDoc(); };
+  loadReviewDoc();
+}
+document.getElementById('backFromReview').addEventListener('click', ()=>showAssignmentDetail(state.currentAssignmentId));
+
+// ================= STUDENT SIDE =================
+async function showStudentLogin(){
+  if(document.body.dataset.role==='pupil'){
+    state.currentPupilEmail = document.body.dataset.email;
+    loadAssignments(state.currentPupilEmail).then(()=>{
+      state.currentPupil = state.assignments[0]?.assignedTo[0] || document.body.dataset.username;
+      showStudentTaskList();
+    });
+    return;
+  }
+  hideAll('#studentView > div');
+  document.getElementById('studentLogin').classList.remove('hidden');
+  const sel = document.getElementById('pupilSelect');
+  sel.innerHTML = '<option>Loading pupils…</option>';
+  await loadPupils();
+  sel.innerHTML = state.pupils.length
+    ? state.pupils.map(p=>`<option value="${state.pupilEmails[p]}">${p} — ${state.pupilEmails[p]}</option>`).join('')
+    : '<option>No pupil accounts yet — ask your admin to create some</option>';
+}
+document.getElementById('btnStudentLogin').addEventListener('click', async ()=>{
+  state.currentPupilEmail = document.getElementById('pupilSelect').value;
+  state.currentPupil = state.pupils.find(p=>state.pupilEmails[p]===state.currentPupilEmail);
+  await loadAssignments(); showStudentTaskList();
+});
+document.getElementById('backFromTaskList').addEventListener('click', showStudentLogin);
+
+function showStudentTaskList(){
+  hideAll('#studentView > div');
+  document.getElementById('studentTaskList').classList.remove('hidden');
+  document.getElementById('studentGreeting').textContent = `Hi, ${state.currentPupil}`;
+  const mine = state.assignments.filter(a=>a.assignedTo.includes(state.currentPupil));
+  const tbody = document.getElementById('studentTbody');
+  tbody.innerHTML = '';
+  document.getElementById('studentEmpty').classList.toggle('hidden', mine.length>0);
+  mine.forEach(a=>{
+    const sub = a.submissions[state.currentPupil];
+    const scheduledOpens = a.opensAt ? new Date(a.opensAt).getTime() : 0;
+    const overrideOpens = sub.opensOverride ? new Date(sub.opensOverride).getTime() : null;
+    const now = Date.now(), opens = overrideOpens != null ? Math.min(scheduledOpens, overrideOpens) : scheduledOpens, closes = a.due ? new Date(a.due).getTime() : Infinity;
+    const locked = now < opens || now > closes;
+    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
+    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${a.title}</td>
+      <td>${a.due || '—'}</td>
+      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      <td>${locked ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small">${sub.status==='submitted' ? 'View' : 'Open'}</button>`}</td>
+    `;
+    tr.querySelector('button')?.addEventListener('click', ()=>openStudentTask(a.id));
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('backFromTask').addEventListener('click', ()=>{ clearExamTimer(); showStudentTaskList(); });
+
+// ---------------- timer helpers ----------------
+// ---------------- join-code gate (only assignments with requireJoinCode set) ----------------
+function gateWithJoinCode(a, sub){
+  return new Promise((resolve)=>{
+    const backdrop = document.getElementById('joinCodeBackdrop');
+    const input = document.getElementById('joinCodeInput');
+    const errorEl = document.getElementById('joinCodeError');
+    input.value = ''; errorEl.classList.add('hidden'); errorEl.textContent = '';
+    backdrop.classList.remove('hidden');
+    input.focus();
+
+    function cleanup(){
+      backdrop.classList.add('hidden');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      input.removeEventListener('keydown', onKeydown);
+    }
+    async function onConfirm(){
+      const code = input.value.trim();
+      if(!code){ errorEl.textContent = 'Enter the join code your teacher gave you.'; errorEl.classList.remove('hidden'); return; }
+      confirmBtn.disabled = true;
+      try {
+        const result = await request(`/api/submissions/${sub.recipientId}/start/`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({joinCode: code}),
+        });
+        sub.startedAt = result.startedAt;
+        if(sub.status==='idle') sub.status='progress';
+        cleanup();
+        resolve(true);
+      } catch(error) {
+        let message = error.message || 'Incorrect join code.';
+        try { message = JSON.parse(error.message).detail || message; } catch(_) { /* not JSON, use as-is */ }
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+      } finally {
+        confirmBtn.disabled = false;
+      }
+    }
+    function onCancel(){ cleanup(); resolve(false); }
+    function onKeydown(e){ if(e.key==='Enter') onConfirm(); }
+
+    const confirmBtn = document.getElementById('joinCodeConfirmBtn');
+    const cancelBtn = document.getElementById('joinCodeCancelBtn');
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKeydown);
+  });
+}
+
+// ---------------- Safe Exam Browser gate (only assignments delivered in "lockdown" mode) ----------------
+// Client-side detection here is a friendly hint, not the real security boundary — a pupil
+// could spoof navigator.userAgent to get past this screen. The actual enforcement happens
+// server-side (see ensureSubmissionStarted below, and the save/submit calls), which checks
+// SEB's own Browser Exam Key hash on the request. This gate just avoids sending someone
+// straight into "start submission failed" with no explanation.
+function sebDetected(){ return /SEB[/ ]/i.test(navigator.userAgent) || !!window.SafeExamBrowser; }
+// SEB registers a custom URL scheme (seb:// mirrors http://, sebs:// mirrors https://) that
+// hands the OS straight off to the installed app with the config loaded from this URL — no
+// manual file download needed, same idea as a mailto: link. Officially documented at
+// https://safeexambrowser.org/developer/seb-integration.html. This silently does nothing if
+// SEB isn't installed/registered (browsers don't reliably report success or failure for an
+// unregistered custom scheme), which is exactly why the modal's manual buttons stay visible
+// either way rather than assuming the handoff worked.
+function sebProtocolLink(){
+  const scheme = location.protocol === 'https:' ? 'sebs://' : 'seb://';
+  return scheme + location.host + '/api/seb/config/';
+}
+function gateWithSeb(a){
+  return new Promise((resolve)=>{
+    if(sebDetected()){ resolve(true); return; }
+    const backdrop = document.getElementById('sebGateBackdrop');
+    const msgEl = document.getElementById('sebGateMessage');
+    const launchBtn = document.getElementById('sebGateLaunchBtn');
+    msgEl.textContent = `"${a.title}" is set to Lockdown mode by your teacher — it must be opened in Safe Exam Browser. If you already have it installed, it should open on its own in a moment.`;
+    launchBtn.href = sebProtocolLink();
+    backdrop.classList.remove('hidden');
+    // Attempt the handoff right away too, in case SEB is already installed — still inside
+    // the same click that opened this gate, so browsers treat it as a real user gesture.
+    window.location.href = sebProtocolLink();
+    function cleanup(){
+      backdrop.classList.add('hidden');
+      retryBtn.removeEventListener('click', onRetry);
+      cancelBtn.removeEventListener('click', onCancel);
+    }
+    function onRetry(){
+      if(sebDetected()){ cleanup(); resolve(true); }
+      else { msgEl.textContent = "This browser tab still doesn't look like Safe Exam Browser. If a separate Safe Exam Browser window just opened, switch to it and open the assignment from there instead — this tab isn't it. Otherwise, install SEB or use the manual download above, then try again."; }
+    }
+    function onCancel(){ cleanup(); resolve(false); }
+    const retryBtn = document.getElementById('sebGateRetryBtn');
+    const cancelBtn = document.getElementById('sebGateCancelBtn');
+    retryBtn.addEventListener('click', onRetry);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
+function showSebBlockedNotice(assignmentId, title){
+  const backdrop = document.getElementById('sebGateBackdrop');
+  document.getElementById('sebGateMessage').textContent = `The server couldn't confirm "${title}" is running in Safe Exam Browser. Make sure you opened it via the downloaded lockdown file, then try again.`;
+  backdrop.classList.remove('hidden');
+  document.getElementById('sebGateCancelBtn').onclick = ()=>{ backdrop.classList.add('hidden'); showStudentTaskList(); };
+  document.getElementById('sebGateRetryBtn').onclick = ()=>{ backdrop.classList.add('hidden'); openStudentTask(assignmentId); };
+}
+
+async function ensureSubmissionStarted(a, sub){
+  if(sub.status==='submitted' || sub.startedAt) return {ok:true};
+  try {
+    const result = await request(`/api/submissions/${sub.recipientId}/start/`, {method:'POST'});
+    sub.startedAt = result.startedAt;
+    if(sub.status==='idle') sub.status='progress';
+    return {ok:true};
+  } catch(error) {
+    let code = null;
+    try { code = JSON.parse(error.message).code; } catch(_) { /* not JSON */ }
+    if(code === 'seb_required') return {ok:false, sebRequired:true};
+    return {ok:true}; // Timer just won't be persisted if this fails for any other reason; exam still usable.
+  }
+}
+function clearExamTimer(){
+  if(state.examTimerInterval){ clearInterval(state.examTimerInterval); state.examTimerInterval = null; }
+}
+function setupExamTimer(a, sub, readOnly){
+  clearExamTimer();
+  const timerEl = document.getElementById('examTimer');
+  if(readOnly){ timerEl.textContent = 'Submitted'; timerEl.classList.remove('warn'); return; }
+  if(!sub.startedAt || !a.durationMinutes){ timerEl.textContent = '--:--'; timerEl.classList.remove('warn'); return; }
+  const endTime = new Date(sub.startedAt).getTime() + (a.durationMinutes + (sub.extraMinutes||0))*60000;
+  function tick(){
+    const remaining = endTime - Date.now();
+    if(remaining <= 0){
+      timerEl.textContent = "Time's up";
+      timerEl.classList.add('warn');
+      clearExamTimer();
+      handleExamExpired(a, sub);
+      return;
+    }
+    const totalSec = Math.floor(remaining/1000);
+    const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+    timerEl.textContent = (h>0 ? String(h).padStart(2,'0')+':' : '') + String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    timerEl.classList.toggle('warn', remaining < 5*60000);
+  }
+  tick();
+  state.examTimerInterval = setInterval(tick, 1000);
+}
+async function handleExamExpired(a, sub){
+  if(state.examExpiredHandled || sub.status==='submitted') return;
+  state.examExpiredHandled = true;
+  document.querySelectorAll('#responseEditables .editable').forEach(ed=>{ ed.contentEditable = false; });
+  const notepadEl = document.getElementById('notepadEditable');
+  if(notepadEl) notepadEl.contentEditable = false;
+  alert("Time's up! Your work is being submitted automatically.");
+  try {
+    const {payload} = currentSubmissionPayload();
+    const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
+    document.getElementById('btnSaveDraft').style.display = 'none';
+    document.getElementById('btnSubmit').textContent = 'Already submitted';
+    document.getElementById('btnSubmit').disabled = true;
+  } catch(error) {
+    alert('Time is up, but we could not auto-submit: ' + error.message + '. Please click Submit.');
+  }
+}
+
+function markInProgress(sub){ if(sub.status==='idle') sub.status='progress'; }
+function removeAnnotation(an, sub){
+  const idx = sub.annotations.indexOf(an);
+  if(idx>-1){ sub.annotations.splice(idx,1); markInProgress(sub); renderAnnotationLayers(); }
+}
+
+// Reads whatever is currently in an item's answer widget into plain data, regardless of type.
+// Used both live (on every change, so nothing is lost if the tab is switched away from) and
+// again right before save/submit as a safety net.
+function collectAnswerFromWidget(item, holder){
+  if(item.type === 'pdf' || item.type === 'long_answer'){
+    const ed = holder.querySelector('.editable');
+    return ed ? ed.innerHTML : '';
+  }
+  if(item.type === 'mcq_single'){
+    const checked = holder.querySelector('input[type="radio"]:checked');
+    return {optionId: checked ? checked.value : null};
+  }
+  if(item.type === 'mcq_multiple'){
+    const checked = Array.from(holder.querySelectorAll('input[type="checkbox"]:checked')).map(i=>i.value);
+    return {optionIds: checked};
+  }
+  if(item.type === 'true_false'){
+    const chosen = holder.querySelector('.tf-toggle button.selected');
+    return {value: chosen ? chosen.dataset.value === 'true' : null};
+  }
+  if(item.type === 'fill_text'){
+    const input = holder.querySelector('.fill-input');
+    return {text: input ? input.value : ''};
+  }
+  if(item.type === 'table'){
+    const rows = Array.from(holder.querySelectorAll('.answer-table tr')).map(tr=>
+      Array.from(tr.querySelectorAll('input')).map(inp=>inp.value));
+    return {cells: rows};
+  }
+  return null;
+}
+
+function currentSubmissionPayload(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  sub.responses = sub.responses || {};
+  a.items.forEach(item=>{
+    const holder = document.getElementById('responseEditable_' + item.id);
+    if(holder) sub.responses[item.id] = collectAnswerFromWidget(item, holder);
+  });
+  const notepadEl = document.getElementById('notepadEditable');
+  sub.outlineHtml = notepadEl ? notepadEl.innerHTML : sub.outlineHtml;
+  return {sub, payload:{annotations:sub.annotations, outlineHtml:sub.outlineHtml, responses:sub.responses}};
+}
+
+// ---------------- building the answer widget for one item, by type ----------------
+function buildAnswerWidget(item, existingValue, readOnly, onChange){
+  const holder = document.createElement('div');
+  if(item.type === 'pdf' || item.type === 'long_answer'){
+    const ed = document.createElement('div');
+    ed.className = 'editable';
+    ed.contentEditable = !readOnly;
+    ed.innerHTML = (typeof existingValue === 'string' ? existingValue : '') || '';
+    ed.addEventListener('input', onChange);
+    holder.appendChild(ed);
+  } else if(item.type === 'mcq_single' || item.type === 'mcq_multiple'){
+    const widget = document.createElement('div');
+    widget.className = 'answer-widget';
+    const selected = item.type === 'mcq_single' ? [(existingValue||{}).optionId] : ((existingValue||{}).optionIds || []);
+    (item.options || []).forEach(opt=>{
+      const label = document.createElement('label');
+      label.className = 'answer-option';
+      const input = document.createElement('input');
+      input.type = item.type === 'mcq_single' ? 'radio' : 'checkbox';
+      input.name = 'mcq_' + item.id;
+      input.value = opt.id;
+      input.checked = selected.includes(opt.id);
+      input.disabled = readOnly;
+      input.addEventListener('change', onChange);
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(opt.text));
+      widget.appendChild(label);
+    });
+    holder.appendChild(widget);
+  } else if(item.type === 'true_false'){
+    const widget = document.createElement('div');
+    widget.className = 'answer-widget tf-toggle';
+    ['true','false'].forEach(v=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = v === 'true' ? 'True' : 'False';
+      btn.dataset.value = v;
+      if(existingValue && existingValue.value === (v === 'true')) btn.classList.add('selected');
+      btn.disabled = readOnly;
+      btn.addEventListener('click', ()=>{
+        if(readOnly) return;
+        widget.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        onChange();
+      });
+      widget.appendChild(btn);
+    });
+    holder.appendChild(widget);
+  } else if(item.type === 'fill_text'){
+    const widget = document.createElement('div');
+    widget.className = 'answer-widget';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'fill-input';
+    input.placeholder = 'Your answer…';
+    input.value = (existingValue && existingValue.text) || '';
+    input.disabled = readOnly;
+    input.addEventListener('input', onChange);
+    widget.appendChild(input);
+    holder.appendChild(widget);
+  } else if(item.type === 'table'){
+    const widget = document.createElement('div');
+    widget.className = 'answer-widget';
+    const dims = item.options && item.options.rows ? item.options : {rows:3, cols:3};
+    const cells = (existingValue && existingValue.cells) || [];
+    const table = document.createElement('table');
+    table.className = 'answer-table';
+    for(let r=0; r<dims.rows; r++){
+      const tr = document.createElement('tr');
+      for(let c=0; c<dims.cols; c++){
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = (cells[r] && cells[r][c]) || '';
+        input.disabled = readOnly;
+        input.addEventListener('input', onChange);
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    widget.appendChild(table);
+    holder.appendChild(widget);
+  } else {
+    holder.innerHTML = '<p class="answer-readonly-note">This item type isn\'t supported yet.</p>';
+  }
+  return holder;
+}
+
+// ---------------- per-item response tabs (one answer/response per item; one shared notepad) ----------------
+function buildResponseTabs(a, sub){
+  sub.responses = sub.responses || {};
+  const readOnly = sub.status === 'submitted';
+  const tabs = document.getElementById('responseTabs');
+  const holder = document.getElementById('responseEditables');
+  tabs.innerHTML = '';
+  holder.innerHTML = '';
+  a.items.forEach((item, i)=>{
+    const tabBtn = document.createElement('button');
+    tabBtn.className = 'mode-btn' + (i===0 ? ' active' : '');
+    tabBtn.textContent = a.items.length > 1 ? item.label : (item.type === 'pdf' || item.type === 'long_answer' ? 'Response' : 'Answer');
+    tabBtn.dataset.textId = item.id;
+    tabBtn.addEventListener('click', ()=>switchResponseTab(item.id));
+    tabs.appendChild(tabBtn);
+
+    const wrap = buildAnswerWidget(item, sub.responses[item.id] ?? sub.responses[String(item.id)], readOnly, ()=>{
+      sub.responses[item.id] = collectAnswerFromWidget(item, wrap);
+      markInProgress(sub);
+    });
+    wrap.className = (wrap.className ? wrap.className + ' ' : '') + 'response-item' + (i===0 ? '' : ' hidden');
+    wrap.id = 'responseEditable_' + item.id;
+    holder.appendChild(wrap);
+  });
+  state.activeResponseTextId = a.items[0] ? a.items[0].id : null;
+}
+function switchResponseTab(textId){
+  document.querySelectorAll('#responseTabs button').forEach(b=>b.classList.toggle('active', Number(b.dataset.textId)===textId));
+  document.querySelectorAll('#responseEditables .response-item').forEach(ed=>{
+    ed.classList.toggle('hidden', ed.id !== 'responseEditable_' + textId);
+  });
+  state.activeResponseTextId = textId;
+}
+
+function renderTaskGradeBanner(sub){
+  const banner = document.getElementById('taskGradeBanner');
+  if(!sub.published || sub.totalScore == null){ banner.classList.add('hidden'); banner.innerHTML = ''; return; }
+  const itemScores = sub.itemScores || {};
+  const feedbackRows = Object.entries(itemScores)
+    .filter(([, v])=>v && v.feedback)
+    .map(([, v])=>`<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(v.feedback)}</div>`).join('');
+  banner.innerHTML = `<div class="score">${sub.totalScore} / ${sub.maxScore}</div>
+    <div class="sub" style="margin:2px 0 0;">Your grade for this assignment${sub.gradedAt ? ' · graded ' + new Date(sub.gradedAt).toLocaleString() : ''}</div>
+    ${feedbackRows}`;
+  banner.classList.remove('hidden');
+}
+document.getElementById('openChatFromTaskBtn').addEventListener('click', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a && a.submissions[state.currentPupil];
+  if(sub) openChatModal(sub.recipientId, `Message ${a.teacherName || 'your teacher'}`, true);
+});
+async function openStudentTask(assignmentId){
+  const gateAssignment = state.assignments.find(x=>x.id===assignmentId);
+  const gateSub = gateAssignment.submissions[state.currentPupil];
+  if(gateAssignment.deliveryMode === 'lockdown' && gateSub.status !== 'submitted'){
+    const proceed = await gateWithSeb(gateAssignment);
+    if(!proceed) return; // pupil backed out — stay on the task list
+  }
+  if(gateAssignment.requireJoinCode && gateSub.status !== 'submitted' && !gateSub.startedAt){
+    const ok = await gateWithJoinCode(gateAssignment, gateSub);
+    if(!ok) return; // pupil cancelled, or never entered a correct code — stay on the task list
+  }
+  if(document.body.dataset.role==='pupil' && document.documentElement.requestFullscreen && !document.fullscreenElement){
+    try { await document.documentElement.requestFullscreen(); } catch(_) { /* A browser may require a separate click. */ }
+  }
+  state.currentAssignmentId = assignmentId;
+  state.examExpiredHandled = false;
+  state.notesHidden = false;
+  state.mode = 'highlight';
+  state.pendingImageNote = null;
+  state.textDocs = {};
+  hideAll('#studentView > div');
+  document.getElementById('studentTask').classList.remove('hidden');
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[state.currentPupil];
+  document.getElementById('taskTitle').textContent = a.title;
+  document.getElementById('taskPrompt').textContent = a.prompt;
+  document.getElementById('openCalculatorBtn').classList.toggle('hidden', !a.allowCalculator);
+  renderTaskGradeBanner(sub);
+  document.getElementById('calculatorModal').classList.add('hidden');
+  buildResponseTabs(a, sub);
+
+  const readOnly = sub.status === 'submitted';
+  document.getElementById('btnSaveDraft').style.display = readOnly ? 'none' : 'inline-block';
+  document.getElementById('btnSubmit').textContent = readOnly ? 'Already submitted' : 'Submit to teacher';
+  document.getElementById('btnSubmit').disabled = readOnly;
+  document.getElementById('hideNotesBtn').classList.remove('active');
+  document.getElementById('pdfStage').classList.remove('notes-hidden', 'erase-mode');
+
+  // Notepad (shared outline notes, one per submission, shown in its own popup window)
+  const notepadEl = document.getElementById('notepadEditable');
+  notepadEl.innerHTML = sub.outlineHtml || '';
+  notepadEl.contentEditable = !readOnly;
+  document.getElementById('notepadModal').classList.add('hidden');
+  document.getElementById('notepadModal').style.left = '';
+  document.getElementById('notepadModal').style.top = '90px';
+  document.getElementById('notepadModal').style.right = '40px';
+
+  const startResult = await ensureSubmissionStarted(a, sub);
+  if(!startResult.ok && startResult.sebRequired){
+    showStudentTaskList();
+    showSebBlockedNotice(assignmentId, a.title);
+    return;
+  }
+  setupExamTimer(a, sub, readOnly);
+
+  state.currentTextId = a.items[0].id;
+  state.currentPage = 1;
+  await buildResourcesPanel(a, sub);
+  await renderCurrentItem();
+}
+
+// ---------------- resources panel (page thumbnails for PDFs, a single tile per question) ----------------
+const QUESTION_TYPE_ICONS = {
+  long_answer: '✎', mcq_single: '◉', mcq_multiple: '☑', true_false: '⚖',
+  fill_text: '▭', table: '▦',
+};
+async function buildResourcesPanel(a, sub){
+  const list = document.getElementById('resourcesList');
+  list.innerHTML = '';
+  for(const item of a.items){
+    const group = document.createElement('div');
+    group.className = 'resource-group';
+    group.innerHTML = `<div class="resource-group-label">${item.label}</div>`;
+    if(item.type === 'pdf'){
+      try {
+        const doc = await pdfjsLib.getDocument(item.pdfUrl).promise;
+        state.textDocs[item.id] = doc;
+        for(let p=1; p<=doc.numPages; p++){
+          const thumb = document.createElement('div');
+          thumb.className = 'resource-thumb';
+          thumb.dataset.textId = item.id;
+          thumb.dataset.page = p;
+          thumb.innerHTML = `<div class="thumb-label">${doc.numPages > 1 ? `Page ${p}` : item.label}</div>`;
+          thumb.addEventListener('click', ()=>{
+            state.currentTextId = item.id;
+            state.currentPage = p;
+            renderCurrentItem();
+          });
+          group.appendChild(thumb);
+          // Thumbnail canvases are rendered lazily just below, in parallel with each other —
+          // one slow/broken page shouldn't block the rest of the panel from appearing.
+          renderThumbCanvas(doc, p, thumb).catch(()=>{});
+        }
+      } catch(error) {
+        console.error('ExamHub: could not load PDF for', item.label, error);
+        group.innerHTML += `<div class="sub" style="padding:6px 4px;">Couldn't load this PDF.</div>`;
+      }
+    } else {
+      const thumb = document.createElement('div');
+      thumb.className = 'resource-thumb question-thumb';
+      thumb.dataset.textId = item.id;
+      thumb.dataset.page = 1;
+      thumb.innerHTML = `<div class="q-icon">${QUESTION_TYPE_ICONS[item.type] || '?'}</div><div class="thumb-label">${item.label}</div>`;
+      thumb.addEventListener('click', ()=>{
+        state.currentTextId = item.id;
+        state.currentPage = 1;
+        renderCurrentItem();
+      });
+      group.appendChild(thumb);
+    }
+    list.appendChild(group);
+  }
+  highlightActiveThumb();
+}
+async function renderThumbCanvas(doc, pageNum, thumbEl){
+  const pg = await doc.getPage(pageNum);
+  const viewport = pg.getViewport({scale:0.22});
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  await pg.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
+  thumbEl.insertBefore(canvas, thumbEl.firstChild);
+}
+function highlightActiveThumb(){
+  document.querySelectorAll('.resource-thumb').forEach(el=>{
+    el.classList.toggle('active', Number(el.dataset.textId)===state.currentTextId && Number(el.dataset.page)===state.currentPage);
+  });
+}
+function currentItem(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  return a ? a.items.find(it=>it.id===state.currentTextId) : null;
+}
+// ---------------- dispatcher: a PDF item gets the full viewer, a question item gets its prompt ----------------
+async function renderCurrentItem(){
+  const item = currentItem();
+  const isPdf = item && item.type === 'pdf';
+  document.getElementById('pdfScroll').classList.toggle('hidden', !isPdf);
+  document.getElementById('questionPromptPane').classList.toggle('hidden', isPdf);
+  document.getElementById('pdfOnlyControls').classList.toggle('hidden', !isPdf);
+  document.getElementById('pdfOnlyControls2').classList.toggle('hidden', !isPdf);
+  document.getElementById('pageNavControls').classList.toggle('hidden', !isPdf);
+  document.getElementById('textLayerDiag').classList.toggle('hidden', !isPdf);
+  if(isPdf){
+    await renderPdfPage();
+  } else {
+    renderQuestionPrompt(item);
+  }
+  highlightActiveThumb();
+}
+function renderQuestionPrompt(item){
+  document.getElementById('questionPromptLabel').textContent = item ? item.label : '';
+  document.getElementById('questionPromptText').textContent = item ? item.prompt : '';
+}
+
+// ---------------- image detection inside a rendered PDF page ----------------
+async function extractImageRects(page, viewport){
+  const rects = [];
+  try {
+    const opList = await page.getOperatorList();
+    const OPS = pdfjsLib.OPS;
+    let ctm = [1,0,0,1,0,0];
+    const stack = [];
+    for(let i=0;i<opList.fnArray.length;i++){
+      const fn = opList.fnArray[i];
+      const args = opList.argsArray[i];
+      if(fn === OPS.save){ stack.push(ctm.slice()); }
+      else if(fn === OPS.restore){ ctm = stack.pop() || ctm; }
+      else if(fn === OPS.transform){ ctm = pdfjsLib.Util.transform(ctm, args); }
+      else if(fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject || fn === OPS.paintImageMaskXObject){
+        const corners = [[0,0],[1,0],[0,1],[1,1]].map(([x,y])=>pdfjsLib.Util.applyTransform([x,y], ctm));
+        const pts = corners.map(pt => viewport.convertToViewportPoint(pt[0], pt[1]));
+        const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]);
+        const x = Math.min(...xs), y = Math.min(...ys);
+        const w = Math.max(...xs)-x, h = Math.max(...ys)-y;
+        if(w>15 && h>15){ rects.push({x,y,w,h}); }
+      }
+    }
+  } catch(error) {
+    console.warn('ExamHub: image detection failed for this page, image notes unavailable here.', error);
+  }
+  // Drop anything that covers most of the page (a full-bleed background/watermark, not a "photo")
+  // so it can't blanket-block text selection or dominate every click.
+  const pageArea = viewport.width * viewport.height;
+  return rects.filter(r => (r.w * r.h) < pageArea * 0.65);
+}
+
+// ---------------- main page render: canvas + text layer + highlight/note layers ----------------
+// Rebuilt from scratch around two problems the old version could silently hit: (1) switching
+// pages/items quickly could let an older render finish after a newer one and stomp on it, and
+// (2) if a pdf.js render task ever stalled, the page just sat there forever with no feedback.
+// `renderGeneration` guards against (1); `withTimeout` + a visible retry state fixes (2).
+let renderGeneration = 0;
+function withTimeout(promise, ms, timeoutMessage){
+  return new Promise((resolve, reject)=>{
+    const timer = setTimeout(()=>reject(new Error(timeoutMessage)), ms);
+    promise.then(
+      (value)=>{ clearTimeout(timer); resolve(value); },
+      (error)=>{ clearTimeout(timer); reject(error); }
+    );
+  });
+}
+function showPdfRenderError(stage, message){
+  stage.innerHTML = '';
+  stage.style.width = ''; stage.style.height = '';
+  const box = document.createElement('div');
+  box.className = 'pdf-render-error';
+  box.style.cssText = 'padding:32px;max-width:360px;text-align:center;color:#5b6470;';
+  box.innerHTML = `<p style="margin-bottom:12px;">${message}</p>`;
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'btn small';
+  retryBtn.type = 'button';
+  retryBtn.textContent = 'Try again';
+  retryBtn.addEventListener('click', ()=>renderPdfPage());
+  box.appendChild(retryBtn);
+  stage.appendChild(box);
+}
+async function renderPdfPage(){
+  const myGen = ++renderGeneration;
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  const doc = state.textDocs[state.currentTextId];
+  const stage = document.getElementById('pdfStage');
+  if(!doc){
+    showPdfRenderError(stage, 'This PDF could not be loaded.');
+    return;
+  }
+  stage.innerHTML = '<div class="sub" style="padding:24px;">Loading page…</div>';
+  document.getElementById('pageLabel').textContent = `Page ${state.currentPage} of ${doc.numPages}`;
+
+  let page;
+  try {
+    page = await withTimeout(doc.getPage(state.currentPage), 15000, "This page is taking too long to load. Your connection or the file itself may be the problem.");
+  } catch(error) {
+    if(myGen !== renderGeneration) return;
+    showPdfRenderError(stage, error.message);
+    return;
+  }
+  if(myGen !== renderGeneration) return; // a newer render started while we were waiting on this one
+
+  const viewport = page.getViewport({scale:1.2});
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  const renderTask = page.render({canvasContext:canvas.getContext('2d'), viewport});
+  try {
+    await withTimeout(renderTask.promise, 15000, "This page is taking too long to render. Try again, or reload if it keeps happening.");
+  } catch(error) {
+    try { renderTask.cancel(); } catch(_) { /* already finished or already cancelled */ }
+    if(myGen !== renderGeneration) return;
+    showPdfRenderError(stage, error.message);
+    return;
+  }
+  if(myGen !== renderGeneration) return;
+
+  stage.innerHTML = '';
+  stage.classList.toggle('notes-hidden', state.notesHidden);
+  stage.classList.toggle('erase-mode', state.mode==='erase');
+  stage.style.width = viewport.width+'px'; stage.style.height = viewport.height+'px';
+  // pdf.js's text-layer CSS (width/height/font-size of every span) is expressed with calc(var(--scale-factor)*...).
+  // Without this custom property set on an ancestor, the whole text layer collapses to 0x0 and every
+  // span reports the same coordinates — text is 'there' (pointer-events:auto, N spans) but unclickable
+  // and unselectable because it has no laid-out area. Setting it here lets it inherit down to textLayerDiv
+  // and every span inside it.
+  stage.style.setProperty('--scale-factor', viewport.scale);
+  stage.appendChild(canvas);
+
+  const hlLayer = document.createElement('div');
+  hlLayer.className = 'hl-layer'; hlLayer.style.width = viewport.width+'px'; hlLayer.style.height = viewport.height+'px';
+  stage.appendChild(hlLayer);
+
+  const textLayerDiv = document.createElement('div');
+  textLayerDiv.className = 'textLayer';
+  textLayerDiv.style.width = viewport.width+'px'; textLayerDiv.style.height = viewport.height+'px';
+  textLayerDiv.style.pointerEvents = state.mode==='erase' ? 'none' : 'auto';
+  stage.appendChild(textLayerDiv);
+  let textLayerOk = false;
+  try {
+    if(typeof pdfjsLib.renderTextLayer !== 'function'){
+      throw new Error('pdfjsLib.renderTextLayer is not available in this pdf.js build');
+    }
+    const textContent = await withTimeout(page.getTextContent(), 10000, 'Timed out reading this page\'s text.');
+    if(myGen !== renderGeneration) return;
+    await withTimeout(pdfjsLib.renderTextLayer({textContentSource: textContent, container: textLayerDiv, viewport}).promise, 10000, 'Timed out building the selectable text layer.');
+    textLayerOk = textLayerDiv.childElementCount > 0;
+    if(!textLayerOk){
+      console.warn('ExamHub: text layer rendered with 0 spans on this page (the PDF page may have no embedded text, e.g. a scanned image) — text highlighting will not be available here.');
+    }
+  } catch(error) {
+    console.error('ExamHub: text layer failed to render, text highlighting unavailable on this page.', error);
+  }
+  if(myGen !== renderGeneration) return;
+  // On-page diagnostic (no DevTools needed) — read this off the toolbar and report it back if
+  // highlighting still doesn't work: it tells us in one glance whether pdf.js produced any
+  // selectable text at all, and whether something else is blocking pointer events on it.
+  const diagEl = document.getElementById('textLayerDiag');
+  if(diagEl){
+    const pe = getComputedStyle(textLayerDiv).pointerEvents;
+    diagEl.textContent = `Text: ${textLayerDiv.childElementCount} spans, pointer-events=${pe}` + (textLayerOk ? '' : ' ⚠');
+    diagEl.style.color = textLayerOk ? 'var(--muted)' : 'var(--danger)';
+  }
+
+  const noteLayer = document.createElement('div');
+  noteLayer.className = 'note-layer'; noteLayer.style.width = viewport.width+'px'; noteLayer.style.height = viewport.height+'px';
+  stage.appendChild(noteLayer);
+
+  const imageRects = sub.status !== 'submitted' ? await extractImageRects(page, viewport) : [];
+  if(myGen !== renderGeneration) return;
+  attachTextLayerInteractions(textLayerDiv, stage, sub, imageRects);
+
+  renderAnnotationLayers();
+  highlightActiveThumb();
+}
+
+// ---------------- drawing existing annotations for the current page ----------------
+function renderAnnotationLayers(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  const stage = document.getElementById('pdfStage');
+  const hlLayer = stage.querySelector('.hl-layer');
+  const noteLayer = stage.querySelector('.note-layer');
+  if(!hlLayer || !noteLayer) return;
+  hlLayer.innerHTML = '';
+  noteLayer.querySelectorAll('.note,.hl-note-btn,.hl-note-pop').forEach(el=>el.remove());
+
+  sub.annotations.filter(an=>an.textId===state.currentTextId && an.page===state.currentPage).forEach(an=>{
+    if(an.type==='highlight'){
+      (an.rects||[]).forEach(r=>{
+        const box = document.createElement('div');
+        box.className = `hl-box ${an.color}`;
+        box.style.left=r.x+'px'; box.style.top=r.y+'px'; box.style.width=r.w+'px'; box.style.height=r.h+'px';
+        box.addEventListener('click', ()=>{ if(state.mode==='erase' && sub.status!=='submitted') removeAnnotation(an, sub); });
+        hlLayer.appendChild(box);
+      });
+      renderHighlightNoteButton(noteLayer, an, sub);
+    } else if(an.type==='image-note'){
+      if(an.scope==='full'){
+        const box = document.createElement('div');
+        box.className = `hl-box ${an.color || 'y'}`;
+        box.style.left=an.imgX+'px'; box.style.top=an.imgY+'px'; box.style.width=an.imgW+'px'; box.style.height=an.imgH+'px';
+        box.addEventListener('click', ()=>{ if(state.mode==='erase' && sub.status!=='submitted') removeAnnotation(an, sub); });
+        hlLayer.appendChild(box);
+      }
+      renderStickyNote(noteLayer, an, sub);
+    }
+  });
+}
+
+function renderHighlightNoteButton(overlay, an, sub){
+  const rects = an.rects || [];
+  if(!rects.length) return;
+  const last = rects[rects.length-1];
+  const btn = document.createElement('button');
+  btn.className = 'hl-note-btn';
+  btn.type = 'button';
+  btn.textContent = an.note ? '💬' : '+';
+  btn.title = an.note ? 'Edit note on this highlight' : 'Add a note to this highlight';
+  btn.style.left = Math.max(0, last.x + last.w - 8) + 'px';
+  btn.style.top = Math.max(0, last.y - 9) + 'px';
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.hl-note-pop').forEach(p=>p.remove());
+    if(sub.status==='submitted') return;
+    const pop = document.createElement('div');
+    pop.className = 'hl-note-pop';
+    pop.style.left = last.x+'px';
+    pop.style.top = (last.y+last.h+4)+'px';
+    pop.innerHTML = `<textarea placeholder="Note about this highlight…"></textarea>`;
+    const ta = pop.querySelector('textarea');
+    ta.value = an.note || '';
+    ta.addEventListener('input', ()=>{ an.note = ta.value; btn.textContent = an.note ? '💬' : '+'; markInProgress(sub); });
+    function closePop(ev){
+      if(!pop.contains(ev.target) && ev.target!==btn){ pop.remove(); document.removeEventListener('mousedown', closePop); }
+    }
+    document.addEventListener('mousedown', closePop);
+    overlay.appendChild(pop);
+    ta.focus();
+  });
+  overlay.appendChild(btn);
+}
+
+function renderStickyNote(overlay, an, sub){
+  const note = document.createElement('div');
+  note.className='note';
+  note.style.left=an.x+'px'; note.style.top=an.y+'px';
+  note.innerHTML = `<div class="note-head"><button class="min" title="Minimise note">−</button><button class="del" title="Delete note">&times;</button></div><textarea placeholder="Write a note…">${an.text||''}</textarea>`;
+  if(an.minimized) note.classList.add('minimized');
+  overlay.appendChild(note);
+  const ta = note.querySelector('textarea');
+  ta.addEventListener('input', ()=>{ an.text = ta.value; markInProgress(sub); });
+  note.querySelector('.del').addEventListener('click', ()=>{
+    sub.annotations = sub.annotations.filter(a2=>a2!==an);
+    note.remove();
+    markInProgress(sub);
+  });
+  note.querySelector('.min').addEventListener('click', (e)=>{
+    e.stopPropagation(); an.minimized=!an.minimized; note.classList.toggle('minimized', an.minimized); markInProgress(sub);
+  });
+  note.addEventListener('dblclick', ()=>{ if(an.minimized){ an.minimized=false; note.classList.remove('minimized'); markInProgress(sub); } });
+  const head = note.querySelector('.note-head');
+  let dragging=false, offX=0, offY=0;
+  head.addEventListener('mousedown', (e)=>{
+    dragging=true; offX = e.clientX - note.offsetLeft; offY = e.clientY - note.offsetTop;
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    const nx = e.clientX-offX, ny = e.clientY-offY;
+    note.style.left = nx+'px'; note.style.top = ny+'px';
+    an.x = nx; an.y = ny;
+  });
+  window.addEventListener('mouseup', ()=>{ if(dragging){dragging=false; markInProgress(sub);} });
+}
+
+// ---------------- sticky notes for images: popup + "whole image" vs "point on image" ----------------
+function showImageNoteMenu(rect, sub){
+  document.querySelectorAll('.img-note-menu').forEach(m=>m.remove());
+  const menu = document.createElement('div');
+  menu.className = 'img-note-menu';
+  menu.style.left = rect.x+'px'; menu.style.top = (rect.y+8)+'px';
+  menu.innerHTML = `
+    <button type="button" data-choice="full">Add note to whole image</button>
+    <button type="button" data-choice="point">Add note to point on image</button>`;
+  menu.querySelector('[data-choice="full"]').addEventListener('click', ()=>{
+    menu.remove();
+    const an = {
+      textId: state.currentTextId, page: state.currentPage, type:'image-note', scope:'full',
+      x: rect.x+rect.w-10, y: rect.y-10, imgX: rect.x, imgY: rect.y, imgW: rect.w, imgH: rect.h,
+      color: state.highlightColor, text:'', minimized:false
+    };
+    sub.annotations.push(an);
+    markInProgress(sub);
+    renderAnnotationLayers();
+  });
+  menu.querySelector('[data-choice="point"]').addEventListener('click', ()=>{
+    menu.remove();
+    state.pendingImageNote = {rect, sub};
+  });
+  document.getElementById('pdfStage').appendChild(menu);
+  setTimeout(()=>{
+    function closeMenu(ev){
+      if(!menu.contains(ev.target)){ menu.remove(); document.removeEventListener('mousedown', closeMenu); }
+    }
+    document.addEventListener('mousedown', closeMenu);
+  }, 0);
+}
+function placePendingImageNote(px, py, sub){
+  const {rect} = state.pendingImageNote;
+  if(px<rect.x || px>rect.x+rect.w || py<rect.y || py>rect.y+rect.h){ return false; }
+  const an = {
+    textId: state.currentTextId, page: state.currentPage, type:'image-note', scope:'area',
+    x: px-10, y: py-10, imgX: rect.x, imgY: rect.y, imgW: rect.w, imgH: rect.h, text:'', minimized:false
+  };
+  sub.annotations.push(an);
+  state.pendingImageNote = null;
+  markInProgress(sub);
+  renderAnnotationLayers();
+  return true;
+}
+
+// ---------------- real PDF text-layer highlighting (Acrobat-style) + image-note clicks ----------------
+// A single mousedown/mousemove/mouseup chain tells a drag (-> creates a highlight from the
+// browser's own text selection) apart from a plain click (-> opens the image-note menu, or
+// places a pending "point on image" note) so the two features never fight over the same layer.
+function attachTextLayerInteractions(textLayerDiv, stage, sub, imageRects){
+  let isDown = false, dragged = false, downX = 0, downY = 0;
+
+  textLayerDiv.addEventListener('mousedown', (e)=>{
+    isDown = true; dragged = false; downX = e.clientX; downY = e.clientY;
+  });
+  textLayerDiv.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    if(Math.abs(e.clientX-downX) > 3 || Math.abs(e.clientY-downY) > 3) dragged = true;
+  });
+  textLayerDiv.addEventListener('mouseup', (e)=>{
+    isDown = false;
+    const stageRect = stage.getBoundingClientRect();
+    const px = e.clientX - stageRect.left, py = e.clientY - stageRect.top;
+
+    if(dragged){
+      tryCreateHighlightFromSelection(textLayerDiv, sub);
+      return;
+    }
+    if(sub.status==='submitted') return;
+    if(state.pendingImageNote){
+      placePendingImageNote(px, py, sub);
+      return;
+    }
+    const rect = imageRects.find(r => px>=r.x && px<=r.x+r.w && py>=r.y && py<=r.y+r.h);
+    if(rect) showImageNoteMenu(rect, sub);
+  });
+}
+function tryCreateHighlightFromSelection(textLayerDiv, sub){
+  if(state.mode !== 'highlight' || sub.status==='submitted') return;
+  const selection = window.getSelection();
+  if(!selection || selection.isCollapsed || selection.rangeCount===0) return;
+  if(!textLayerDiv.contains(selection.anchorNode)) return;
+  const range = selection.getRangeAt(0);
+  const stageRect = document.getElementById('pdfStage').getBoundingClientRect();
+  const clientRects = Array.from(range.getClientRects());
+  const rects = clientRects
+    .filter(r=>r.width>1 && r.height>1)
+    .map(r=>({x:r.left-stageRect.left, y:r.top-stageRect.top, w:r.width, h:r.height}));
+  selection.removeAllRanges();
+  if(!rects.length) return;
+  const an = {textId: state.currentTextId, page: state.currentPage, type:'highlight', color: state.highlightColor, rects, note:''};
+  sub.annotations.push(an);
+  markInProgress(sub);
+  renderAnnotationLayers();
+}
+
+// ---------------- soft anti-copy measures (Deliver mode: "browser with security" / "lockdown app") ----------------
+// This is a deterrent, not real exam security — actual lockdown still needs a tool like Safe Exam
+// Browser configured separately. It only disables right-click and clipboard copy on the exam page
+// itself, and deliberately leaves text selection alone so the highlighting feature keeps working.
+(function wireSoftSecurityMeasures(){
+  const container = document.getElementById('studentTask');
+  function securityActive(){
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    return !!a && (a.deliveryMode==='browser_secure' || a.deliveryMode==='lockdown');
+  }
+  container.addEventListener('contextmenu', (e)=>{ if(securityActive()) e.preventDefault(); });
+  container.addEventListener('copy', (e)=>{ if(securityActive()) e.preventDefault(); });
+})();
+
+// ---------------- toolbar interactions ----------------
+document.querySelectorAll('.pdf-toolbar .swatch').forEach(sw=>{
+  sw.addEventListener('click', ()=>{
+    document.querySelectorAll('.pdf-toolbar .swatch').forEach(s=>s.classList.remove('selected'));
+    sw.classList.add('selected');
+    const stage = document.getElementById('pdfStage');
+    if(sw.dataset.color === 'erase'){
+      state.mode = 'erase';
+      document.getElementById('modeHighlight').classList.remove('active');
+    } else {
+      state.highlightColor = sw.dataset.color;
+      state.mode = 'highlight';
+      document.getElementById('modeHighlight').classList.add('active');
+    }
+    stage.classList.toggle('erase-mode', state.mode==='erase');
+    const textLayerDiv = stage.querySelector('.textLayer');
+    if(textLayerDiv) textLayerDiv.style.pointerEvents = state.mode==='erase' ? 'none' : 'auto';
+  });
+});
+document.getElementById('modeHighlight').addEventListener('click', function(){
+  state.mode='highlight'; this.classList.add('active');
+  document.querySelectorAll('.pdf-toolbar .swatch').forEach(s=>s.classList.remove('selected'));
+  const activeSwatch = document.querySelector(`.pdf-toolbar .swatch[data-color="${state.highlightColor}"]`);
+  if(activeSwatch) activeSwatch.classList.add('selected');
+  const stage = document.getElementById('pdfStage');
+  stage.classList.remove('erase-mode');
+  const textLayerDiv = stage.querySelector('.textLayer');
+  if(textLayerDiv) textLayerDiv.style.pointerEvents = 'auto';
+});
+document.getElementById('hideNotesBtn').addEventListener('click', function(){
+  state.notesHidden = !state.notesHidden;
+  this.classList.toggle('active', state.notesHidden);
+  this.lastChild.textContent = state.notesHidden ? ' Show notes' : ' Hide notes';
+  document.getElementById('pdfStage').classList.toggle('notes-hidden', state.notesHidden);
+});
+document.getElementById('prevPage').addEventListener('click', async ()=>{
+  if(state.currentPage>1){ state.currentPage--; await renderPdfPage(); }
+});
+document.getElementById('nextPage').addEventListener('click', async ()=>{
+  const doc = state.textDocs[state.currentTextId];
+  if(state.currentPage < doc.numPages){ state.currentPage++; await renderPdfPage(); }
+});
+
+// ---------------- Notepad popup (shared outline notes) ----------------
+document.getElementById('openNotepadBtn').addEventListener('click', ()=>{
+  document.getElementById('notepadModal').classList.remove('hidden');
+});
+document.getElementById('closeNotepadBtn').addEventListener('click', ()=>{
+  document.getElementById('notepadModal').classList.add('hidden');
+});
+document.getElementById('notepadEditable').addEventListener('input', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  sub.outlineHtml = document.getElementById('notepadEditable').innerHTML;
+  markInProgress(sub);
+});
+function makeModalDraggable(modalId, headerId, closeBtnId){
+  const modal = document.getElementById(modalId);
+  const header = document.getElementById(headerId);
+  let dragging=false, offX=0, offY=0;
+  header.addEventListener('mousedown', (e)=>{
+    if(e.target.id===closeBtnId) return;
+    dragging=true;
+    const rect = modal.getBoundingClientRect();
+    offX = e.clientX-rect.left; offY = e.clientY-rect.top;
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    modal.style.left = (e.clientX-offX)+'px';
+    modal.style.top = (e.clientY-offY)+'px';
+    modal.style.right = 'auto';
+  });
+  window.addEventListener('mouseup', ()=>{ dragging=false; });
+}
+makeModalDraggable('notepadModal', 'notepadHeader', 'closeNotepadBtn');
+makeModalDraggable('calculatorModal', 'calculatorHeader', 'closeCalculatorBtn');
+
+// ---------------- Calculator popup (shown only when the assignment allows it) ----------------
+document.getElementById('openCalculatorBtn').addEventListener('click', ()=>{
+  document.getElementById('calculatorModal').classList.remove('hidden');
+});
+document.getElementById('closeCalculatorBtn').addEventListener('click', ()=>{
+  document.getElementById('calculatorModal').classList.add('hidden');
+});
+(function wireCalculator(){
+  const display = document.getElementById('calcDisplay');
+  let current = '0', previous = null, pendingOp = null, justEvaluated = false;
+
+  function render(){ display.textContent = current; }
+  function compute(a, b, op){
+    a = parseFloat(a); b = parseFloat(b);
+    if(op==='+') return a+b;
+    if(op==='-') return a-b;
+    if(op==='*') return a*b;
+    if(op==='/') return b===0 ? NaN : a/b;
+    return b;
+  }
+  document.querySelectorAll('#calculatorModal .calc-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.calc;
+      if(current==='Error' && key!=='clear'){ current='0'; previous=null; pendingOp=null; justEvaluated=false; }
+      if(key==='clear'){ current='0'; previous=null; pendingOp=null; justEvaluated=false; }
+      else if(key==='backspace'){ current = current.length>1 ? current.slice(0,-1) : '0'; }
+      else if(key==='%'){ current = String(parseFloat(current)/100); }
+      else if(['+','-','*','/'].includes(key)){
+        if(pendingOp && !justEvaluated){ current = String(compute(previous, current, pendingOp)); }
+        previous = current; pendingOp = key; current = '0'; justEvaluated = false;
+      } else if(key==='='){
+        if(pendingOp){ current = String(compute(previous, current, pendingOp)); pendingOp=null; previous=null; justEvaluated=true; }
+      } else if(key==='.'){
+        if(justEvaluated){ current='0.'; justEvaluated=false; }
+        else if(!current.includes('.')) current += '.';
+      } else { // digit
+        if(justEvaluated){ current = key; justEvaluated=false; }
+        else { current = current==='0' ? key : current + key; }
+      }
+      if(!isFinite(current) || Number.isNaN(Number(current))) current = 'Error';
+      render();
+    });
+  });
+})();
+
+// ---------------- rich text toolbars (shared wiring for the response toolbar and the notepad toolbar) ----------------
+try { document.execCommand('styleWithCSS', false, true); } catch(_) { /* older browsers just ignore this */ }
+function applyFontSize(editable, px){
+  editable.focus();
+  document.execCommand('fontSize', false, '7');
+  editable.querySelectorAll('font[size="7"]').forEach(f=>{
+    f.removeAttribute('size');
+    f.style.fontSize = px + 'px';
+  });
+}
+const TABLE_HTML = '<table style="border-collapse:collapse;width:100%;margin:8px 0;">' +
+  '<tr><td style="border:1px solid #999;padding:6px;">&nbsp;</td><td style="border:1px solid #999;padding:6px;">&nbsp;</td></tr>' +
+  '<tr><td style="border:1px solid #999;padding:6px;">&nbsp;</td><td style="border:1px solid #999;padding:6px;">&nbsp;</td></tr>' +
+  '</table><p><br></p>';
+function wireRichToolbar(toolbarEl, getEditable){
+  toolbarEl.querySelectorAll('button[data-cmd]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const ed = getEditable();
+      if(!ed) return;
+      ed.focus();
+      document.execCommand(btn.dataset.cmd, false, null);
+    });
+  });
+  const insertTableBtn = toolbarEl.querySelector('.insert-table-btn');
+  if(insertTableBtn) insertTableBtn.addEventListener('click', ()=>{
+    const ed = getEditable(); if(!ed) return;
+    ed.focus();
+    document.execCommand('insertHTML', false, TABLE_HTML);
+  });
+  const fontFamily = toolbarEl.querySelector('.font-family-select');
+  if(fontFamily) fontFamily.addEventListener('change', function(){
+    const ed = getEditable(); if(!ed) return;
+    ed.focus();
+    document.execCommand('fontName', false, this.value);
+  });
+  const fontSize = toolbarEl.querySelector('.font-size-select');
+  if(fontSize) fontSize.addEventListener('change', function(){
+    const ed = getEditable(); if(ed) applyFontSize(ed, this.value);
+  });
+  const fontColor = toolbarEl.querySelector('.font-color-input');
+  if(fontColor) fontColor.addEventListener('input', function(){
+    const ed = getEditable(); if(!ed) return;
+    ed.focus();
+    document.execCommand('foreColor', false, this.value);
+  });
+  const hiliteColor = toolbarEl.querySelector('.hilite-color-input');
+  if(hiliteColor) hiliteColor.addEventListener('input', function(){
+    const ed = getEditable(); if(!ed) return;
+    ed.focus();
+    document.execCommand('hiliteColor', false, this.value);
+  });
+}
+wireRichToolbar(document.getElementById('responseToolbar'), ()=>{
+  const wrap = document.getElementById('responseEditable_' + state.activeResponseTextId);
+  // The rich-text toolbar only applies to items with a real contenteditable answer (PDF /
+  // long-answer) — question widgets (MCQ, true/false, etc.) have nothing for it to act on.
+  return wrap ? wrap.querySelector('.editable') : null;
+});
+wireRichToolbar(document.getElementById('notepadToolbar'), ()=>document.getElementById('notepadEditable'));
+
+document.getElementById('btnSaveDraft').addEventListener('click', async ()=>{
+  const {sub,payload} = currentSubmissionPayload();
+  try { await request(`/api/submissions/${sub.recipientId}/save/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    alert('Draft saved. You can come back and keep editing anytime before submitting.'); showStudentTaskList();
+  } catch(error) { alert(apiErrorMessage(error)); }
+});
+document.getElementById('btnSubmit').addEventListener('click', async ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const {sub,payload} = currentSubmissionPayload();
+  try { const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
+    clearExamTimer();
+    if(a && a.deliveryMode === 'lockdown'){
+      alert('Submitted! Your teacher has been sent a review notification. Safe Exam Browser will now close.');
+      location.href = '/?sebquit=1';
+    } else {
+      alert('Submitted! Your teacher has been sent a review notification.'); showStudentTaskList();
+    }
+  } catch(error) { alert(apiErrorMessage(error)); }
+});
+
+// ---------------- init ----------------
+if(new URLSearchParams(location.search).get('sebquit') === '1'){
+  // Safe Exam Browser's own quitURL handling should intercept this navigation and offer to
+  // quit before the page even finishes loading; this is just a friendly fallback in case it
+  // doesn't (e.g. testing in a regular browser, or an SEB config without quitURLConfirm).
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;"><div><h2>You can now close Safe Exam Browser</h2><p class="sub">Your work has been submitted.</p></div></div>';
+} else {
+loadAssignments().then(()=>{
+  if(document.body.dataset.role==='pupil'){
+    switchRole('student');
+    return;
+  }
+  const reviewRecipientId = Number(new URLSearchParams(location.search).get('review'));
+  if(reviewRecipientId){
+    const assignment = state.assignments.find(a=>Object.values(a.submissions).some(s=>s.recipientId===reviewRecipientId));
+    if(assignment){
+      const pupil = Object.keys(assignment.submissions).find(name=>assignment.submissions[name].recipientId===reviewRecipientId);
+      document.getElementById('btnTeacherRole').classList.add('active'); document.getElementById('btnStudentRole').classList.remove('active');
+      document.getElementById('teacherView').classList.remove('hidden'); document.getElementById('studentView').classList.add('hidden');
+      showReview(assignment.id, pupil);
+      return;
+    }
+  }
+  showTeacherDashboard();
+}).catch(()=>showTeacherDashboard());
+}
+</script>
+</body>
+</html>

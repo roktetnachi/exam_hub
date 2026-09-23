@@ -1,0 +1,31 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('', views.home, name='home'),
+    path('api/assignments/', views.assignments_api, name='assignments-api'),
+    path('api/assignments/<int:assignment_id>/status/', views.assignment_status_api, name='assignment-status'),
+    path('api/pupils/', views.pupils_api, name='pupils-api'),
+    path('api/pupils/create/', views.create_pupil_api, name='create-pupil'),
+    path('api/classes/', views.classes_api, name='classes-api'),
+    path('api/classes/create/', views.create_class_api, name='create-class'),
+    path('api/classes/<int:class_id>/update/', views.update_class_api, name='update-class'),
+    path('api/classes/<int:class_id>/delete/', views.delete_class_api, name='delete-class'),
+    path('api/items/<int:item_id>/pdf/', views.item_pdf, name='item-pdf'),
+    path('api/assignments/create/', views.create_assignment, name='create-assignment'),
+    path('api/assignments/<int:assignment_id>/update/', views.update_assignment_api, name='update-assignment'),
+    path('api/assignments/<int:assignment_id>/delete/', views.delete_assignment_api, name='delete-assignment'),
+    path('api/submissions/<int:recipient_id>/start/', views.start_submission, name='start-submission'),
+    path('api/submissions/<int:recipient_id>/save/', views.save_submission, name='save-submission'),
+    path('api/submissions/<int:recipient_id>/submit/', views.submit_submission, name='submit-submission'),
+    path('api/recipients/<int:recipient_id>/accommodations/', views.update_recipient_accommodations_api, name='update-accommodations'),
+    path('api/recipients/<int:recipient_id>/messages/', views.messages_api, name='messages-api'),
+    path('api/recipients/<int:recipient_id>/messages/send/', views.send_message_api, name='send-message'),
+    path('api/activity-log/', views.activity_log_api, name='activity-log'),
+    path('api/submissions/<int:recipient_id>/grade/', views.grade_submission_api, name='grade-submission'),
+    path('api/submissions/<int:recipient_id>/publish/', views.publish_submission_api, name='publish-submission'),
+    path('api/assignments/<int:assignment_id>/publish-grades/', views.publish_assignment_grades_api, name='publish-assignment-grades'),
+    path('api/seb/config/', views.seb_config, name='seb-config'),
+]

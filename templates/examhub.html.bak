@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<title>ExamHub — Teacher &amp; Student Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --blue:#1a5fb4; --blue-dark:#124a91; --border:#d7dbe0;
+    --page-bg:#f4f6f8; --text:#1f2328; --muted:#5b6470;
+    --yellow:#ffe873; --green:#8bdc7a; --cyan:#7fe0f0; --magenta:#f56fd0;
+    --ok:#1b8a4c; --warn:#c9821a; --idle:#8a94a0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;color:var(--text);background:var(--page-bg);}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;}
+
+  /* ---- top brand bar ---- */
+  .brandbar{
+    height:56px;background:#fff;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--blue-dark);}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--blue);}
+  .role-toggle{display:flex;border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+  .role-toggle button{
+    border:none;background:#fff;padding:8px 20px;font-size:13px;font-weight:600;color:var(--muted);
+  }
+  .role-toggle button.active{background:var(--blue);color:#fff;}
+
+  .app{padding:22px 26px;max-width:1200px;margin:0 auto;}
+  .hidden{display:none !important;}
+
+  h2{font-size:19px;margin:0 0 4px 0;}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px 0;}
+
+  .card{
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:16px;
+  }
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .field input[type=text], .field input[type=date], .field textarea, .field select{
+    width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:5px;font-size:14px;
+  }
+  .field textarea{min-height:70px;resize:vertical;}
+  .pupil-check{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;}
+
+  .btn{
+    border:none;background:var(--blue);color:#fff;padding:9px 18px;border-radius:20px;
+    font-size:13px;font-weight:600;
+  }
+  .btn:hover{background:var(--blue-dark);}
+  .btn.outline{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+  .btn.outline:hover{background:#eef4fc;}
+  .btn.small{padding:6px 12px;font-size:12px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border);}
+  td{padding:10px;border-bottom:1px solid #eef0f2;vertical-align:middle;}
+  tr:hover td{background:#fafbfc;}
+
+  .badge{padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:700;color:#fff;display:inline-block;}
+  .badge.submitted{background:var(--ok);}
+  .badge.progress{background:var(--warn);}
+  .badge.idle{background:var(--idle);}
+
+  select#pupilSelect{max-width:280px;}
+
+  /* ---- task viewer (reused exam UI) ---- */
+  .viewer{
+    display:flex;height:74vh;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;
+  }
+  .pdf-pane{flex:1.3;display:flex;flex-direction:column;border-right:3px solid #12408f;min-width:0;}
+  .pdf-toolbar{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;
+  }
+  .pdf-toolbar .grow{flex:1;}
+  .swatch{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.15);}
+  .swatch.y{background:var(--yellow);} .swatch.g{background:var(--green);}
+  .swatch.c{background:var(--cyan);} .swatch.m{background:var(--magenta);}
+  .swatch.erase{background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#c0392b;line-height:1;}
+  .swatch.selected{outline:2px solid var(--blue);outline-offset:1px;}
+  .timer-chip{margin-left:2px;padding:5px 12px;border-radius:14px;background:#eef1f4;font-weight:700;font-size:13px;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .timer-chip.warn{background:#fdecea;color:#c0392b;}
+  .mode-btn{
+    border:1px solid var(--border);background:#fff;border-radius:5px;padding:6px 10px;font-size:12px;color:var(--muted);
+  }
+  .mode-btn.active{background:#dbe7f8;color:var(--blue);border-color:var(--blue);}
+  .pdf-scroll{flex:1;overflow:auto;background:#eceff2;display:flex;justify-content:center;padding:16px;}
+  .pdf-stage{position:relative;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+  .pdf-stage canvas{display:block;}
+  .overlay{position:absolute;top:0;left:0;}
+  .hl-box{position:absolute;pointer-events:none;opacity:.45;border-radius:1px;}
+  .hl-box.y{background:var(--yellow);} .hl-box.g{background:var(--green);}
+  .hl-box.c{background:var(--cyan);} .hl-box.m{background:var(--magenta);}
+  .note{
+    position:absolute;width:170px;min-height:90px;background:#fdf6b2;border:1px solid #e2d27a;
+    box-shadow:0 3px 8px rgba(0,0,0,.15);border-radius:2px;z-index:20;
+  }
+  .note-head{height:18px;background:#f7e979;cursor:move;border-bottom:1px solid #e2d27a;
+    display:flex;justify-content:flex-end;}
+  .note-head button{border:none;background:none;font-size:11px;cursor:pointer;color:#5b5326;width:18px;}
+  .note textarea{width:100%;height:70px;border:none;background:transparent;resize:none;padding:6px;font-size:12.5px;outline:none;}
+  .note.minimized{width:28px;min-height:28px;border-radius:50%;background:#f7e979;border:2px solid #d5bd30;overflow:hidden;}
+  .note.minimized .note-head{height:28px;border:none;align-items:center;justify-content:center;color:#6b5710;}
+  .note.minimized .note-head::before{content:'✎';font-size:15px;}
+  .note.minimized textarea,.note.minimized .del{display:none;}
+  .hl-note-btn{position:absolute;width:17px;height:17px;line-height:15px;text-align:center;font-size:11px;
+    background:#fff;border:1px solid var(--border);border-radius:50%;cursor:pointer;z-index:18;color:var(--blue-dark);padding:0;}
+  .hl-note-btn:hover{background:#eef4fc;}
+  .hl-note-pop{position:absolute;width:190px;background:#fff;border:1px solid var(--border);border-radius:6px;
+    box-shadow:0 3px 10px rgba(0,0,0,.18);z-index:26;padding:7px;}
+  .hl-note-pop textarea{width:100%;height:60px;border:1px solid var(--border);border-radius:4px;padding:5px;font-size:12px;resize:vertical;}
+  .hl-note-pop.readonly-note{pointer-events:none;background:#fbfbfc;}
+  .pdf-stage.notes-hidden .hl-box,.pdf-stage.notes-hidden .note,
+  .pdf-stage.notes-hidden .hl-note-btn,.pdf-stage.notes-hidden .hl-note-pop{display:none !important;}
+  .page-nav{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+
+  .resp-pane{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .resp-top{padding:14px 16px 8px 16px;}
+  .resp-top .prompt{font-size:14px;color:var(--text);}
+  .mini-toolbar{display:flex;gap:4px;padding:6px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+  .mini-toolbar button{width:28px;height:28px;border:none;background:none;border-radius:4px;font-size:13px;color:#3c4552;}
+  .mini-toolbar button:hover{background:#eef1f4;}
+  .editable{flex:1;padding:14px 16px;font-size:14.5px;line-height:1.55;outline:none;overflow-y:auto;}
+  .editable:empty::before{content:"Write your response here...";color:#a7afb8;}
+  .viewer-footer{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);}
+
+  .readonly-note{opacity:1;}
+  .readonly-tag{font-size:11px;color:var(--muted);margin-left:8px;}
+
+  .back-link{color:var(--blue);font-size:13px;background:none;border:none;padding:0;margin-bottom:12px;font-weight:600;}
+  .empty{color:var(--muted);font-size:13.5px;padding:20px 0;text-align:center;}
+  .note-banner{
+    background:#eef4fc;border:1px solid #bcd4f2;color:var(--blue-dark);
+    padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px;
+  }
+</style>
+</head>
+<body data-role="{% if request.user.is_superuser %}teacher{% else %}{{ request.user.role }}{% endif %}" data-username="{{ request.user.username }}" data-email="{{ request.user.email }}">
+
+<div class="brandbar">
+  <div class="brand"><span class="dot"></span>ExamHub</div>
+  <div style="margin-left:auto;margin-right:16px;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:#1a5fb4;cursor:pointer;margin-left:8px">Sign out</button></form></div>
+  <div class="role-toggle">
+    <button id="btnTeacherRole" class="active">Teacher</button>
+    <button id="btnStudentRole">Student</button>
+  </div>
+</div>
+
+<div class="app">
+
+  <div class="note-banner">
+    Assign PDFs to individual pupils, set an opening and closing time, and review their highlights, notes and outlines when they submit.
+  </div>
+
+  <!-- ============ TEACHER SIDE ============ -->
+  <div id="teacherView">
+
+    <div id="teacherDashboard">
+      <h2>Teacher dashboard</h2>
+      <p class="sub">Create assignments, send them to specific pupils, and review what comes back.</p>
+
+      <div class="card">
+        <button class="btn" id="btnNewAssignment">+ New assignment</button>
+      </div>
+
+      <div class="card">
+        <table id="assignmentTable">
+          <thead><tr><th>Title</th><th>Due</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
+          <tbody id="assignmentTbody"></tbody>
+        </table>
+        <div class="empty hidden" id="assignmentEmpty">No assignments yet. Create one to get started.</div>
+      </div>
+    </div>
+
+    <div id="teacherCreate" class="hidden">
+      <button class="back-link" id="backFromCreate">&larr; Back to dashboard</button>
+      <h2>New assignment</h2>
+      <div class="card">
+        <div class="field">
+          <label>Your name</label>
+          <input type="text" id="aTeacherName" placeholder="e.g. Ms Taylor">
+        </div>
+        <div class="field">
+          <label>Your review email</label>
+          <input type="text" id="aTeacherEmail" placeholder="teacher@school.edu">
+        </div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="aTitle" placeholder="e.g. Paper 1 — Guided Analysis Practice">
+        </div>
+        <div class="field">
+          <label>Prompt / instructions for pupils</label>
+          <textarea id="aPrompt" placeholder="e.g. Write a guided analysis of the attached text."></textarea>
+        </div>
+        <div class="field">
+          <label>Source PDF</label>
+          <input type="file" id="aPdf" accept="application/pdf">
+        </div>
+        <div class="field">
+          <label>Opens at</label>
+          <input type="datetime-local" id="aOpen">
+        </div>
+        <div class="field">
+          <label>Closes at</label>
+          <input type="datetime-local" id="aDue">
+        </div>
+        <div class="field">
+          <label>Exam duration (minutes)</label>
+          <input type="number" id="aDuration" min="1" value="60">
+        </div>
+        <div class="field">
+          <label>Assign to</label>
+          <div id="pupilChecklist"></div>
+        </div>
+        <button class="btn" id="btnCreateAssignment">Create &amp; assign</button>
+      </div>
+    </div>
+
+    <div id="teacherAssignmentDetail" class="hidden">
+      <button class="back-link" id="backFromDetail">&larr; Back to dashboard</button>
+      <h2 id="detailTitle"></h2>
+      <p class="sub" id="detailPrompt"></p>
+      <div class="card">
+        <table>
+          <thead><tr><th>Pupil</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+          <tbody id="detailTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="teacherReview" class="hidden">
+      <button class="back-link" id="backFromReview">&larr; Back to assignment</button>
+      <h2 id="reviewHeading"></h2>
+      <p class="sub" id="reviewMeta"></p>
+      <div class="viewer">
+        <div class="pdf-pane">
+          <div class="pdf-toolbar">
+            <span class="page-nav">Annotated source <span class="readonly-tag">(read-only)</span></span>
+            <div class="grow"></div>
+            <div class="page-nav">
+              <button class="mode-btn small" id="reviewPrevPage">&lsaquo;</button>
+              <span id="reviewPageLabel">Page 1</span>
+              <button class="mode-btn small" id="reviewNextPage">&rsaquo;</button>
+            </div>
+          </div>
+          <div class="pdf-scroll"><div class="pdf-stage" id="reviewStage"></div></div>
+        </div>
+        <div class="resp-pane">
+          <div class="resp-top"><strong>Pupil's response / outline</strong></div>
+          <div class="editable" id="reviewResponse" style="pointer-events:none;background:#fbfbfc;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ STUDENT SIDE ============ -->
+  <div id="studentView" class="hidden">
+
+    <div id="studentLogin">
+      <h2>Student portal</h2>
+      <p class="sub">Select your name to see what's been assigned to you.</p>
+      <div class="card" style="max-width:400px;">
+        <div class="field">
+          <label>My school email</label>
+          <select id="pupilSelect"></select>
+        </div>
+        <button class="btn" id="btnStudentLogin">View my assignments</button>
+      </div>
+    </div>
+
+    <div id="studentTaskList" class="hidden">
+      <button class="back-link" id="backFromTaskList">&larr; Switch pupil</button>
+      <h2 id="studentGreeting"></h2>
+      <p class="sub">Your assigned tasks</p>
+      <div class="card">
+        <table>
+          <thead><tr><th>Title</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody id="studentTbody"></tbody>
+        </table>
+        <div class="empty hidden" id="studentEmpty">No assignments yet.</div>
+      </div>
+    </div>
+
+    <div id="studentTask" class="hidden">
+      <button class="back-link" id="backFromTask">&larr; Back to my tasks</button>
+      <h2 id="taskTitle"></h2>
+      <div class="viewer">
+        <div class="pdf-pane">
+          <div class="pdf-toolbar">
+            <div class="swatch y selected" data-color="y" title="Yellow"></div>
+            <div class="swatch g" data-color="g" title="Green"></div>
+            <div class="swatch c" data-color="c" title="Cyan"></div>
+            <div class="swatch m" data-color="m" title="Magenta"></div>
+            <div class="swatch erase" data-color="erase" title="Erase highlight">&times;</div>
+            <button class="mode-btn active" id="modeHighlight">Highlight</button>
+            <button class="mode-btn" id="modeMove">Move</button>
+            <button class="mode-btn" id="addNoteBtn">+ Sticky note</button>
+            <button class="mode-btn" id="hideNotesBtn">Hide notes</button>
+            <div class="grow"></div>
+            <span class="timer-chip" id="examTimer" title="Time remaining in this exam">--:--</span>
+            <div class="page-nav">
+              <button class="mode-btn small" id="prevPage">&lsaquo;</button>
+              <span id="pageLabel">Page 1</span>
+              <button class="mode-btn small" id="nextPage">&rsaquo;</button>
+            </div>
+          </div>
+          <div class="pdf-scroll"><div class="pdf-stage" id="pdfStage"></div></div>
+        </div>
+        <div class="resp-pane">
+          <div class="resp-top"><div class="prompt" id="taskPrompt"></div><div style="margin-top:10px;display:flex;gap:6px"><button class="mode-btn active" id="responseTab">Response</button><button class="mode-btn" id="outlineTab">Outline</button></div></div>
+          <div class="mini-toolbar">
+            <button data-cmd="bold"><b>B</b></button>
+            <button data-cmd="italic"><i>I</i></button>
+            <button data-cmd="underline"><u>U</u></button>
+            <button data-cmd="insertUnorderedList">&#8226;</button>
+            <button data-cmd="insertOrderedList">&#8801;</button>
+          </div>
+          <div class="editable" id="taskEditable" contenteditable="true"></div>
+          <div class="editable hidden" id="outlineEditable" contenteditable="true" aria-label="My outline"></div>
+        </div>
+      </div>
+      <div class="viewer-footer">
+        <button class="btn outline" id="btnSaveDraft">Save draft</button>
+        <button class="btn" id="btnSubmit">Submit to teacher</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+// ---------------- shared in-memory state (no localStorage per platform rules) ----------------
+const state = {
+  pupils: ["Aiden Cruz","Maria Santos","Liam Chen","Sofia Reyes","Noah Dela Cruz"],
+  pupilEmails: {"Aiden Cruz":"aiden@school.edu","Maria Santos":"maria@school.edu","Liam Chen":"liam@school.edu","Sofia Reyes":"sofia@school.edu","Noah Dela Cruz":"noah@school.edu"},
+  assignments: [], // {id,title,prompt,pdfDataUrl,pdfName,due,assignedTo:[],submissions:{pupil:{status,annotations:[],responseHtml,submittedAt}}}
+  currentPupil: null,
+  currentPupilEmail: null,
+  currentAssignmentId: null,
+  currentPdfDoc: null,
+  currentPage: 1,
+  highlightColor: 'y',
+  mode: 'highlight', // 'highlight' | 'move' | 'erase'
+  notesHidden: false,
+  examTimerInterval: null,
+  examExpiredHandled: false
+};
+let idCounter = 1;
+
+function csrfToken(){ return document.cookie.match(/(?:^|; )csrftoken=([^;]*)/)?.[1] || document.querySelector('meta[name="csrf-token"]').content || ''; }
+async function request(url, options={}){
+  const response = await fetch(url, {...options, headers:{'X-CSRFToken':csrfToken(), ...(options.headers||{})}});
+  if(!response.ok) throw new Error(await response.text() || 'Something went wrong.');
+  return response.json();
+}
+function apiAssignment(a){
+  const submissions={};
+  a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responseHtml:r.responseHtml||'', outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, startedAt:r.startedAt||null}; });
+  return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? new Date(a.dueAt).toLocaleString() : '—', opensAt:a.opensAt,durationMinutes:a.durationMinutes||60,pdfDataUrl:a.pdfUrl,pdfName:a.pdfName,assignedTo:a.recipients.map(r=>r.name),submissions};
+}
+async function loadAssignments(pupilEmail=''){
+  const result=await request('/api/assignments/' + (pupilEmail ? '?pupil_email='+encodeURIComponent(pupilEmail) : ''));
+  state.assignments=result.assignments.map(apiAssignment);
+}
+
+// ---------------- role toggle ----------------
+document.getElementById('btnTeacherRole').addEventListener('click', ()=>switchRole('teacher'));
+document.getElementById('btnStudentRole').addEventListener('click', ()=>switchRole('student'));
+function switchRole(role){
+  if(document.body.dataset.role==='pupil' && role==='teacher') return;
+  document.getElementById('btnTeacherRole').classList.toggle('active', role==='teacher');
+  document.getElementById('btnStudentRole').classList.toggle('active', role==='student');
+  document.getElementById('teacherView').classList.toggle('hidden', role!=='teacher');
+  document.getElementById('studentView').classList.toggle('hidden', role!=='student');
+  if(role==='teacher') showTeacherDashboard();
+  if(role==='student') showStudentLogin();
+}
+
+// ================= TEACHER SIDE =================
+function showTeacherDashboard(){
+  hideAll('#teacherView > div');
+  document.getElementById('teacherDashboard').classList.remove('hidden');
+  renderAssignmentTable();
+}
+function hideAll(selector){ document.querySelectorAll(selector).forEach(el=>el.classList.add('hidden')); }
+
+function renderAssignmentTable(){
+  const tbody = document.getElementById('assignmentTbody');
+  tbody.innerHTML = '';
+  document.getElementById('assignmentEmpty').classList.toggle('hidden', state.assignments.length>0);
+  state.assignments.forEach(a=>{
+    const submittedCount = Object.values(a.submissions).filter(s=>s.status==='submitted').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${a.title}</strong></td>
+      <td>${a.due || '—'}</td>
+      <td>${a.assignedTo.length} pupil(s)</td>
+      <td>${submittedCount} / ${a.assignedTo.length}</td>
+      <td><button class="btn small outline" data-id="${a.id}">View</button></td>
+    `;
+    tr.querySelector('button').addEventListener('click', ()=>showAssignmentDetail(a.id));
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('btnNewAssignment').addEventListener('click', ()=>{
+  hideAll('#teacherView > div');
+  document.getElementById('teacherCreate').classList.remove('hidden');
+  document.getElementById('aTitle').value='';
+  document.getElementById('aTeacherName').value='';
+  document.getElementById('aTeacherEmail').value='';
+  document.getElementById('aPrompt').value='';
+  document.getElementById('aPdf').value='';
+  document.getElementById('aOpen').value='';
+  document.getElementById('aDue').value='';
+  document.getElementById('aDuration').value='60';
+  const checklist = document.getElementById('pupilChecklist');
+  checklist.innerHTML = '';
+  state.pupils.forEach(p=>{
+    const row = document.createElement('div');
+    row.className = 'pupil-check';
+    row.innerHTML = `<input type="checkbox" value="${p}" id="chk_${p.replace(/\s/g,'')}"><label for="chk_${p.replace(/\s/g,'')}">${p} <span style="color:#5b6470;font-weight:normal">(${state.pupilEmails[p]})</span></label>`;
+    checklist.appendChild(row);
+  });
+});
+document.getElementById('backFromCreate').addEventListener('click', showTeacherDashboard);
+
+document.getElementById('btnCreateAssignment').addEventListener('click', async ()=>{
+  const title = document.getElementById('aTitle').value.trim();
+  const teacherName = document.getElementById('aTeacherName').value.trim();
+  const teacherEmail = document.getElementById('aTeacherEmail').value.trim();
+  const prompt = document.getElementById('aPrompt').value.trim();
+  const fileInput = document.getElementById('aPdf');
+  const opensAt = document.getElementById('aOpen').value;
+  const due = document.getElementById('aDue').value;
+  const duration = document.getElementById('aDuration').value.trim() || '60';
+  const assignedTo = Array.from(document.querySelectorAll('#pupilChecklist input:checked')).map(c=>c.value);
+
+  if(!title || !teacherName || !teacherEmail || !due || !fileInput.files[0] || assignedTo.length===0){
+    alert('Please add your details, a title, a closing time, a PDF, and at least one pupil.');
+    return;
+  }
+  try {
+    const form = new FormData();
+    form.append('title', title); form.append('instructions', prompt); form.append('teacher_name', teacherName); form.append('teacher_email', teacherEmail);
+    form.append('opens_at', opensAt); form.append('due_at', due); form.append('duration_minutes', duration); form.append('pdf', fileInput.files[0]);
+    form.append('recipients', JSON.stringify(assignedTo.map(name=>({name,email:state.pupilEmails[name]}))));
+    await request('/api/assignments/create/', {method:'POST', body:form});
+    await loadAssignments(); showTeacherDashboard();
+  } catch(error) { alert(error.message); }
+});
+
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function showAssignmentDetail(id){
+  state.currentAssignmentId = id;
+  const a = state.assignments.find(x=>x.id===id);
+  hideAll('#teacherView > div');
+  document.getElementById('teacherAssignmentDetail').classList.remove('hidden');
+  document.getElementById('detailTitle').textContent = a.title;
+  document.getElementById('detailPrompt').textContent = a.prompt;
+  const tbody = document.getElementById('detailTbody');
+  tbody.innerHTML = '';
+  a.assignedTo.forEach(p=>{
+    const sub = a.submissions[p];
+    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
+    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p}</td>
+      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      <td>${sub.submittedAt || '—'}</td>
+      <td>${sub.status==='submitted' ? `<button class="btn small outline">Review</button>` : ''}</td>
+    `;
+    if(sub.status==='submitted'){
+      tr.querySelector('button').addEventListener('click', ()=>showReview(a.id, p));
+    }
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('backFromDetail').addEventListener('click', showTeacherDashboard);
+
+async function showReview(assignmentId, pupil){
+  hideAll('#teacherView > div');
+  document.getElementById('teacherReview').classList.remove('hidden');
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[pupil];
+  document.getElementById('reviewHeading').textContent = `${a.title} — ${pupil}`;
+  document.getElementById('reviewMeta').textContent = `Submitted ${sub.submittedAt}`;
+  document.getElementById('reviewResponse').innerHTML = `<h3 style="font-size:14px">Outline</h3>${sub.outlineHtml || '<em>No outline written.</em>'}<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0"><h3 style="font-size:14px">Response</h3>${sub.responseHtml || '<em>No response written.</em>'}`;
+
+  const stage = document.getElementById('reviewStage');
+  stage.innerHTML = '';
+  const pdfDoc = await pdfjsLib.getDocument(a.pdfDataUrl).promise;
+  let page = 1;
+  async function renderReviewPage(){
+    document.getElementById('reviewPageLabel').textContent = `Page ${page} of ${pdfDoc.numPages}`;
+    stage.innerHTML = '';
+    const pg = await pdfDoc.getPage(page);
+    const viewport = pg.getViewport({scale:1.2});
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    stage.style.width = viewport.width+'px'; stage.style.height = viewport.height+'px';
+    await pg.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
+    stage.appendChild(canvas);
+    const overlay = document.createElement('div');
+    overlay.className='overlay'; overlay.style.width=viewport.width+'px'; overlay.style.height=viewport.height+'px';
+    stage.appendChild(overlay);
+    sub.annotations.filter(an=>an.page===page).forEach(an=>{
+      if(an.type==='highlight'){
+        const box = document.createElement('div');
+        box.className = `hl-box ${an.color}`;
+        box.style.left=an.x+'px'; box.style.top=an.y+'px'; box.style.width=an.w+'px'; box.style.height=an.h+'px';
+        overlay.appendChild(box);
+        if(an.note){
+          const tag = document.createElement('div');
+          tag.className = 'hl-note-pop readonly-note';
+          tag.style.left = an.x+'px'; tag.style.top = (an.y+an.h+4)+'px';
+          tag.innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Note on highlight</div><div style="font-size:12px;">${an.note.replace(/</g,'&lt;')}</div>`;
+          overlay.appendChild(tag);
+        }
+      } else if(an.type==='note'){
+        const note = document.createElement('div');
+        note.className='note readonly-note';
+        note.style.left=an.x+'px'; note.style.top=an.y+'px';
+        note.innerHTML = `<div class="note-head"></div><div style="padding:6px;font-size:12.5px;">${(an.text||'').replace(/</g,'&lt;')}</div>`;
+        overlay.appendChild(note);
+      }
+    });
+  }
+  document.getElementById('reviewPrevPage').onclick = ()=>{ if(page>1){page--; renderReviewPage();} };
+  document.getElementById('reviewNextPage').onclick = ()=>{ if(page<pdfDoc.numPages){page++; renderReviewPage();} };
+  renderReviewPage();
+}
+document.getElementById('backFromReview').addEventListener('click', ()=>showAssignmentDetail(state.currentAssignmentId));
+
+// ================= STUDENT SIDE =================
+function showStudentLogin(){
+  if(document.body.dataset.role==='pupil'){
+    state.currentPupilEmail = document.body.dataset.email;
+    loadAssignments(state.currentPupilEmail).then(()=>{
+      state.currentPupil = state.assignments[0]?.assignedTo[0] || document.body.dataset.username;
+      showStudentTaskList();
+    });
+    return;
+  }
+  hideAll('#studentView > div');
+  document.getElementById('studentLogin').classList.remove('hidden');
+  const sel = document.getElementById('pupilSelect');
+  sel.innerHTML = state.pupils.map(p=>`<option value="${state.pupilEmails[p]}">${p} — ${state.pupilEmails[p]}</option>`).join('');
+}
+document.getElementById('btnStudentLogin').addEventListener('click', async ()=>{
+  state.currentPupilEmail = document.getElementById('pupilSelect').value;
+  state.currentPupil = state.pupils.find(p=>state.pupilEmails[p]===state.currentPupilEmail);
+  await loadAssignments(); showStudentTaskList();
+});
+document.getElementById('backFromTaskList').addEventListener('click', showStudentLogin);
+
+function showStudentTaskList(){
+  hideAll('#studentView > div');
+  document.getElementById('studentTaskList').classList.remove('hidden');
+  document.getElementById('studentGreeting').textContent = `Hi, ${state.currentPupil}`;
+  const mine = state.assignments.filter(a=>a.assignedTo.includes(state.currentPupil));
+  const tbody = document.getElementById('studentTbody');
+  tbody.innerHTML = '';
+  document.getElementById('studentEmpty').classList.toggle('hidden', mine.length>0);
+  mine.forEach(a=>{
+    const sub = a.submissions[state.currentPupil];
+    const now = Date.now(), opens = a.opensAt ? new Date(a.opensAt).getTime() : 0, closes = a.due ? new Date(a.due).getTime() : Infinity;
+    const locked = now < opens || now > closes;
+    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
+    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${a.title}</td>
+      <td>${a.due || '—'}</td>
+      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      <td>${locked ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small">${sub.status==='submitted' ? 'View' : 'Open'}</button>`}</td>
+    `;
+    tr.querySelector('button')?.addEventListener('click', ()=>openStudentTask(a.id));
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('backFromTask').addEventListener('click', ()=>{ clearExamTimer(); showStudentTaskList(); });
+
+let overlayEls = {}; // per-page overlay dom refs not needed globally, re-render each page switch
+
+async function openStudentTask(assignmentId){
+  if(document.body.dataset.role==='pupil' && document.documentElement.requestFullscreen && !document.fullscreenElement){
+    try { await document.documentElement.requestFullscreen(); } catch(_) { /* A browser may require a separate click. */ }
+  }
+  state.currentAssignmentId = assignmentId;
+  state.examExpiredHandled = false;
+  state.notesHidden = false;
+  state.mode = 'highlight';
+  hideAll('#studentView > div');
+  document.getElementById('studentTask').classList.remove('hidden');
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[state.currentPupil];
+  document.getElementById('taskTitle').textContent = a.title;
+  document.getElementById('taskPrompt').textContent = a.prompt;
+  document.getElementById('taskEditable').innerHTML = sub.responseHtml || '';
+  document.getElementById('outlineEditable').innerHTML = sub.outlineHtml || '';
+
+  const readOnly = sub.status === 'submitted';
+  document.getElementById('taskEditable').contentEditable = !readOnly;
+  document.getElementById('outlineEditable').contentEditable = !readOnly;
+  document.getElementById('btnSaveDraft').style.display = readOnly ? 'none' : 'inline-block';
+  document.getElementById('btnSubmit').textContent = readOnly ? 'Already submitted' : 'Submit to teacher';
+  document.getElementById('btnSubmit').disabled = readOnly;
+  document.getElementById('hideNotesBtn').classList.remove('active');
+  document.getElementById('hideNotesBtn').textContent = 'Hide notes';
+  document.getElementById('pdfStage').classList.remove('notes-hidden');
+
+  await ensureSubmissionStarted(a, sub);
+  setupExamTimer(a, sub, readOnly);
+
+  state.currentPdfDoc = await pdfjsLib.getDocument(a.pdfDataUrl).promise;
+  state.currentPage = 1;
+  renderStudentPage();
+}
+
+async function renderStudentPage(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  const pdfDoc = state.currentPdfDoc;
+  document.getElementById('pageLabel').textContent = `Page ${state.currentPage} of ${pdfDoc.numPages}`;
+  const stage = document.getElementById('pdfStage');
+  stage.innerHTML = '';
+  const pg = await pdfDoc.getPage(state.currentPage);
+  const viewport = pg.getViewport({scale:1.2});
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  stage.style.width = viewport.width+'px'; stage.style.height = viewport.height+'px';
+  await pg.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
+  stage.appendChild(canvas);
+
+  const overlay = document.createElement('div');
+  overlay.className='overlay'; overlay.style.width=viewport.width+'px'; overlay.style.height=viewport.height+'px';
+  stage.appendChild(overlay);
+
+  // render existing annotations for this page
+  sub.annotations.filter(an=>an.page===state.currentPage).forEach(an=>{
+    if(an.type==='highlight'){
+      const box = document.createElement('div');
+      box.className = `hl-box ${an.color}`;
+      box.style.left=an.x+'px'; box.style.top=an.y+'px'; box.style.width=an.w+'px'; box.style.height=an.h+'px';
+      overlay.appendChild(box);
+      renderHighlightNoteButton(overlay, an, sub);
+    } else if(an.type==='note'){
+      renderStickyNote(overlay, an, sub);
+    }
+  });
+
+  // drag-to-highlight / click-to-erase
+  let drawing=false, startX=0, startY=0, tempBox=null;
+  overlay.addEventListener('mousedown', (e)=>{
+    if(sub.status==='submitted') return;
+    const rect = overlay.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if(state.mode === 'erase'){
+      const idx = sub.annotations.findIndex(an => an.page===state.currentPage && an.type==='highlight' &&
+        px>=an.x && px<=an.x+an.w && py>=an.y && py<=an.y+an.h);
+      if(idx > -1){
+        sub.annotations.splice(idx, 1);
+        markInProgress(sub);
+        renderStudentPage();
+      }
+      return;
+    }
+    if(state.mode !== 'highlight') return;
+    startX = px; startY = py;
+    drawing = true;
+    tempBox = document.createElement('div');
+    tempBox.className = `hl-box ${state.highlightColor}`;
+    tempBox.style.left=startX+'px'; tempBox.style.top=startY+'px'; tempBox.style.width='0px'; tempBox.style.height='0px';
+    overlay.appendChild(tempBox);
+  });
+  overlay.addEventListener('mousemove', (e)=>{
+    if(!drawing) return;
+    const rect = overlay.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const w = x-startX, h = y-startY;
+    tempBox.style.left = (w<0 ? x : startX)+'px';
+    tempBox.style.top = (h<0 ? y : startY)+'px';
+    tempBox.style.width = Math.abs(w)+'px';
+    tempBox.style.height = Math.abs(h)+'px';
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!drawing) return;
+    drawing = false;
+    const w = parseFloat(tempBox.style.width), h = parseFloat(tempBox.style.height);
+    if(w>6 && h>6){
+      const an = {
+        page: state.currentPage, type:'highlight', color: state.highlightColor,
+        x: parseFloat(tempBox.style.left), y: parseFloat(tempBox.style.top), w, h, note:''
+      };
+      sub.annotations.push(an);
+      renderHighlightNoteButton(overlay, an, sub);
+      markInProgress(sub);
+    } else {
+      tempBox.remove();
+    }
+    tempBox = null;
+  });
+}
+
+function renderHighlightNoteButton(overlay, an, sub){
+  const btn = document.createElement('button');
+  btn.className = 'hl-note-btn';
+  btn.type = 'button';
+  btn.textContent = an.note ? '\ud83d\udcac' : '+';
+  btn.title = an.note ? 'Edit note on this highlight' : 'Add a note to this highlight';
+  btn.style.left = Math.max(0, an.x + an.w - 8) + 'px';
+  btn.style.top = Math.max(0, an.y - 9) + 'px';
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    overlay.querySelectorAll('.hl-note-pop').forEach(p=>p.remove());
+    if(sub.status==='submitted') return;
+    const pop = document.createElement('div');
+    pop.className = 'hl-note-pop';
+    pop.style.left = an.x+'px';
+    pop.style.top = (an.y+an.h+4)+'px';
+    pop.innerHTML = `<textarea placeholder="Note about this highlight\u2026"></textarea>`;
+    const ta = pop.querySelector('textarea');
+    ta.value = an.note || '';
+    ta.addEventListener('input', ()=>{ an.note = ta.value; btn.textContent = an.note ? '\ud83d\udcac' : '+'; markInProgress(sub); });
+    function closePop(ev){
+      if(!pop.contains(ev.target) && ev.target!==btn){ pop.remove(); document.removeEventListener('mousedown', closePop); }
+    }
+    document.addEventListener('mousedown', closePop);
+    overlay.appendChild(pop);
+    ta.focus();
+  });
+  overlay.appendChild(btn);
+}
+
+function renderStickyNote(overlay, an, sub){
+  const note = document.createElement('div');
+  note.className='note';
+  note.style.left=an.x+'px'; note.style.top=an.y+'px';
+  note.innerHTML = `<div class="note-head"><button class="min" title="Minimise note">−</button><button class="del" title="Delete note">&times;</button></div><textarea placeholder="Write a note about this area…">${an.text||''}</textarea>`;
+  if(an.minimized) note.classList.add('minimized');
+  overlay.appendChild(note);
+  const ta = note.querySelector('textarea');
+  ta.addEventListener('input', ()=>{ an.text = ta.value; markInProgress(sub); });
+  note.querySelector('.del').addEventListener('click', ()=>{
+    sub.annotations = sub.annotations.filter(a2=>a2!==an);
+    note.remove();
+    markInProgress(sub);
+  });
+  note.querySelector('.min').addEventListener('click', (e)=>{
+    e.stopPropagation(); an.minimized=!an.minimized; note.classList.toggle('minimized', an.minimized); markInProgress(sub);
+  });
+  note.addEventListener('dblclick', ()=>{ if(an.minimized){ an.minimized=false; note.classList.remove('minimized'); markInProgress(sub); } });
+  const head = note.querySelector('.note-head');
+  let dragging=false, offX=0, offY=0;
+  head.addEventListener('mousedown', (e)=>{
+    dragging=true; offX = e.clientX - note.offsetLeft; offY = e.clientY - note.offsetTop;
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    const nx = e.clientX-offX, ny = e.clientY-offY;
+    note.style.left = nx+'px'; note.style.top = ny+'px';
+    an.x = nx; an.y = ny;
+  });
+  window.addEventListener('mouseup', ()=>{ if(dragging){dragging=false; markInProgress(sub);} });
+}
+
+function markInProgress(sub){ if(sub.status==='idle') sub.status='progress'; }
+
+async function ensureSubmissionStarted(a, sub){
+  if(sub.status==='submitted' || sub.startedAt) return;
+  try {
+    const result = await request(`/api/submissions/${sub.recipientId}/start/`, {method:'POST'});
+    sub.startedAt = result.startedAt;
+    if(sub.status==='idle') sub.status='progress';
+  } catch(error) { /* Timer just won't be persisted if this fails; exam still usable. */ }
+}
+
+function clearExamTimer(){
+  if(state.examTimerInterval){ clearInterval(state.examTimerInterval); state.examTimerInterval = null; }
+}
+
+function setupExamTimer(a, sub, readOnly){
+  clearExamTimer();
+  const timerEl = document.getElementById('examTimer');
+  if(readOnly){ timerEl.textContent = 'Submitted'; timerEl.classList.remove('warn'); return; }
+  if(!sub.startedAt || !a.durationMinutes){ timerEl.textContent = '--:--'; timerEl.classList.remove('warn'); return; }
+  const endTime = new Date(sub.startedAt).getTime() + a.durationMinutes*60000;
+  function tick(){
+    const remaining = endTime - Date.now();
+    if(remaining <= 0){
+      timerEl.textContent = "Time's up";
+      timerEl.classList.add('warn');
+      clearExamTimer();
+      handleExamExpired(a, sub);
+      return;
+    }
+    const totalSec = Math.floor(remaining/1000);
+    const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+    timerEl.textContent = (h>0 ? String(h).padStart(2,'0')+':' : '') + String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    timerEl.classList.toggle('warn', remaining < 5*60000);
+  }
+  tick();
+  state.examTimerInterval = setInterval(tick, 1000);
+}
+
+async function handleExamExpired(a, sub){
+  if(state.examExpiredHandled || sub.status==='submitted') return;
+  state.examExpiredHandled = true;
+  document.getElementById('taskEditable').contentEditable = false;
+  document.getElementById('outlineEditable').contentEditable = false;
+  state.mode = 'move';
+  alert("Time's up! Your work is being submitted automatically.");
+  try {
+    const {payload} = currentSubmissionPayload();
+    const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
+    document.getElementById('btnSaveDraft').style.display = 'none';
+    document.getElementById('btnSubmit').textContent = 'Already submitted';
+    document.getElementById('btnSubmit').disabled = true;
+  } catch(error) {
+    alert('Time is up, but we could not auto-submit: ' + error.message + '. Please click Submit.');
+  }
+}
+
+function currentSubmissionPayload(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  sub.responseHtml = document.getElementById('taskEditable').innerHTML;
+  sub.outlineHtml = document.getElementById('outlineEditable').innerHTML;
+  return {sub, payload:{annotations:sub.annotations, outlineHtml:sub.outlineHtml, responseHtml:sub.responseHtml}};
+}
+
+document.querySelectorAll('.pdf-toolbar .swatch').forEach(sw=>{
+  sw.addEventListener('click', ()=>{
+    document.querySelectorAll('.pdf-toolbar .swatch').forEach(s=>s.classList.remove('selected'));
+    sw.classList.add('selected');
+    if(sw.dataset.color === 'erase'){
+      state.mode = 'erase';
+      document.getElementById('modeHighlight').classList.remove('active');
+      document.getElementById('modeMove').classList.remove('active');
+    } else {
+      state.highlightColor = sw.dataset.color;
+      state.mode='highlight';
+      document.getElementById('modeHighlight').classList.add('active');
+      document.getElementById('modeMove').classList.remove('active');
+    }
+  });
+});
+document.getElementById('modeHighlight').addEventListener('click', function(){
+  state.mode='highlight'; this.classList.add('active'); document.getElementById('modeMove').classList.remove('active');
+  document.querySelectorAll('.pdf-toolbar .swatch').forEach(s=>s.classList.remove('selected'));
+  const activeSwatch = document.querySelector(`.pdf-toolbar .swatch[data-color="${state.highlightColor}"]`);
+  if(activeSwatch) activeSwatch.classList.add('selected');
+});
+document.getElementById('modeMove').addEventListener('click', function(){
+  state.mode='move'; this.classList.add('active'); document.getElementById('modeHighlight').classList.remove('active');
+  document.querySelectorAll('.pdf-toolbar .swatch').forEach(s=>s.classList.remove('selected'));
+});
+document.getElementById('hideNotesBtn').addEventListener('click', function(){
+  state.notesHidden = !state.notesHidden;
+  this.classList.toggle('active', state.notesHidden);
+  this.textContent = state.notesHidden ? 'Show notes' : 'Hide notes';
+  document.getElementById('pdfStage').classList.toggle('notes-hidden', state.notesHidden);
+});
+document.getElementById('addNoteBtn').addEventListener('click', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  if(sub.status==='submitted') return;
+  const an = {page: state.currentPage, type:'note', x:40, y:40, text:''};
+  sub.annotations.push(an);
+  markInProgress(sub);
+  renderStudentPage();
+});
+document.getElementById('prevPage').addEventListener('click', ()=>{
+  if(state.currentPage>1){ state.currentPage--; renderStudentPage(); }
+});
+document.getElementById('nextPage').addEventListener('click', ()=>{
+  if(state.currentPage < state.currentPdfDoc.numPages){ state.currentPage++; renderStudentPage(); }
+});
+
+// response editor toolbar
+document.querySelectorAll('.mini-toolbar button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.getElementById('taskEditable').focus();
+    document.execCommand(btn.dataset.cmd, false, null);
+  });
+});
+document.getElementById('taskEditable').addEventListener('input', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a.submissions[state.currentPupil];
+  sub.responseHtml = document.getElementById('taskEditable').innerHTML;
+  markInProgress(sub);
+});
+
+document.getElementById('outlineEditable').addEventListener('input', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  markInProgress(a.submissions[state.currentPupil]);
+});
+document.getElementById('responseTab').addEventListener('click', ()=>{
+  document.getElementById('responseTab').classList.add('active'); document.getElementById('outlineTab').classList.remove('active');
+  document.getElementById('taskEditable').classList.remove('hidden'); document.getElementById('outlineEditable').classList.add('hidden');
+});
+document.getElementById('outlineTab').addEventListener('click', ()=>{
+  document.getElementById('outlineTab').classList.add('active'); document.getElementById('responseTab').classList.remove('active');
+  document.getElementById('outlineEditable').classList.remove('hidden'); document.getElementById('taskEditable').classList.add('hidden');
+});
+
+document.getElementById('btnSaveDraft').addEventListener('click', async ()=>{
+  const {sub,payload} = currentSubmissionPayload();
+  try { await request(`/api/submissions/${sub.recipientId}/save/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    alert('Draft saved. You can come back and keep editing anytime before submitting.'); showStudentTaskList();
+  } catch(error) { alert(error.message); }
+});
+document.getElementById('btnSubmit').addEventListener('click', async ()=>{
+  const {sub,payload} = currentSubmissionPayload();
+  try { const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
+    clearExamTimer();
+    alert('Submitted! Your teacher has been sent a review notification.'); showStudentTaskList();
+  } catch(error) { alert(error.message); }
+});
+
+// ---------------- init ----------------
+loadAssignments().then(()=>{
+  if(document.body.dataset.role==='pupil'){
+    switchRole('student');
+    return;
+  }
+  const reviewRecipientId = Number(new URLSearchParams(location.search).get('review'));
+  if(reviewRecipientId){
+    const assignment = state.assignments.find(a=>Object.values(a.submissions).some(s=>s.recipientId===reviewRecipientId));
+    if(assignment){
+      const pupil = Object.keys(assignment.submissions).find(name=>assignment.submissions[name].recipientId===reviewRecipientId);
+      document.getElementById('btnTeacherRole').classList.add('active'); document.getElementById('btnStudentRole').classList.remove('active');
+      document.getElementById('teacherView').classList.remove('hidden'); document.getElementById('studentView').classList.add('hidden');
+      showReview(assignment.id, pupil);
+      return;
+    }
+  }
+  showTeacherDashboard();
+}).catch(()=>showTeacherDashboard());
+</script>
+</body>
+</html>
