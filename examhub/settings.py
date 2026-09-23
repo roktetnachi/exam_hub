@@ -26,13 +26,15 @@ SECRET_KEY = 'django-insecure-)8k6@2+lp@1&8018xraqszdl5#0fhv4%!@nkk1+5sa7%vlno=(
 DEBUG = True
 
 import os
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "examhub-production-57c2.up.railway.app"]
+
 
 ALLOWED_HOSTS = [
     host for host in os.environ.get("ALLOWED_HOSTS", "").split(",")
     if host
 ]
 
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "examhub-production-57c2.up.railway.app"]
+CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://examhub-production-57c2.up.railway.app']
 
 
 

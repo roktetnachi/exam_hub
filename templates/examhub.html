@@ -427,6 +427,12 @@
                 <button type="button" class="itemtype-tile" data-add-type="pdf" title="PDF text (annotate + write about it)">
                   <span class="itemtype-icon">&#9636;</span><span class="itemtype-label">PDF text</span>
                 </button>
+                <button type="button" class="itemtype-tile" data-add-type="image" title="Image">
+                  <span class="itemtype-icon">&#9640;</span><span class="itemtype-label">Image</span>
+                </button>
+                <button type="button" class="itemtype-tile" data-add-type="video" title="Video">
+                  <span class="itemtype-icon">&#9654;</span><span class="itemtype-label">Video</span>
+                </button>
               </div>
             </div>
             <div class="itemtype-group">
@@ -698,6 +704,10 @@
           <div class="question-prompt-pane hidden" id="questionPromptPane">
             <div class="question-prompt-label" id="questionPromptLabel"></div>
             <div class="question-prompt-text" id="questionPromptText"></div>
+          </div>
+          <div class="question-prompt-pane hidden" id="mediaViewerPane">
+            <div class="question-prompt-label" id="mediaViewerLabel"></div>
+            <div id="mediaViewerBody" style="margin-top:10px;"></div>
           </div>
         </div>
         <div class="resp-pane">
@@ -1409,7 +1419,7 @@ document.getElementById('confirmBulkDeliveryBtn').addEventListener('click', asyn
 });
 
 const ITEM_TYPE_LABELS = {
-  pdf: 'PDF text', long_answer: 'Long answer', mcq_single: 'Multiple choice (single)',
+  pdf: 'PDF text', image: 'Image', video: 'Video', long_answer: 'Long answer', mcq_single: 'Multiple choice (single)',
   mcq_multiple: 'Multiple choice (multiple)', true_false: 'True / False',
   fill_text: 'Fill in the blank', table: 'Table',
 };
@@ -1429,6 +1439,10 @@ function addItemRow(type, defaultLabel){
   let bodyHtml = '';
   if(type === 'pdf'){
     bodyHtml = `<input type="file" class="item-pdf-file" accept="application/pdf" style="width:100%;">`;
+  } else if(type === 'image'){
+    bodyHtml = `<input type="file" class="item-image-file" accept="image/*" style="width:100%;">`;
+  } else if(type === 'video'){
+    bodyHtml = `<input type="file" class="item-video-file" accept="video/*" style="width:100%;">`;
   } else {
     bodyHtml = `<textarea class="item-prompt" placeholder="Question prompt…"></textarea>`;
     if(type === 'mcq_single' || type === 'mcq_multiple'){
@@ -1455,6 +1469,7 @@ function addItemRow(type, defaultLabel){
     <div class="item-row-head">
       <span class="item-type-badge">${ITEM_TYPE_LABELS[type] || type}</span>
       <input type="text" class="item-label" placeholder="Label" value="${label}">
+      <input type="text" class="item-section" placeholder="Section (optional, e.g. Task 1)" style="width:150px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">
       <label class="sub" style="display:flex;align-items:center;gap:4px;white-space:nowrap;">Points
         <input type="number" class="item-points" min="0.5" step="0.5" value="1" style="width:56px;padding:5px;border:1px solid var(--border);border-radius:6px;">
       </label>
@@ -1510,41 +1525,55 @@ document.querySelectorAll('#itemTypeGrid .itemtype-tile').forEach(tile=>{
 function collectItemsForSubmit(){
   const items = [];
   const pdfFiles = [];
+  const imageFiles = [];
+  const videoFiles = [];
   let error = null;
   Array.from(document.querySelectorAll('#itemsRows .item-row')).forEach(row=>{
     if(error) return;
     const type = row.dataset.itemType;
     const label = row.querySelector('.item-label').value.trim() || undefined;
+    const sectionInput = row.querySelector('.item-section');
+    const section = sectionInput ? sectionInput.value.trim() : '';
     const pointsInput = row.querySelector('.item-points');
     const points = pointsInput ? (parseFloat(pointsInput.value) || 1) : 1;
     if(type === 'pdf'){
       const file = row.querySelector('.item-pdf-file').files[0];
-      if(file){ pdfFiles.push(file); items.push({type, label, points}); }
+      if(file){ pdfFiles.push(file); items.push({type, label, points, section}); }
       return; // a PDF row with no file chosen is simply skipped, not an error
+    }
+    if(type === 'image'){
+      const file = row.querySelector('.item-image-file').files[0];
+      if(file){ imageFiles.push(file); items.push({type, label, points, section}); }
+      return; // an image row with no file chosen is simply skipped, not an error
+    }
+    if(type === 'video'){
+      const file = row.querySelector('.item-video-file').files[0];
+      if(file){ videoFiles.push(file); items.push({type, label, points, section}); }
+      return; // a video row with no file chosen is simply skipped, not an error
     }
     const prompt = row.querySelector('.item-prompt') ? row.querySelector('.item-prompt').value.trim() : '';
     if(type === 'long_answer'){
-      items.push({type, label, prompt, points});
+      items.push({type, label, prompt, points, section});
     } else if(type === 'mcq_single' || type === 'mcq_multiple'){
       const options = Array.from(row.querySelectorAll('.item-option-row')).map(r=>({
         id: r.dataset.optionId, text: r.querySelector('.item-option-text').value.trim()
       })).filter(o=>o.text);
       const checked = Array.from(row.querySelectorAll('.item-correct-picker input:checked')).map(i=>i.value);
       const correctAnswer = type === 'mcq_single' ? {optionId: checked[0] || null} : {optionIds: checked};
-      items.push({type, label, prompt, options, correctAnswer, points});
+      items.push({type, label, prompt, options, correctAnswer, points, section});
     } else if(type === 'true_false'){
       const chosen = row.querySelector('.item-tf-choice.selected');
-      items.push({type, label, prompt, correctAnswer: {value: chosen ? chosen.dataset.value === 'true' : null}, points});
+      items.push({type, label, prompt, correctAnswer: {value: chosen ? chosen.dataset.value === 'true' : null}, points, section});
     } else if(type === 'fill_text'){
       const accepted = row.querySelector('.item-accepted-answers').value.split(',').map(s=>s.trim()).filter(Boolean);
-      items.push({type, label, prompt, correctAnswer: {accepted}, points});
+      items.push({type, label, prompt, correctAnswer: {accepted}, points, section});
     } else if(type === 'table'){
       const rowsN = Math.max(1, parseInt(row.querySelector('.item-table-rows').value, 10) || 3);
       const colsN = Math.max(1, parseInt(row.querySelector('.item-table-cols').value, 10) || 3);
-      items.push({type, label, prompt, options: {rows: rowsN, cols: colsN}, points});
+      items.push({type, label, prompt, options: {rows: rowsN, cols: colsN}, points, section});
     }
   });
-  return {items, pdfFiles, error};
+  return {items, pdfFiles, imageFiles, videoFiles, error};
 }
 
 // ---------------- generic pill-picker helper (delivery mode / start-close condition / assign-to) ----------------
@@ -1823,9 +1852,11 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   const duration = document.getElementById('aDuration').value.trim() || '60';
   const assignedTo = Array.from(document.querySelectorAll('#pupilChecklist input:checked')).map(c=>c.value);
 
-  const {items, pdfFiles} = collectItemsForSubmit();
+  const {items, pdfFiles, imageFiles, videoFiles} = collectItemsForSubmit();
   const form = new FormData();
   pdfFiles.forEach(f=>form.append('pdfs', f));
+  imageFiles.forEach(f=>form.append('images', f));
+  videoFiles.forEach(f=>form.append('videos', f));
 
   if(closeCondition === 'scheduled' && !due){
     alert('Pick a closing date and time, or switch the close condition to Manual.');
@@ -2818,7 +2849,7 @@ async function openStudentTask(assignmentId){
 
 // ---------------- resources panel (page thumbnails for PDFs, a single tile per question) ----------------
 const QUESTION_TYPE_ICONS = {
-  long_answer: '✎', mcq_single: '◉', mcq_multiple: '☑', true_false: '⚖',
+  image: '▨', video: '▶', long_answer: '✎', mcq_single: '◉', mcq_multiple: '☑', true_false: '⚖',
   fill_text: '▭', table: '▦',
 };
 async function buildResourcesPanel(a, sub){
@@ -2890,14 +2921,18 @@ function currentItem(){
 async function renderCurrentItem(){
   const item = currentItem();
   const isPdf = item && item.type === 'pdf';
+  const isMedia = item && (item.type === 'image' || item.type === 'video');
   document.getElementById('pdfScroll').classList.toggle('hidden', !isPdf);
-  document.getElementById('questionPromptPane').classList.toggle('hidden', isPdf);
+  document.getElementById('questionPromptPane').classList.toggle('hidden', isPdf || isMedia);
+  document.getElementById('mediaViewerPane').classList.toggle('hidden', !isMedia);
   document.getElementById('pdfOnlyControls').classList.toggle('hidden', !isPdf);
   document.getElementById('pdfOnlyControls2').classList.toggle('hidden', !isPdf);
   document.getElementById('pageNavControls').classList.toggle('hidden', !isPdf);
   document.getElementById('textLayerDiag').classList.toggle('hidden', !isPdf);
   if(isPdf){
     await renderPdfPage();
+  } else if(isMedia){
+    renderMediaItem(item);
   } else {
     renderQuestionPrompt(item);
   }
@@ -2906,6 +2941,17 @@ async function renderCurrentItem(){
 function renderQuestionPrompt(item){
   document.getElementById('questionPromptLabel').textContent = item ? item.label : '';
   document.getElementById('questionPromptText').textContent = item ? item.prompt : '';
+}
+function renderMediaItem(item){
+  document.getElementById('mediaViewerLabel').textContent = item ? item.label : '';
+  const body = document.getElementById('mediaViewerBody');
+  if(!item){ body.innerHTML = ''; return; }
+  const safeLabel = (item.label || '').replace(/"/g,'&quot;');
+  if(item.type === 'image'){
+    body.innerHTML = `<img src="${item.imageUrl}" alt="${safeLabel}" style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;">`;
+  } else if(item.type === 'video'){
+    body.innerHTML = `<video src="${item.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;"></video>`;
+  }
 }
 
 // ---------------- image detection inside a rendered PDF page ----------------

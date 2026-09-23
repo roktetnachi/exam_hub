@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import mimetypes
 import plistlib
 import secrets
 import string
@@ -136,9 +137,13 @@ def serialize_assignment(assignment, pupil_email=None):
             'published': sub.published})
     def serialize_item(item):
         data = {'id': item.id, 'type': item.item_type, 'label': item.label, 'order': item.order,
-            'points': item.points}
+            'points': item.points, 'section': item.section}
         if item.item_type == AssignmentItem.ItemType.PDF:
             data['pdfUrl'] = reverse('item-pdf', args=[item.id])
+        elif item.item_type == AssignmentItem.ItemType.IMAGE:
+            data['imageUrl'] = reverse('item-image', args=[item.id])
+        elif item.item_type == AssignmentItem.ItemType.VIDEO:
+            data['videoUrl'] = reverse('item-video', args=[item.id])
         else:
             data['prompt'] = item.prompt
             data['options'] = item.options
@@ -191,6 +196,39 @@ def item_pdf(request, item_id):
     return response
 
 
+def _serve_item_media(request, item_id, item_type, field_name):
+    """Shared by item_image/item_video: same ownership + SEB gating as item_pdf, just serving
+    whichever field the item type uses and guessing its content-type from the filename."""
+    item = get_object_or_404(AssignmentItem, id=item_id, item_type=item_type)
+    assignment = item.assignment
+    if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
+        if not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
+            return HttpResponseForbidden('This file is not assigned to your account.')
+    if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
+        return seb_required_response()
+    field = getattr(item, field_name)
+    filename = field.name.rsplit('/', 1)[-1]
+    content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    response = FileResponse(field.open('rb'), content_type=content_type, as_attachment=False, filename=filename)
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
+
+
+@login_required
+@require_GET
+def item_image(request, item_id):
+    """Serve a single IMAGE-type item's file inline so pupils/teachers can view it."""
+    return _serve_item_media(request, item_id, AssignmentItem.ItemType.IMAGE, 'image')
+
+
+@login_required
+@require_GET
+def item_video(request, item_id):
+    """Serve a single VIDEO-type item's file inline (in a range-friendly way via FileResponse)
+    so the browser's <video> element can play it, including seeking."""
+    return _serve_item_media(request, item_id, AssignmentItem.ItemType.VIDEO, 'video')
+
+
 @login_required
 @require_GET
 def assignment_status_api(request, assignment_id):
@@ -240,6 +278,8 @@ def create_assignment(request):
     teacher_email = request.user.email
 
     pdfs = request.FILES.getlist('pdfs')
+    images = request.FILES.getlist('images')
+    videos = request.FILES.getlist('videos')
     try:
         items_meta = json.loads(request.POST.get('items_meta', '[]'))
         if not isinstance(items_meta, list) or not items_meta:
@@ -251,15 +291,24 @@ def create_assignment(request):
     for pdf in pdfs:
         if pdf.content_type not in ('application/pdf', 'application/x-pdf'):
             return HttpResponseBadRequest('Please upload PDF files only.')
+    for image in images:
+        if not (image.content_type or '').startswith('image/'):
+            return HttpResponseBadRequest('Please upload image files only.')
+    for video in videos:
+        if not (video.content_type or '').startswith('video/'):
+            return HttpResponseBadRequest('Please upload video files only.')
 
     valid_types = set(AssignmentItem.ItemType.values)
     pdf_iter = iter(pdfs)
+    image_iter = iter(images)
+    video_iter = iter(videos)
     prepared_items = []
     for i, meta in enumerate(items_meta):
         item_type = meta.get('type')
         if item_type not in valid_types:
             return HttpResponseBadRequest(f'Item {i + 1}: unrecognised content type.')
         label = (meta.get('label') or '').strip() or f'Item {i + 1}'
+        section = (meta.get('section') or '').strip()
         try:
             points = float(meta.get('points') if meta.get('points') not in (None, '') else 1.0)
             if points <= 0:
@@ -270,7 +319,19 @@ def create_assignment(request):
             pdf_file = next(pdf_iter, None)
             if not pdf_file:
                 return HttpResponseBadRequest(f'"{label}" is missing its PDF file.')
-            prepared_items.append({'item_type': item_type, 'label': label, 'pdf': pdf_file, 'order': i, 'points': points})
+            prepared_items.append({'item_type': item_type, 'label': label, 'pdf': pdf_file, 'order': i, 'points': points, 'section': section})
+            continue
+        if item_type == AssignmentItem.ItemType.IMAGE:
+            image_file = next(image_iter, None)
+            if not image_file:
+                return HttpResponseBadRequest(f'"{label}" is missing its image file.')
+            prepared_items.append({'item_type': item_type, 'label': label, 'image': image_file, 'order': i, 'points': points, 'section': section})
+            continue
+        if item_type == AssignmentItem.ItemType.VIDEO:
+            video_file = next(video_iter, None)
+            if not video_file:
+                return HttpResponseBadRequest(f'"{label}" is missing its video file.')
+            prepared_items.append({'item_type': item_type, 'label': label, 'video': video_file, 'order': i, 'points': points, 'section': section})
             continue
         prompt = (meta.get('prompt') or '').strip()
         if not prompt:
@@ -281,7 +342,7 @@ def create_assignment(request):
             if not isinstance(options, list) or len(options) < 2:
                 return HttpResponseBadRequest(f'"{label}" needs at least two answer options.')
         prepared_items.append({'item_type': item_type, 'label': label, 'prompt': prompt,
-            'options': options, 'correct_answer': correct_answer, 'order': i, 'points': points})
+            'options': options, 'correct_answer': correct_answer, 'order': i, 'points': points, 'section': section})
     try:
         recipients = json.loads(request.POST.get('recipients', '[]'))
         if not recipients:

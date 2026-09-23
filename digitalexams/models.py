@@ -63,11 +63,13 @@ class Assignment(models.Model):
 
 
 class AssignmentItem(models.Model):
-    """One piece of content in an assignment: either a PDF text to annotate, or a
-    standalone question. Kept as a single model (rather than a subtype per question) so an
-    assignment's content list can freely mix PDFs and questions in any order."""
+    """One piece of content in an assignment: a PDF text to annotate, an image or video to
+    view, or a standalone question. Kept as a single model (rather than a subtype per question)
+    so an assignment's content list can freely mix any of these, in any order."""
     class ItemType(models.TextChoices):
         PDF = 'pdf', 'PDF text (annotate + write about it)'
+        IMAGE = 'image', 'Image'
+        VIDEO = 'video', 'Video'
         LONG_ANSWER = 'long_answer', 'Long answer'
         MCQ_SINGLE = 'mcq_single', 'Multiple choice (single answer)'
         MCQ_MULTIPLE = 'mcq_multiple', 'Multiple choice (multiple answers)'
@@ -79,8 +81,17 @@ class AssignmentItem(models.Model):
     item_type = models.CharField(max_length=16, choices=ItemType.choices, default=ItemType.PDF)
     label = models.CharField(max_length=60)
     order = models.PositiveIntegerField(default=0)
+    # Optional group label a batch of items are visually clustered under in the pupil's resources
+    # panel (e.g. "Task 1"), with a point-total badge — purely presentational, no other behaviour
+    # depends on it. Consecutive items sharing the same non-empty section render as one group;
+    # items with no section render exactly as before (ungrouped).
+    section = models.CharField(max_length=80, blank=True)
     # Only used when item_type == PDF.
     pdf = models.FileField(upload_to='assignments/%Y/%m/', blank=True, null=True)
+    # Only used when item_type == IMAGE.
+    image = models.FileField(upload_to='assignments/%Y/%m/', blank=True, null=True)
+    # Only used when item_type == VIDEO.
+    video = models.FileField(upload_to='assignments/%Y/%m/', blank=True, null=True)
     # Only used for question types: the question text itself.
     prompt = models.TextField(blank=True)
     # MCQ_SINGLE / MCQ_MULTIPLE: [{"id": "a", "text": "..."}, ...]. TABLE: {"rows": n, "cols": n,

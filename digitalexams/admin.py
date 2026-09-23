@@ -44,7 +44,7 @@ class RecipientInline(admin.TabularInline):
 class AssignmentItemInline(admin.TabularInline):
     model = AssignmentItem
     extra = 0
-    fields = ('order', 'item_type', 'label', 'pdf', 'prompt', 'options', 'correct_answer', 'points')
+    fields = ('order', 'item_type', 'label', 'section', 'pdf', 'image', 'video', 'prompt', 'options', 'correct_answer', 'points')
 
 
 @admin.register(Assignment)
