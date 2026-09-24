@@ -27,7 +27,6 @@ load_dotenv(BASE_DIR / ".env")
 DEBUG = True
 
 import os
-import dj_database_url
 
 
 ALLOWED_HOSTS = [
@@ -40,23 +39,27 @@ CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://examhub-production-57c
 
 
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-examhub-7v$k2q!m9x@r4t#w8z%p1n&c6b^h3j*l5d(s0f)g",
+)
 
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not configured")
-
-# Railway PostgreSQL, read from the DATABASE_URL environment variable.
-# - On Railway: set DATABASE_URL on the ExamHub service to ${{Postgres.DATABASE_URL}}
-#   (private network, postgres.railway.internal).
-# - Locally: put the Postgres service's DATABASE_PUBLIC_URL in .env, because
-#   postgres.railway.internal only resolves inside Railway.
+# Railway PostgreSQL via the public TCP proxy (same setup as the RC Generator).
+# Works both locally and on Railway, so no DATABASE_URL variable is needed.
 DATABASES = {
-    "default": dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'bDFdPmXwYGyQPLziutCYOKLIwOacWjyK',
+        'HOST': 'hayabusa.proxy.rlwy.net',
+        'PORT': '30691',
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'sslmode': 'require',
+        },
+        'CONN_MAX_AGE': 60,
+    }
 }
 
 # Application definition
@@ -73,6 +76,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -147,6 +151,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
