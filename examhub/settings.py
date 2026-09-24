@@ -40,22 +40,25 @@ CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://examhub-production-57c
 
 
 
-import os
-import dj_database_url
 DATABASE_URL = os.environ.get("DATABASE_URL")
 SECRET_KEY = os.environ.get("SECRET_KEY")
-
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not configured")
 
+# Railway PostgreSQL, read from the DATABASE_URL environment variable.
+# - On Railway: set DATABASE_URL on the ExamHub service to ${{Postgres.DATABASE_URL}}
+#   (private network, postgres.railway.internal).
+# - Locally: put the Postgres service's DATABASE_PUBLIC_URL in .env, because
+#   postgres.railway.internal only resolves inside Railway.
 DATABASES = {
     "default": dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,
-        ssl_require=False,
+        conn_health_checks=True,
     )
 }
+
 # Application definition
 
 INSTALLED_APPS = [
