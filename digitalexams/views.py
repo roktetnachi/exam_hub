@@ -14,6 +14,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, Http
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient,
@@ -25,14 +26,34 @@ def home(request):
     return render(request, 'examhub.html')
 
 
+def account_kind(user):
+    """'teacher' or 'pupil' for the login switch. Admins (superusers) sign in as teachers."""
+    if user.is_superuser or user.role == User.Role.TEACHER:
+        return 'teacher'
+    return 'pupil'
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('home')
+    login_as = request.POST.get('login_as') or request.GET.get('as') or 'pupil'
+    if login_as not in ('teacher', 'pupil'):
+        login_as = 'pupil'
     form = AuthenticationForm(request, data=request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        login(request, form.get_user())
-        return redirect(request.GET.get('next') or 'home')
-    return render(request, 'login.html', {'form': form})
+        user = form.get_user()
+        kind = account_kind(user)
+        if kind != login_as:
+            # The switch never grants a role; it only has to match the account's real one.
+            form.add_error(None, f'This is a {kind} account. Switch to "{kind.title()}" above to sign in.')
+        else:
+            login(request, user)
+            next_url = request.GET.get('next')
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()},
+                                                            require_https=request.is_secure()):
+                return redirect(next_url)
+            return redirect('home')
+    return render(request, 'login.html', {'form': form, 'login_as': login_as})
 
 
 @require_POST
@@ -258,7 +279,7 @@ def pupils_api(request):
     by that email, so an account with a blank email can't be assigned anything."""
     if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
         return HttpResponseForbidden('Only teachers can view the pupil list.')
-    pupils = User.objects.filter(role=User.Role.PUPIL).order_by('first_name', 'last_name', 'username')
+    pupils = User.assignable_pupils().order_by('first_name', 'last_name', 'username')
     return JsonResponse({'pupils': [
         {'id': p.id, 'name': p.get_full_name() or p.username, 'email': p.email}
         for p in pupils if p.email
@@ -610,7 +631,7 @@ def create_class_api(request):
     cls = SchoolClass.objects.create(name=name)
     cls.teachers.add(request.user)
     if pupil_ids:
-        pupils = User.objects.filter(id__in=pupil_ids, role=User.Role.PUPIL)
+        pupils = User.assignable_pupils().filter(id__in=pupil_ids)
         cls.pupils.set(pupils)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
         'class_created', f'Created class "{cls.name}".')
@@ -635,7 +656,7 @@ def update_class_api(request, class_id):
         cls.name = name
         cls.save()
     if 'pupilIds' in payload:
-        pupils = User.objects.filter(id__in=payload.get('pupilIds') or [], role=User.Role.PUPIL)
+        pupils = User.assignable_pupils().filter(id__in=payload.get('pupilIds') or [])
         cls.pupils.set(pupils)
     cls.teachers.add(request.user)
     return JsonResponse(serialize_class(cls))

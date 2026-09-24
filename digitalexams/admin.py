@@ -1,6 +1,39 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.forms import AdminUserCreationForm, UserChangeForm
+from django import forms
 from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, SchoolClass, Submission, User
+
+
+class RequireUniqueEmailMixin:
+    """Every ExamHub account needs an email: assignments are matched to pupils by email, so
+    a pupil saved without one silently never appears in the teacher's "assign to" list.
+    Emails must also be unique, or two accounts would receive each other's assignments."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'email' in self.fields:
+            self.fields['email'].required = True
+            self.fields['email'].help_text = 'Required. Pupils are matched to assignments by this email.'
+
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip()
+        if not email:
+            raise forms.ValidationError('An email is required for every ExamHub account.')
+        clash = User.objects.filter(email__iexact=email)
+        if self.instance and self.instance.pk:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise forms.ValidationError('Another account already uses this email.')
+        return email
+
+
+class ExamHubUserCreationForm(RequireUniqueEmailMixin, AdminUserCreationForm):
+    pass
+
+
+class ExamHubUserChangeForm(RequireUniqueEmailMixin, UserChangeForm):
+    pass
 
 
 @admin.register(User)
@@ -16,7 +49,9 @@ class UserAdmin(DjangoUserAdmin):
         ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
         ('ExamHub role', {'fields': ('role',)}),
     )
-    list_display = ('username', 'first_name', 'last_name', 'email', 'role', 'is_staff')
+    form = ExamHubUserChangeForm
+    add_form = ExamHubUserCreationForm
+    list_display = ('username', 'first_name', 'last_name', 'email', 'role', 'is_staff', 'is_superuser')
     list_filter = DjangoUserAdmin.list_filter + ('role',)
 
 

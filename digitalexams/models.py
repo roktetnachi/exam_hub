@@ -8,6 +8,19 @@ class User(AbstractUser):
         PUPIL = "pupil", "Pupil"
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.PUPIL)
 
+    def save(self, *args, **kwargs):
+        # A brand-new superuser (e.g. from `createsuperuser`) is an admin, not a pupil: make
+        # it a Teacher so it never shows up in the "assign to" pupil list. Only on creation,
+        # so an admin can still deliberately flag a superuser test account as a pupil later.
+        if self._state.adding and self.is_superuser and self.role == self.Role.PUPIL:
+            self.role = self.Role.TEACHER
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def assignable_pupils(cls):
+        """Accounts a teacher can assign work to: active, role=Pupil, never an admin."""
+        return cls.objects.filter(role=cls.Role.PUPIL, is_superuser=False, is_active=True)
+
 
 class SchoolClass(models.Model):
     """A roster group (e.g. "Grade 10 - Newton") that teachers can assign work to as a
@@ -20,7 +33,7 @@ class SchoolClass(models.Model):
     )
     pupils = models.ManyToManyField(
         User, related_name='classes_enrolled', blank=True,
-        limit_choices_to={'role': User.Role.PUPIL},
+        limit_choices_to={'role': User.Role.PUPIL, 'is_superuser': False, 'is_active': True},
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
