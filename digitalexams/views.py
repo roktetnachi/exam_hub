@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import hmac
 import json
@@ -5,11 +6,14 @@ import mimetypes
 import plistlib
 import secrets
 import string
+from zoneinfo import ZoneInfo
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.password_validation import validate_password
 from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -60,6 +64,32 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+@login_required
+@require_POST
+def change_password_api(request):
+    """Self-service password change for a signed-in pupil or teacher — there's no email
+    infrastructure set up for a "forgot password" link, so this (current password + new
+    password, from inside the app) is the only way an account changes its own credentials."""
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid request.')
+    current_password = payload.get('currentPassword') or ''
+    new_password = payload.get('newPassword') or ''
+    if not current_password or not new_password:
+        return HttpResponseBadRequest('Enter your current password and choose a new one.')
+    if not request.user.check_password(current_password):
+        return HttpResponseForbidden('Your current password is incorrect.')
+    try:
+        validate_password(new_password, user=request.user)
+    except DjangoValidationError as exc:
+        return HttpResponseBadRequest(' '.join(exc.messages))
+    request.user.set_password(new_password)
+    request.user.save()
+    update_session_auth_hash(request, request.user)  # keeps this session signed in
+    return JsonResponse({'changed': True})
 
 
 def log_activity(actor_name, actor_email, action, description, assignment=None):
@@ -113,6 +143,67 @@ def is_real_pupil(request):
     return request.user.role == User.Role.PUPIL and not request.user.is_superuser
 
 
+# ---------------- scheduling timezone (everything schedules in GMT+8 / Asia/Manila) ----------------
+# The create/edit forms send naive "YYYY-MM-DDTHH:MM" strings straight from a browser
+# <input type="datetime-local">, with no timezone information attached. Assigning those
+# directly to a DateTimeField (the old behaviour) let Django's USE_TZ machinery silently treat
+# them as UTC wall-clock, which is 8 hours off from what a teacher actually typed. Every
+# schedule in this app (opens_at, due_at, a pupil's early-access override) is meant to be GMT+8,
+# so all of that naive input is parsed as Asia/Manila here, and always converted back to
+# Asia/Manila before being sent to the frontend — regardless of the server's own TIME_ZONE
+# setting or the viewer's browser locale, so a date typed as 2pm always displays and enforces
+# as 2pm Manila time everywhere.
+MANILA_TZ = ZoneInfo('Asia/Manila')
+
+
+def parse_manila_datetime(raw):
+    """Parses a naive datetime-local string (or an already-aware datetime/ISO string) as
+    Asia/Manila local time and returns a real timezone-aware datetime ready for storage.
+    Returns None for empty/unparseable input."""
+    if not raw:
+        return None
+    if isinstance(raw, datetime.datetime):
+        dt = raw
+    else:
+        try:
+            dt = datetime.datetime.fromisoformat(str(raw))
+        except ValueError:
+            return None
+    if timezone.is_naive(dt):
+        dt = dt.replace(tzinfo=MANILA_TZ)
+    return dt
+
+
+def manila_isoformat(dt):
+    """Serialises an aware datetime for the frontend as a GMT+8 (Asia/Manila) ISO string, so
+    every client shows/round-trips the same wall-clock schedule no matter its own timezone."""
+    if not dt:
+        return None
+    return dt.astimezone(MANILA_TZ).isoformat()
+
+
+def assignment_closed(assignment):
+    """True once an assignment's due date (always interpreted as Asia/Manila, same as
+    everywhere else it's scheduled) has passed. No due date set means it never auto-closes."""
+    return bool(assignment.due_at) and timezone.now() > assignment.due_at
+
+
+def assignment_closed_response():
+    return JsonResponse({
+        'code': 'assignment_closed',
+        'detail': 'This assignment closed at its scheduled due date and no longer accepts new work.',
+    }, status=403)
+
+
+def _has_unread(recipient, from_role, last_read_at):
+    """True if `recipient` has a message from `from_role` newer than `last_read_at` (or any
+    message at all from them, if that side has never opened the thread)."""
+    qs = recipient.messages.filter(sender_role=from_role)
+    if last_read_at:
+        qs = qs.filter(created_at__gt=last_read_at)
+    return qs.exists()
+
+
 def auto_grade_item(item, response):
     """Auto-grades a single item from a pupil's raw response value, for the item types
     that support it (mcq_single/mcq_multiple/true_false/fill_text) and only when an answer
@@ -150,7 +241,13 @@ def serialize_assignment(assignment, pupil_email=None):
             'startedAt': sub.started_at.isoformat() if sub.started_at else None,
             'annotations': sub.annotations, 'outlineHtml': sub.outline_html, 'responses': sub.responses,
             'extraMinutes': recipient.extra_minutes,
-            'opensOverride': recipient.opens_override.isoformat() if recipient.opens_override else None,
+            'opensOverride': manila_isoformat(recipient.opens_override),
+            # Unread-message dots (Phase 9): whichever side hasn't read the other's latest
+            # message yet. hasUnreadFromPupil drives the teacher-side dots (assignment row,
+            # Monitor pupil row, bell); hasUnreadFromTeacher drives the pupil's own
+            # "Message teacher" button and bell — always computed, cheap either way.
+            'hasUnreadFromPupil': _has_unread(recipient, User.Role.PUPIL, recipient.teacher_last_read_at),
+            'hasUnreadFromTeacher': _has_unread(recipient, User.Role.TEACHER, recipient.pupil_last_read_at),
             'itemScores': sub.item_scores if show_grades else {},
             'totalScore': sub.total_score if show_grades else None,
             'maxScore': sub.max_score if show_grades else None,
@@ -176,7 +273,7 @@ def serialize_assignment(assignment, pupil_email=None):
     return {'id': assignment.id, 'title': assignment.title, 'prompt': assignment.instructions,
         'items': items,
         'teacherName': assignment.teacher_name, 'teacherEmail': assignment.teacher_email,
-        'opensAt': assignment.opens_at.isoformat(), 'dueAt': assignment.due_at.isoformat() if assignment.due_at else None,
+        'opensAt': manila_isoformat(assignment.opens_at), 'dueAt': manila_isoformat(assignment.due_at),
         'durationMinutes': assignment.duration_minutes,
         'deliveryMode': assignment.delivery_mode,
         'requireJoinCode': assignment.require_join_code,
@@ -267,6 +364,10 @@ def assignment_status_api(request, assignment_id):
             'status': sub.status,
             'startedAt': sub.started_at.isoformat() if sub.started_at else None,
             'submittedAt': sub.submitted_at.isoformat() if sub.submitted_at else None,
+            # So the Monitor tab's "Time left" countdown and unread dots stay current between
+            # full reloads (an accommodation or a new pupil message mid-exam shows up on the next poll).
+            'extraMinutes': recipient.extra_minutes,
+            'hasUnreadFromPupil': _has_unread(recipient, User.Role.PUPIL, recipient.teacher_last_read_at),
         })
     return JsonResponse({'id': assignment.id, 'recipients': recipients})
 
@@ -384,11 +485,11 @@ def create_assignment(request):
     join_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6)) if require_join_code else ''
     allow_calculator = request.POST.get('allow_calculator') == 'true'
     allow_graphing_calculator = request.POST.get('allow_graphing_calculator') == 'true'
-    due_at = request.POST.get('due_at') or None
+    due_at = parse_manila_datetime(request.POST.get('due_at'))
 
     assignment = Assignment.objects.create(title=request.POST['title'].strip(), instructions=request.POST.get('instructions', '').strip(),
         teacher_name=teacher_name, teacher_email=teacher_email,
-        opens_at=request.POST.get('opens_at') or timezone.now(), due_at=due_at, duration_minutes=duration_minutes,
+        opens_at=parse_manila_datetime(request.POST.get('opens_at')) or timezone.now(), due_at=due_at, duration_minutes=duration_minutes,
         delivery_mode=delivery_mode, require_join_code=require_join_code, join_code=join_code,
         allow_calculator=allow_calculator, allow_graphing_calculator=allow_graphing_calculator)
     for prepared in prepared_items:
@@ -438,8 +539,8 @@ def update_assignment_api(request, assignment_id):
     assignment.title = title
     assignment.instructions = (payload.get('instructions') or '').strip()
     if payload.get('opensAt'):
-        assignment.opens_at = payload['opensAt']
-    assignment.due_at = payload.get('dueAt') or None
+        assignment.opens_at = parse_manila_datetime(payload['opensAt'])
+    assignment.due_at = parse_manila_datetime(payload.get('dueAt'))
     assignment.duration_minutes = duration_minutes
     assignment.delivery_mode = delivery_mode
 
@@ -454,9 +555,6 @@ def update_assignment_api(request, assignment_id):
     assignment.allow_calculator = bool(payload.get('allowCalculator'))
     assignment.allow_graphing_calculator = bool(payload.get('allowGraphingCalculator'))
     assignment.save()
-    # Re-fetch from the DB: assigning raw strings to opens_at/due_at above leaves those
-    # attributes as plain strings on this in-memory instance until reloaded, and
-    # serialize_assignment() calls .isoformat() on them.
     assignment.refresh_from_db()
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
         'updated', f'Updated settings for "{assignment.title}".', assignment=assignment)
@@ -514,6 +612,8 @@ def start_submission(request, recipient_id):
             return JsonResponse({'detail': 'Incorrect join code.'}, status=403)
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     if not submission.started_at and submission.status != 'submitted':
+        if assignment_closed(assignment):
+            return assignment_closed_response()
         submission.started_at = timezone.now()
         if submission.status == 'not_started':
             submission.status = 'draft'
@@ -539,6 +639,8 @@ def submission_from_request(request, recipient_id):
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     if submission.status == 'submitted':
         return None, JsonResponse({'detail': 'This work has already been submitted.'}, status=409)
+    if assignment_closed(recipient.assignment):
+        return None, assignment_closed_response()
     submission.annotations = payload.get('annotations', [])
     submission.outline_html = payload.get('outlineHtml', '')
     responses = payload.get('responses', {})
@@ -749,10 +851,8 @@ def update_recipient_accommodations_api(request, recipient_id):
     except (TypeError, ValueError):
         return HttpResponseBadRequest('Extra time must be zero or a positive number of minutes.')
     recipient.extra_minutes = extra_minutes
-    recipient.opens_override = payload.get('opensOverride') or None
+    recipient.opens_override = parse_manila_datetime(payload.get('opensOverride'))
     recipient.save()
-    # Same gotcha as assignment opens_at/due_at: refetch so opens_override is a real
-    # datetime (not the raw string just assigned) before we .isoformat() it below.
     recipient.refresh_from_db()
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
         'accommodation',
@@ -762,7 +862,7 @@ def update_recipient_accommodations_api(request, recipient_id):
     return JsonResponse({
         'id': recipient.id,
         'extraMinutes': recipient.extra_minutes,
-        'opensOverride': recipient.opens_override.isoformat() if recipient.opens_override else None,
+        'opensOverride': manila_isoformat(recipient.opens_override),
     })
 
 
@@ -785,11 +885,20 @@ def messages_api(request, recipient_id):
     denied = _recipient_access_check(request, recipient)
     if denied:
         return denied
-    return JsonResponse({'messages': [
+    messages = [
         {'id': m.id, 'senderRole': m.sender_role, 'senderName': m.sender_name, 'text': m.text,
-         'createdAt': m.created_at.isoformat()}
+         'isBroadcast': m.is_broadcast, 'createdAt': m.created_at.isoformat()}
         for m in recipient.messages.all()
-    ]})
+    ]
+    # Opening this thread marks it read for whichever side just opened it — a real pupil
+    # reading their own chat, or a teacher (or a superuser previewing) reading it from Monitor.
+    if is_real_pupil(request):
+        recipient.pupil_last_read_at = timezone.now()
+        recipient.save(update_fields=['pupil_last_read_at'])
+    else:
+        recipient.teacher_last_read_at = timezone.now()
+        recipient.save(update_fields=['teacher_last_read_at'])
+    return JsonResponse({'messages': messages})
 
 
 @login_required
@@ -823,9 +932,53 @@ def send_message_api(request, recipient_id):
         sender_role, sender_name = User.Role.TEACHER, (request.user.get_full_name() or request.user.username)
     message = Message.objects.create(recipient=recipient, sender_role=sender_role,
         sender_name=sender_name, text=text)
+    # Sending a message yourself obviously means you've "read" the thread up to now too —
+    # otherwise a teacher's own reply would immediately show back to them as unread.
+    if is_real_pupil:
+        recipient.pupil_last_read_at = timezone.now()
+        recipient.save(update_fields=['pupil_last_read_at'])
+    elif not payload.get('asPupil'):
+        recipient.teacher_last_read_at = timezone.now()
+        recipient.save(update_fields=['teacher_last_read_at'])
     return JsonResponse({'id': message.id, 'senderRole': message.sender_role,
-        'senderName': message.sender_name, 'text': message.text,
+        'senderName': message.sender_name, 'text': message.text, 'isBroadcast': message.is_broadcast,
         'createdAt': message.created_at.isoformat()}, status=201)
+
+
+@login_required
+@require_POST
+def broadcast_message_api(request, assignment_id):
+    """Sends one message to every current recipient of an assignment at once — for a
+    teacher who wants to remind or notify the whole class rather than messaging pupils
+    one by one. Shows up in each pupil's own 1:1 thread with the teacher, tagged as a
+    broadcast so it reads differently from a personal reply."""
+    denied = _require_teacher(request)
+    if denied:
+        return denied
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid message data.')
+    text = (payload.get('text') or '').strip()
+    if not text:
+        return HttpResponseBadRequest("Message can't be empty.")
+    if len(text) > 2000:
+        return HttpResponseBadRequest('Message is too long.')
+    sender_name = request.user.get_full_name() or request.user.username
+    now = timezone.now()
+    recipients = list(assignment.recipients.all())
+    Message.objects.bulk_create([
+        Message(recipient=r, sender_role=User.Role.TEACHER, sender_name=sender_name,
+            text=text, is_broadcast=True, created_at=now)
+        for r in recipients
+    ])
+    # The teacher just sent it, so it's "read" on their side for every one of these threads —
+    # only the pupil side should show it as unread.
+    Recipient.objects.filter(id__in=[r.id for r in recipients]).update(teacher_last_read_at=now)
+    log_activity(sender_name, request.user.email, 'broadcast',
+        f'Messaged all {len(recipients)} pupil(s) on "{assignment.title}".', assignment=assignment)
+    return JsonResponse({'sent': len(recipients)}, status=201)
 
 
 @login_required

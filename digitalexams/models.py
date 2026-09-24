@@ -136,6 +136,11 @@ class Recipient(models.Model):
     opens_override = models.DateTimeField(
         null=True, blank=True,
         help_text="If set, this pupil can start as soon as this time instead of waiting for the assignment's own opens_at (early access).")
+    # Read-tracking for the 1:1 chat's unread dots (Phase 9). Set whenever that side actually
+    # opens this recipient's message thread (see messages_api) — a message newer than the
+    # other side's last-read timestamp shows as unread to them.
+    teacher_last_read_at = models.DateTimeField(null=True, blank=True)
+    pupil_last_read_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['assignment', 'pupil_email'], name='unique_assignment_pupil')]
@@ -201,6 +206,10 @@ class Message(models.Model):
     sender_role = models.CharField(max_length=10, choices=User.Role.choices)
     sender_name = models.CharField(max_length=120)
     text = models.TextField()
+    # True for a message sent to every recipient of an assignment at once (see
+    # broadcast_message_api), purely so the chat thread can label it distinctly from a
+    # one-to-one reply.
+    is_broadcast = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

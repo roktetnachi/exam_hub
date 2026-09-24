@@ -143,6 +143,22 @@
   .text-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
   .text-row input.text-label{width:120px;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:13px;}
   .text-row input.text-pdf{flex:1;font-size:13px;}
+  .builder-sections-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 10px;}
+  .builder-sections-title{font-size:15px;font-weight:700;color:var(--text);}
+  .builder-section{border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:10px;}
+  .builder-section.active{border-color:var(--blue);box-shadow:0 0 0 2px rgba(75,145,197,.15);}
+  .builder-section-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;}
+  .builder-section-name{flex:1;min-width:0;border:1px solid transparent;background:transparent;font-weight:600;font-size:14px;color:var(--text);padding:4px 6px;border-radius:6px;}
+  .builder-section-name:hover,.builder-section-name:focus{border-color:var(--border);background:#fff;outline:none;}
+  .builder-section-count{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;}
+  .builder-section-chevron{border:0;background:none;cursor:pointer;font-size:13px;color:var(--text);padding:4px 6px;transition:transform .15s;line-height:1;}
+  .builder-section.collapsed .builder-section-chevron{transform:rotate(180deg);}
+  .builder-section-body{padding:0 14px 12px;}
+  .builder-section.collapsed .builder-section-body{display:none;}
+  .builder-section-empty{font-size:12.5px;color:var(--muted);padding:2px 0 6px;}
+  .monitor-time{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;white-space:nowrap;}
+  .monitor-time.warn{color:var(--danger);}
+  .monitor-time.muted{color:var(--muted);font-weight:400;}
   .item-row{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fbfbfd;}
   .item-row-head{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
   .item-row-head input.item-label{flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;}
@@ -159,7 +175,10 @@
   .resources-panel{width:140px;flex-shrink:0;border-right:1px solid var(--border);background:#fafbfc;overflow-y:auto;}
   .resources-head{padding:10px 10px 6px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
   .resource-group{padding:2px 10px 8px;}
-  .resource-group-label{font-size:12px;font-weight:700;color:var(--text);margin:6px 0 4px;}
+  .resource-group-label{font-size:12px;font-weight:700;color:var(--text);margin:6px 0 4px;padding:2px 0;cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px;}
+  .resource-group-label::-webkit-details-marker{display:none;}
+  .resource-group-label::before{content:'▸';display:inline-block;font-size:9px;color:var(--muted);transition:transform .12s;flex-shrink:0;}
+  .resource-group[open] > .resource-group-label::before{transform:rotate(90deg);}
   .resource-thumb{border:2px solid transparent;border-radius:4px;cursor:pointer;margin-bottom:8px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);}
   .resource-thumb.active{border-color:var(--blue);}
   .resource-thumb canvas{display:block;width:100%;height:auto;pointer-events:none;}
@@ -169,6 +188,8 @@
   .resource-section{padding:2px 10px 4px;border-bottom:1px solid var(--border);}
   .resource-section summary{font-size:12px;font-weight:700;color:var(--text);padding:8px 0;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;}
   .resource-section summary::-webkit-details-marker{display:none;}
+  .resource-section summary::before{content:'▸';display:inline-block;font-size:9px;color:var(--muted);transition:transform .12s;flex-shrink:0;}
+  .resource-section[open] > summary::before{transform:rotate(90deg);}
   .resource-section summary .badge{font-size:10px;padding:2px 8px;}
   .resource-section .resource-group{padding-left:6px;}
 
@@ -298,10 +319,21 @@
 
 <div class="brandbar">
   <div class="brand"><span class="dot"></span>ExamHub</div>
-  <div style="margin-left:auto;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:var(--blue);cursor:pointer;margin-left:8px">Sign out</button></form></div>
-  <div class="role-toggle" style="margin:0 12px;">
+  <div style="margin-left:auto;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><button type="button" id="btnChangePassword" style="border:0;background:none;color:var(--blue);cursor:pointer;margin-left:8px;">Change password</button><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:var(--blue);cursor:pointer;margin-left:8px">Sign out</button></form></div>
+  <div class="role-toggle" id="roleToggleWrap" style="margin:0 12px;">
     <button id="btnTeacherRole" class="active">Teacher</button>
     <button id="btnStudentRole">Student</button>
+  </div>
+  <div style="position:relative;">
+    <button class="icon-btn" id="notifBellBtn" title="Messages" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;position:relative;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="hidden" id="notifBellDot" style="position:absolute;top:5px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid #fff;"></span>
+    </button>
+    <div class="hidden" id="notifDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:320px;max-height:420px;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:var(--card-shadow);padding:14px;z-index:50;">
+      <strong style="font-size:13px;">Messages</strong>
+      <div id="notifList" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
+      <p class="sub" id="notifEmpty" style="margin:6px 0 0;">No unread messages.</p>
+    </div>
   </div>
   <div style="position:relative;">
     <button class="icon-btn" id="sebMenuBtn" title="Safe Exam Browser setup" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
@@ -315,6 +347,31 @@
         <a class="btn outline small" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
         <a class="btn outline small" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="changePasswordBackdrop">
+  <div class="card" style="width:360px;max-width:92vw;">
+    <h2 style="margin-bottom:6px;">Change password</h2>
+    <p class="sub" style="margin-top:0;">Change the password you sign in with. You'll stay signed in.</p>
+    <div class="field">
+      <label>Current password</label>
+      <input type="password" id="currentPasswordInput" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>New password</label>
+      <input type="password" id="newPasswordInput" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>Confirm new password</label>
+      <input type="password" id="confirmPasswordInput" autocomplete="new-password">
+    </div>
+    <p id="changePasswordError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+    <p id="changePasswordSuccess" class="hidden" style="color:var(--blue);font-size:12.5px;margin:4px 0 0;"></p>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+      <button class="btn outline small" id="cancelChangePasswordBtn" type="button">Close</button>
+      <button class="btn small" id="confirmChangePasswordBtn" type="button">Change password</button>
     </div>
   </div>
 </div>
@@ -356,18 +413,18 @@
       <div class="modal-backdrop hidden" id="bulkScheduleModal">
         <div class="card" style="width:440px;max-width:92vw;">
           <h2 style="margin:0 0 6px;">Edit schedule for <span id="bulkScheduleCount"></span> assignments</h2>
-          <p class="sub" style="margin-top:0;">Only the fields you tick below are changed — everything else about each assignment stays as it is.</p>
+          <p class="sub" style="margin-top:0;">Only the fields you tick below are changed — everything else about each assignment stays as it is. Times are Philippines time (GMT+8).</p>
           <div class="field">
             <div class="pupil-check" style="margin-bottom:4px;">
               <input type="checkbox" id="bulkSetOpensAt">
-              <label for="bulkSetOpensAt">Set opens at</label>
+              <label for="bulkSetOpensAt">Set opens at (GMT+8)</label>
             </div>
             <input type="datetime-local" id="bulkOpensAtInput" disabled>
           </div>
           <div class="field">
             <div class="pupil-check" style="margin-bottom:4px;">
               <input type="checkbox" id="bulkSetDueAt">
-              <label for="bulkSetDueAt">Set due at</label>
+              <label for="bulkSetDueAt">Set due at (GMT+8)</label>
             </div>
             <input type="datetime-local" id="bulkDueAtInput" disabled>
           </div>
@@ -424,7 +481,12 @@
         </div>
         <div class="field">
           <label>Content &amp; questions (add as many as you need, in any mix — a PDF text to annotate, or a question)</label>
-          <div id="itemsRows"></div>
+          <div class="builder-sections-head">
+            <span class="builder-sections-title">Sections</span>
+            <button type="button" class="btn small outline" id="addBuilderSectionBtn">+ Add section</button>
+          </div>
+          <div id="builderSections"></div>
+          <p class="sub" id="builderAddingTo" style="margin:10px 0 0;"></p>
           <div class="itemtype-groups" id="itemTypeGrid">
             <div class="itemtype-group">
               <div class="itemtype-group-label">Content</div>
@@ -490,7 +552,7 @@
             </div>
           </div>
           <div class="field" style="flex:1;min-width:220px;">
-            <label>Opens at</label>
+            <label>Opens at (GMT+8)</label>
             <input type="datetime-local" id="aOpen" disabled>
           </div>
         </div>
@@ -503,7 +565,7 @@
             </div>
           </div>
           <div class="field" style="flex:1;min-width:220px;">
-            <label>Closes at</label>
+            <label>Closes at (GMT+8)</label>
             <input type="datetime-local" id="aDue" disabled>
           </div>
         </div>
@@ -576,11 +638,29 @@
 
       <div id="detailPanel-monitor" class="detail-panel">
         <div class="stat-tiles" id="detailStatTiles"></div>
+        <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+          <input type="search" id="monitorSearch" placeholder="Search pupils by name or email…" autocomplete="off"
+            style="flex:1;min-width:200px;max-width:340px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:13.5px;">
+          <button class="btn small outline" id="btnBroadcastMessage">Message all pupils</button>
+        </div>
         <div class="card">
           <table>
-            <thead><tr><th>Pupil</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <thead><tr><th>Pupil</th><th>Status</th><th>Time left</th><th>Submitted</th><th></th></tr></thead>
             <tbody id="detailTbody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="modal-backdrop hidden" id="broadcastMessageModal">
+        <div class="card" style="width:420px;max-width:92vw;">
+          <h2 style="margin-bottom:6px;">Message all pupils</h2>
+          <p class="sub" style="margin-top:0;" id="broadcastMessageSub">Sends one message to every pupil currently assigned this assessment — it shows up in each of their individual chat threads with you.</p>
+          <textarea id="broadcastMessageInput" rows="4" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:9px;font-size:14px;" placeholder="e.g. Reminder: this closes at 5pm today."></textarea>
+          <p id="broadcastMessageError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
+          <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+            <button class="btn outline small" id="cancelBroadcastMessageBtn" type="button">Cancel</button>
+            <button class="btn small" id="sendBroadcastMessageBtn" type="button">Send to all</button>
+          </div>
         </div>
       </div>
 
@@ -595,9 +675,7 @@
       </div>
 
       <div id="detailPanel-analyse" class="detail-panel hidden">
-        <div class="phase-placeholder">
-          <strong>Class &amp; question analytics are coming soon</strong>
-        </div>
+        <div id="analyticsBody"></div>
       </div>
     </div>
 
@@ -660,7 +738,7 @@
       <button class="back-link" id="backFromTask">&larr; Back to my tasks</button>
       <div class="row" style="justify-content:space-between;align-items:flex-start;">
         <h2 id="taskTitle"></h2>
-        <button class="btn small outline" id="openChatFromTaskBtn">Message teacher</button>
+        <button class="btn small outline" id="openChatFromTaskBtn">Message teacher<span class="hidden" id="openChatFromTaskDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:6px;"></span></button>
       </div>
       <div id="taskGradeBanner" class="hidden"></div>
       <div id="previewNotice" class="hidden" style="background:var(--danger-bg);color:var(--danger-dark);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px;">Preview only — you're viewing this as a pupil would see it, but teachers can't answer or submit on a pupil's behalf. Have the pupil sign in with their own account to actually complete this.</div>
@@ -775,6 +853,16 @@
         <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
           <button class="btn outline small" id="joinCodeCancelBtn" type="button">Cancel</button>
           <button class="btn small" id="joinCodeConfirmBtn" type="button">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="assignmentClosedBackdrop">
+      <div class="card" style="width:380px;max-width:92vw;">
+        <h2 style="margin-bottom:6px;">Assignment closed</h2>
+        <p class="sub">This assignment's due date has already passed, so it no longer accepts new work — even if you were still in the middle of it.</p>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="btn small" id="assignmentClosedOkBtn" type="button">OK</button>
         </div>
       </div>
     </div>
@@ -927,11 +1015,11 @@
         </div>
         <div class="row" style="gap:10px;">
           <div class="field" style="flex:1;">
-            <label>Opens at</label>
+            <label>Opens at (GMT+8)</label>
             <input type="datetime-local" id="editAssignmentOpensAt">
           </div>
           <div class="field" style="flex:1;">
-            <label>Due at (optional)</label>
+            <label>Due at (optional, GMT+8)</label>
             <input type="datetime-local" id="editAssignmentDueAt">
           </div>
         </div>
@@ -991,7 +1079,7 @@
           <input type="number" min="0" id="accommodationExtraMinutes" value="0">
         </div>
         <div class="field" style="margin-bottom:6px;">
-          <label>Early access from (optional)</label>
+          <label>Early access from (optional, GMT+8)</label>
           <input type="datetime-local" id="accommodationOpensOverride">
         </div>
         <p id="accommodationError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
@@ -1043,6 +1131,9 @@ const state = {
   currentPupil: null,
   currentPupilEmail: null,
   currentAssignmentId: null,
+  notifPollInterval: null,
+  analyticsThreshold: 60, // teacher-adjustable passing-rate cutoff (%) shown on the Analyse tab
+  reviewReturnTab: null, // set when "Review PDF & annotations" is opened from the Grade tab, so Back returns there
   currentTextId: null,
   currentPage: 1,
   textDocs: {},        // itemId (pdf items only) -> pdfjs document
@@ -1069,11 +1160,12 @@ function apiErrorMessage(error){
 }
 function apiAssignment(a){
   const submissions={};
-  a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responses:r.responses||{}, outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, startedAt:r.startedAt||null,
+  a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, email:r.email, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responses:r.responses||{}, outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, startedAt:r.startedAt||null,
     extraMinutes:r.extraMinutes||0, opensOverride:r.opensOverride||null,
     itemScores:r.itemScores||{}, totalScore:r.totalScore ?? null, maxScore:r.maxScore ?? null,
-    gradedAt:r.gradedAt||null, published:!!r.published}; });
-  return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? new Date(a.dueAt).toLocaleString() : '—', dueAt:a.dueAt, opensAt:a.opensAt,durationMinutes:a.durationMinutes||60,items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
+    gradedAt:r.gradedAt||null, published:!!r.published,
+    hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher}; });
+  return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt,durationMinutes:a.durationMinutes||60,items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'',
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
     allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator};
@@ -1081,6 +1173,7 @@ function apiAssignment(a){
 async function loadAssignments(pupilEmail=''){
   const result=await request('/api/assignments/' + (pupilEmail ? '?pupil_email='+encodeURIComponent(pupilEmail) : ''));
   state.assignments=result.assignments.map(apiAssignment);
+  updateNotifBell();
 }
 
 // ---------------- role toggle ----------------
@@ -1114,10 +1207,13 @@ function renderAssignmentTable(){
   Array.from(state.selectedAssignmentIds).forEach(id=>{ if(!liveIds.has(id)) state.selectedAssignmentIds.delete(id); });
   state.assignments.forEach(a=>{
     const submittedCount = Object.values(a.submissions).filter(s=>s.status==='submitted').length;
+    const hasUnread = Object.values(a.submissions).some(s=>s.hasUnreadFromPupil);
+    const unreadDot = hasUnread
+      ? `<span title="Unread pupil message" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
-      <td><strong>${a.title}</strong></td>
+      <td><strong>${a.title}</strong>${unreadDot}</td>
       <td>${a.due || '—'}</td>
       <td>${a.assignedTo.length} pupil(s)</td>
       <td>${submittedCount} / ${a.assignedTo.length}</td>
@@ -1161,6 +1257,17 @@ document.getElementById('bulkDeleteBtn').addEventListener('click', ()=>{
   openDeleteAssignmentModal(Array.from(state.selectedAssignmentIds));
 });
 
+// Displays a schedule timestamp explicitly in Asia/Manila (GMT+8) — the timezone every
+// schedule in this app is entered and enforced in — regardless of the viewer's own browser
+// timezone, so "2pm" always reads as "2pm" for everyone.
+function formatManila(iso){
+  if(!iso) return null;
+  try {
+    return new Date(iso).toLocaleString('en-US', {timeZone:'Asia/Manila', dateStyle:'medium', timeStyle:'short'}) + ' (GMT+8)';
+  } catch(_) {
+    return new Date(iso).toLocaleString();
+  }
+}
 // ---------------- edit assignment (settings only) ----------------
 function toDatetimeLocalValue(iso){
   if(!iso) return '';
@@ -1434,9 +1541,88 @@ function optionRowHtml(id, text){
     <button type="button" class="link-btn remove-option-row" style="color:var(--muted);">Remove</button>
   </div>`;
 }
-function addItemRow(type, defaultLabel){
-  const rows = document.getElementById('itemsRows');
-  const idx = rows.children.length;
+// ---------------- builder sections (collapsible groups of items, AssessPrep-style) ----------------
+// Each section is an accordion card: editable name, [item count], remove, and a chevron to
+// collapse it. The icon grid below always adds into the currently active (highlighted) section.
+// On submit, each item simply carries its section's name — the backend and the pupil's
+// resources panel already group consecutive items by that field.
+function builderSections(){ return Array.from(document.querySelectorAll('#builderSections .builder-section')); }
+function allBuilderItemRows(){ return Array.from(document.querySelectorAll('#builderSections .item-row')); }
+function addBuilderSection(name){
+  const sec = document.createElement('div');
+  sec.className = 'builder-section';
+  sec.innerHTML = `
+    <div class="builder-section-head">
+      <input type="text" class="builder-section-name" placeholder="Section name">
+      <span class="builder-section-count">[0]</span>
+      <button type="button" class="link-btn builder-section-remove" style="color:var(--muted);font-size:12px;">Remove</button>
+      <button type="button" class="builder-section-chevron" aria-label="Collapse or expand section">&#8963;</button>
+    </div>
+    <div class="builder-section-body">
+      <div class="section-items"></div>
+      <p class="builder-section-empty">No items yet — pick a content type or question below to add one here.</p>
+    </div>`;
+  const nameInput = sec.querySelector('.builder-section-name');
+  nameInput.value = name || `Section ${builderSections().length + 1}`;
+  sec.querySelector('.builder-section-head').addEventListener('click', (e)=>{
+    if(e.target.closest('.builder-section-remove')) return;
+    setActiveBuilderSection(sec);
+    if(e.target.closest('.builder-section-name')) return; // clicking the name edits it, doesn't collapse
+    sec.classList.toggle('collapsed');
+  });
+  nameInput.addEventListener('input', updateBuilderAddingTo);
+  sec.querySelector('.builder-section-remove').addEventListener('click', ()=>removeBuilderSection(sec));
+  document.getElementById('builderSections').appendChild(sec);
+  setActiveBuilderSection(sec);
+  refreshBuilderSectionCounts();
+  return sec;
+}
+function setActiveBuilderSection(sec){
+  builderSections().forEach(s=>s.classList.toggle('active', s === sec));
+  updateBuilderAddingTo();
+}
+function activeBuilderSection(){
+  return document.querySelector('#builderSections .builder-section.active') || builderSections()[0] || addBuilderSection();
+}
+function updateBuilderAddingTo(){
+  const sec = document.querySelector('#builderSections .builder-section.active');
+  const name = sec ? (sec.querySelector('.builder-section-name').value.trim() || 'Untitled section') : '';
+  document.getElementById('builderAddingTo').innerHTML = sec ? `Adding new items to <strong>${escapeHtml(name)}</strong> — click another section to add there instead.` : '';
+}
+function refreshBuilderSectionCounts(){
+  builderSections().forEach(sec=>{
+    const rows = Array.from(sec.querySelectorAll('.item-row'));
+    const points = rows.reduce((sum, r)=>sum + (parseFloat(r.querySelector('.item-points')?.value) || 0), 0);
+    const countEl = sec.querySelector('.builder-section-count');
+    countEl.textContent = `[${rows.length}]`;
+    countEl.title = `${rows.length} item(s) · ${points} point(s)`;
+    sec.querySelector('.builder-section-empty').classList.toggle('hidden', rows.length > 0);
+  });
+}
+function removeBuilderSection(sec){
+  const sections = builderSections();
+  if(sections.length <= 1){ alert('An assignment needs at least one section.'); return; }
+  const n = sec.querySelectorAll('.item-row').length;
+  if(n > 0 && allBuilderItemRows().length - n < 1){
+    alert("This section holds the only item in the assignment — add an item to another section before removing it.");
+    return;
+  }
+  const name = sec.querySelector('.builder-section-name').value.trim() || 'this section';
+  if(n > 0 && !confirm(`Remove "${name}" and the ${n} item(s) in it?`)) return;
+  const wasActive = sec.classList.contains('active');
+  sec.remove();
+  if(wasActive) setActiveBuilderSection(builderSections()[0]);
+  refreshBuilderSectionCounts();
+}
+document.getElementById('addBuilderSectionBtn').addEventListener('click', ()=>addBuilderSection());
+document.getElementById('builderSections').addEventListener('input', (e)=>{
+  if(e.target.matches('.item-points')) refreshBuilderSectionCounts();
+});
+
+function addItemRow(type, defaultLabel, sectionEl){
+  const target = sectionEl || activeBuilderSection();
+  const rows = target.querySelector('.section-items');
+  const idx = allBuilderItemRows().length;
   const row = document.createElement('div');
   row.className = 'item-row';
   row.dataset.itemType = type;
@@ -1474,7 +1660,6 @@ function addItemRow(type, defaultLabel){
     <div class="item-row-head">
       <span class="item-type-badge">${ITEM_TYPE_LABELS[type] || type}</span>
       <input type="text" class="item-label" placeholder="Label" value="${label}">
-      <input type="text" class="item-section" placeholder="Section (optional, e.g. Task 1)" style="width:150px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">
       <label class="sub" style="display:flex;align-items:center;gap:4px;white-space:nowrap;">Points
         <input type="number" class="item-points" min="0.5" step="0.5" value="1" style="width:56px;padding:5px;border:1px solid var(--border);border-radius:6px;">
       </label>
@@ -1483,7 +1668,7 @@ function addItemRow(type, defaultLabel){
     ${bodyHtml}
   `;
   row.querySelector('.remove-item-row').addEventListener('click', ()=>{
-    if(document.getElementById('itemsRows').children.length > 1) row.remove();
+    if(allBuilderItemRows().length > 1){ row.remove(); refreshBuilderSectionCounts(); }
   });
   if(type === 'mcq_single' || type === 'mcq_multiple'){
     let optionCounter = 2;
@@ -1523,6 +1708,9 @@ function addItemRow(type, defaultLabel){
     });
   }
   rows.appendChild(row);
+  target.classList.remove('collapsed');
+  refreshBuilderSectionCounts();
+  if(sectionEl === undefined && typeof row.scrollIntoView === 'function') row.scrollIntoView({block:'nearest', behavior:'smooth'});
 }
 document.querySelectorAll('#itemTypeGrid .itemtype-tile').forEach(tile=>{
   tile.addEventListener('click', ()=>addItemRow(tile.dataset.addType));
@@ -1533,12 +1721,16 @@ function collectItemsForSubmit(){
   const imageFiles = [];
   const videoFiles = [];
   let error = null;
-  Array.from(document.querySelectorAll('#itemsRows .item-row')).forEach(row=>{
+  // With a single section there's nothing to group, so items go out ungrouped (the pupil's
+  // sidebar then looks exactly as it did before sections existed). With 2+ sections, each item
+  // carries its section's name.
+  const grouped = builderSections().length > 1;
+  allBuilderItemRows().forEach(row=>{
     if(error) return;
     const type = row.dataset.itemType;
     const label = row.querySelector('.item-label').value.trim() || undefined;
-    const sectionInput = row.querySelector('.item-section');
-    const section = sectionInput ? sectionInput.value.trim() : '';
+    const sectionEl = row.closest('.builder-section');
+    const section = grouped && sectionEl ? sectionEl.querySelector('.builder-section-name').value.trim() : '';
     const pointsInput = row.querySelector('.item-points');
     const points = pointsInput ? (parseFloat(pointsInput.value) || 1) : 1;
     if(type === 'pdf'){
@@ -1611,7 +1803,135 @@ document.getElementById('sebMenuBtn').addEventListener('click', (e)=>{
 });
 document.getElementById('sebMenuDropdown').addEventListener('click', (e)=>e.stopPropagation());
 document.addEventListener('click', ()=>document.getElementById('sebMenuDropdown').classList.add('hidden'));
-if(document.body.dataset.role === 'pupil'){ document.getElementById('sebMenuBtn').classList.add('hidden'); }
+if(document.body.dataset.role === 'pupil'){
+  document.getElementById('sebMenuBtn').classList.add('hidden');
+  // A real pupil never sees or uses the Teacher/Student switch at all — that toggle exists so
+  // a teacher (or a superuser test account) can preview a pupil's task list read-only while
+  // still being able to switch straight back. Teachers keep full monitoring ability regardless
+  // (see startMonitorPolling/showReview) — this only hides the switch itself from pupils.
+  document.getElementById('roleToggleWrap').classList.add('hidden');
+}
+
+// ---------------- self-service password change ----------------
+document.getElementById('btnChangePassword').addEventListener('click', ()=>{
+  document.getElementById('currentPasswordInput').value = '';
+  document.getElementById('newPasswordInput').value = '';
+  document.getElementById('confirmPasswordInput').value = '';
+  document.getElementById('changePasswordError').classList.add('hidden');
+  document.getElementById('changePasswordSuccess').classList.add('hidden');
+  document.getElementById('changePasswordBackdrop').classList.remove('hidden');
+});
+document.getElementById('cancelChangePasswordBtn').addEventListener('click', ()=>{
+  document.getElementById('changePasswordBackdrop').classList.add('hidden');
+});
+document.getElementById('confirmChangePasswordBtn').addEventListener('click', async ()=>{
+  const errorEl = document.getElementById('changePasswordError');
+  const successEl = document.getElementById('changePasswordSuccess');
+  errorEl.classList.add('hidden'); successEl.classList.add('hidden');
+  const current = document.getElementById('currentPasswordInput').value;
+  const next = document.getElementById('newPasswordInput').value;
+  const confirm = document.getElementById('confirmPasswordInput').value;
+  if(!current || !next){ errorEl.textContent = 'Enter your current password and choose a new one.'; errorEl.classList.remove('hidden'); return; }
+  if(next !== confirm){ errorEl.textContent = "New passwords don't match."; errorEl.classList.remove('hidden'); return; }
+  const btn = document.getElementById('confirmChangePasswordBtn');
+  btn.disabled = true;
+  try {
+    await request('/api/account/change-password/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({currentPassword: current, newPassword: next})});
+    successEl.textContent = 'Password changed.';
+    successEl.classList.remove('hidden');
+    document.getElementById('currentPasswordInput').value = '';
+    document.getElementById('newPasswordInput').value = '';
+    document.getElementById('confirmPasswordInput').value = '';
+  } catch(error) {
+    errorEl.textContent = apiErrorMessage(error);
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------------- notification bell (unread messages, teacher and pupil) ----------------
+document.getElementById('notifBellBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  renderNotifDropdown();
+  document.getElementById('notifDropdown').classList.toggle('hidden');
+});
+document.getElementById('notifDropdown').addEventListener('click', (e)=>e.stopPropagation());
+document.addEventListener('click', ()=>document.getElementById('notifDropdown').classList.add('hidden'));
+
+// Collects every (assignment, recipient) pair with an unread message relevant to the current
+// viewer: for a teacher/superuser, every recipient with an unread pupil message; for a real
+// pupil, their own recipient row on each assignment where the teacher has sent something
+// unread. Reused by both the bell dropdown and the per-row/per-pupil dots elsewhere.
+function collectUnreadNotifications(){
+  const isPupilView = document.body.dataset.role === 'pupil';
+  const items = [];
+  state.assignments.forEach(a=>{
+    Object.keys(a.submissions || {}).forEach(name=>{
+      const sub = a.submissions[name];
+      if(isPupilView){
+        if(sub.email && state.currentPupilEmail && sub.email.toLowerCase() === state.currentPupilEmail.toLowerCase() && sub.hasUnreadFromTeacher){
+          items.push({assignmentId: a.id, recipientId: sub.recipientId, title: a.title, name: 'Your teacher', forRole: 'pupil'});
+        }
+      } else if(sub.hasUnreadFromPupil){
+        items.push({assignmentId: a.id, recipientId: sub.recipientId, title: a.title, name: name, forRole: 'teacher'});
+      }
+    });
+  });
+  return items;
+}
+function updateNotifBell(){
+  const count = collectUnreadNotifications().length;
+  document.getElementById('notifBellDot').classList.toggle('hidden', count === 0);
+}
+// Background refresh so the bell/dots pick up new messages without the pupil/teacher having
+// to navigate anywhere. Deliberately skipped while a pupil is actively inside an exam
+// (#studentTask visible): that view mutates the live submission object in state.assignments
+// on every keystroke before it's ever saved, and reloading assignments there would replace
+// that object out from under it, silently discarding unsaved answers.
+function startNotifPolling(){
+  if(state.notifPollInterval) return;
+  state.notifPollInterval = setInterval(async ()=>{
+    const inActiveExam = document.body.dataset.role === 'pupil' &&
+      !document.getElementById('studentTask').classList.contains('hidden');
+    if(inActiveExam) return;
+    try {
+      if(document.body.dataset.role === 'pupil'){
+        if(state.currentPupilEmail) await loadAssignments(state.currentPupilEmail);
+      } else {
+        await loadAssignments();
+      }
+      if(!document.getElementById('notifDropdown').classList.contains('hidden')) renderNotifDropdown();
+    } catch(_) { /* best-effort background refresh; the next tick tries again */ }
+  }, 20000);
+}
+function renderNotifDropdown(){
+  const items = collectUnreadNotifications();
+  const list = document.getElementById('notifList');
+  document.getElementById('notifEmpty').classList.toggle('hidden', items.length > 0);
+  list.innerHTML = items.map(item=>`
+    <button type="button" class="notif-item" data-assignment-id="${item.assignmentId}" data-recipient-id="${item.recipientId}" data-for-role="${item.forRole}"
+      style="text-align:left;border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:#fff;cursor:pointer;">
+      <div style="font-weight:700;font-size:12.5px;">${escapeHtml(item.title)}</div>
+      <div class="sub" style="font-size:11.5px;margin-top:2px;">New message from ${escapeHtml(item.name)}</div>
+    </button>`).join('');
+  list.querySelectorAll('.notif-item').forEach((btn, i)=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById('notifDropdown').classList.add('hidden');
+      const assignmentId = Number(btn.dataset.assignmentId);
+      const recipientId = Number(btn.dataset.recipientId);
+      const item = items[i];
+      const a = state.assignments.find(x=>x.id===assignmentId);
+      if(btn.dataset.forRole === 'pupil'){
+        openChatModal(recipientId, `Message ${(a && a.teacherName) || 'your teacher'}`, true);
+      } else {
+        showAssignmentDetail(assignmentId);
+        switchDetailTab('monitor');
+        openChatModal(recipientId, `${item.name} — ${item.title}`, false);
+      }
+    });
+  });
+}
 wirePillPicker('deliveryModePicker', 'mode', (mode)=>{
   document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES[mode] || '';
 });
@@ -1839,8 +2159,9 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
     const c = document.getElementById(id);
     c.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', i===0));
   });
-  document.getElementById('itemsRows').innerHTML = '';
-  addItemRow('pdf', 'Text 1');
+  document.getElementById('builderSections').innerHTML = '';
+  const firstSection = addBuilderSection('Section 1');
+  addItemRow('pdf', 'Text 1', firstSection);
   const checklist = document.getElementById('pupilChecklist');
   checklist.innerHTML = '<p class="sub">Loading pupils…</p>';
   await refreshRosterAndChecklist();
@@ -1899,8 +2220,8 @@ function deliverRow(label, value){
 function renderDeliverSummary(a){
   const rows = [
     deliverRow('Delivery mode', DELIVERY_MODE_LABELS[a.deliveryMode] || a.deliveryMode),
-    deliverRow('Start condition', a.opensAt ? `Scheduled — ${new Date(a.opensAt).toLocaleString()}` : 'Any time'),
-    deliverRow('Close condition', a.dueAt ? `Scheduled — ${new Date(a.dueAt).toLocaleString()}` : 'Manual (no close date)'),
+    deliverRow('Start condition', a.opensAt ? `Scheduled — ${formatManila(a.opensAt)}` : 'Any time'),
+    deliverRow('Close condition', a.dueAt ? `Scheduled — ${formatManila(a.dueAt)}` : 'Manual (no close date)'),
     deliverRow('Exam duration', `${a.durationMinutes} minutes`),
     deliverRow('Join code', a.requireJoinCode ? `Required — <span style="font-family:monospace;letter-spacing:.05em;">${a.joinCode || '(hidden)'}</span>` : 'Not required'),
     deliverRow('On-screen calculator', a.allowCalculator ? 'Allowed' : 'Not allowed'),
@@ -1916,6 +2237,10 @@ function switchDetailTab(tab){
   if(tab === 'grade'){
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     if(a) renderGradeTab(a);
+  }
+  if(tab === 'analyse'){
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    if(a) renderAnalyticsTab(a);
   }
 }
 
@@ -1963,14 +2288,25 @@ function renderGradeBody(a, pupil){
   const rows = a.items.map(item=>{
     const raw = (sub.responses||{})[item.id] ?? (sub.responses||{})[String(item.id)];
     const existing = scores[String(item.id)] || {};
+    const isMedia = ['pdf','image','video'].includes(item.type);
     const answerHtml = (item.type==='pdf' || item.type==='long_answer')
       ? (raw ? `<div class="grade-answer-preview">${raw}</div>` : '<em>No response written.</em>')
       : readableAnswer(item, raw);
+    // Show the actual question text when there is one (question-type items), rather than
+    // just the generic "Item 1"/"Item 2" label — the label still appears as a small caption
+    // so the two stay easy to cross-reference against the resources sidebar.
+    const heading = item.prompt ? escapeHtml(item.prompt) : escapeHtml(item.label);
+    const caption = item.prompt ? `<div class="sub" style="font-size:11px;margin-top:2px;">${escapeHtml(item.label)}</div>` : '';
+    const reviewBtn = isMedia
+      ? `<button type="button" class="link-btn review-item-btn" data-item-id="${item.id}" style="display:block;margin-top:6px;font-size:11.5px;color:var(--blue);">${item.type==='pdf' ? 'Review PDF & annotations' : 'Review media'} →</button>`
+      : '';
     return `<div class="card grade-item-card" data-item-id="${item.id}">
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;">${escapeHtml(item.label)}</div>
+          <div style="font-weight:700;font-size:13.5px;">${heading}</div>
+          ${caption}
           <div style="font-size:13px;margin-top:4px;">${answerHtml}</div>
+          ${reviewBtn}
         </div>
         <div class="grade-score-cell" style="min-width:150px;text-align:right;">${gradeScoreCellHtml(item, existing)}</div>
       </div>
@@ -1993,6 +2329,12 @@ function renderGradeBody(a, pupil){
       const existing = (scores[itemId] || {});
       card.querySelector('.grade-score-cell').innerHTML =
         `<div data-mode="manual"><input type="number" class="grade-score-input" min="0" max="${item.points}" step="0.5" value="${existing.score != null ? existing.score : ''}" autofocus> <span class="sub">/ ${item.points}</span></div>`;
+    });
+  });
+  body.querySelectorAll('.review-item-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.reviewReturnTab = 'grade';
+      showReview(a.id, pupil, Number(btn.dataset.itemId));
     });
   });
   document.getElementById('saveGradeBtn').addEventListener('click', ()=>saveGrade(a.id, pupil));
@@ -2052,6 +2394,72 @@ document.querySelectorAll('#detailTabs button').forEach(b=>{
   b.addEventListener('click', ()=>switchDetailTab(b.dataset.detailTab));
 });
 
+// ---------------- Phase 9: class analytics (top score, common mistakes, pass rate) ----------------
+// Everything here is computed client-side from data already loaded for the Monitor/Grade tabs
+// (itemScores/totalScore/maxScore are already sent for every recipient in the teacher's view) —
+// no extra request needed just to open this tab.
+function renderAnalyticsTab(a){
+  const body = document.getElementById('analyticsBody');
+  const gradedEntries = Object.entries(a.submissions).filter(([, s]) => s.gradedAt != null && s.totalScore != null && s.maxScore);
+  const totalPupils = a.assignedTo.length;
+  if(gradedEntries.length === 0){
+    body.innerHTML = `<div class="phase-placeholder"><strong>No grades yet</strong>Analytics appear here once at least one pupil's work has been graded.</div>`;
+    return;
+  }
+  let top = null;
+  gradedEntries.forEach(([name, s])=>{
+    if(!top || s.totalScore > top.totalScore) top = {name, totalScore: s.totalScore, maxScore: s.maxScore};
+  });
+  // Per-item "missed" rate: a graded item counts as missed for a pupil if they didn't get full
+  // marks on it. Only counts items that have actually been graded for at least one pupil.
+  const missStats = {};
+  gradedEntries.forEach(([, s])=>{
+    Object.entries(s.itemScores || {}).forEach(([itemId, entry])=>{
+      if(!entry || entry.maxScore == null) return;
+      const stat = missStats[itemId] || (missStats[itemId] = {missed: 0, attempted: 0});
+      stat.attempted++;
+      if((entry.score || 0) < entry.maxScore) stat.missed++;
+    });
+  });
+  const itemRows = a.items.map(item=>{
+    const stat = missStats[String(item.id)];
+    if(!stat || stat.attempted === 0) return null;
+    return {item, missed: stat.missed, attempted: stat.attempted, pct: Math.round((stat.missed / stat.attempted) * 100)};
+  }).filter(Boolean).sort((x, y)=>y.pct - x.pct);
+  const threshold = state.analyticsThreshold;
+  const passCount = gradedEntries.filter(([, s])=>s.maxScore > 0 && (s.totalScore / s.maxScore * 100) >= threshold).length;
+  const passPct = Math.round((passCount / gradedEntries.length) * 100);
+
+  body.innerHTML = `
+    <div class="stat-tiles">
+      <div class="stat-tile"><div class="num">${top.totalScore}/${top.maxScore}</div><div class="label">Highest score — ${escapeHtml(top.name)}</div></div>
+      <div class="stat-tile"><div class="num">${gradedEntries.length}/${totalPupils}</div><div class="label">Graded so far</div></div>
+      <div class="stat-tile"><div class="num">${passPct}%</div><div class="label">Passing at ${threshold}%</div></div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label class="sub" style="margin:0;">Passing rate threshold</label>
+      <input type="number" id="analyticsThresholdInput" min="0" max="100" step="1" value="${threshold}" style="width:80px;padding:6px;border:1px solid var(--border);border-radius:8px;">
+      <span class="sub">% of max score counts as a pass</span>
+    </div>
+    <div class="card">
+      <strong style="font-size:13.5px;">Most commonly missed questions</strong>
+      <p class="sub" style="margin:4px 0 12px;">Share of the ${gradedEntries.length} graded pupil(s) who didn't get full marks on each question.</p>
+      ${itemRows.length === 0 ? '<p class="sub">No scored questions yet.</p>' : itemRows.map(row=>`
+        <div class="row" style="justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border);padding:8px 0;gap:12px;">
+          <span style="font-size:13px;flex:1;min-width:0;">${escapeHtml(row.item.prompt || row.item.label)}</span>
+          <span style="font-weight:700;font-size:13px;white-space:nowrap;">${row.pct}% missed <span class="sub" style="font-weight:400;">(${row.missed}/${row.attempted})</span></span>
+        </div>`).join('')}
+    </div>
+  `;
+  document.getElementById('analyticsThresholdInput').addEventListener('change', (e)=>{
+    let v = parseFloat(e.target.value);
+    if(isNaN(v)) v = 60;
+    v = Math.max(0, Math.min(100, v));
+    state.analyticsThreshold = v;
+    renderAnalyticsTab(a);
+  });
+}
+
 // ---------------- Phase 4: per-pupil accommodations (extra time / early access) ----------------
 let accommodatingRecipientId = null;
 function openAccommodationModal(recipientId, pupilName){
@@ -2085,6 +2493,7 @@ document.getElementById('saveAccommodationBtn').addEventListener('click', async 
     if(a){
       const sub = Object.values(a.submissions).find(su=>su.recipientId===recipientId);
       if(sub){ sub.extraMinutes = result.extraMinutes; sub.opensOverride = result.opensOverride; }
+      if(a && !document.getElementById('detailPanel-monitor').classList.contains('hidden')) renderMonitorPanel(a);
     }
     closeAccommodationModal();
   } catch(error) {
@@ -2111,6 +2520,7 @@ function renderChatMessages(messages){
   const thread = document.getElementById('chatThread');
   thread.innerHTML = messages.length ? messages.map(m=>`
     <div class="chat-msg ${m.senderRole===myRole ? 'mine' : 'theirs'}">
+      ${m.isBroadcast ? '<div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Sent to whole class</div>' : ''}
       <div>${escapeHtml(m.text)}</div>
       <div class="meta">${escapeHtml(m.senderName)} · ${new Date(m.createdAt).toLocaleString()}</div>
     </div>`).join('') : '<p class="sub" style="text-align:center;">No messages yet — say hello.</p>';
@@ -2141,6 +2551,42 @@ function closeChatModal(){
   if(chatPollInterval){ clearInterval(chatPollInterval); chatPollInterval = null; }
 }
 document.getElementById('closeChatModalBtn').addEventListener('click', closeChatModal);
+
+// ---------------- bulk/broadcast messaging (message every pupil on an assignment at once) ----------------
+document.getElementById('btnBroadcastMessage').addEventListener('click', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a) return;
+  document.getElementById('broadcastMessageSub').textContent =
+    `Sends one message to all ${a.assignedTo.length} pupil(s) assigned "${a.title}" — it shows up in each of their individual chat threads with you.`;
+  document.getElementById('broadcastMessageInput').value = '';
+  document.getElementById('broadcastMessageError').classList.add('hidden');
+  document.getElementById('broadcastMessageModal').classList.remove('hidden');
+});
+document.getElementById('cancelBroadcastMessageBtn').addEventListener('click', ()=>{
+  document.getElementById('broadcastMessageModal').classList.add('hidden');
+});
+document.getElementById('sendBroadcastMessageBtn').addEventListener('click', async ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const errorEl = document.getElementById('broadcastMessageError');
+  errorEl.classList.add('hidden');
+  const text = document.getElementById('broadcastMessageInput').value.trim();
+  if(!text){ errorEl.textContent = "Message can't be empty."; errorEl.classList.remove('hidden'); return; }
+  if(!a) return;
+  const btn = document.getElementById('sendBroadcastMessageBtn');
+  btn.disabled = true;
+  try {
+    const result = await request(`/api/assignments/${a.id}/broadcast-message/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text})});
+    document.getElementById('broadcastMessageModal').classList.add('hidden');
+    await loadAssignments();
+    renderMonitorPanel(state.assignments.find(x=>x.id===a.id));
+    alert(`Message sent to ${result.sent} pupil(s).`);
+  } catch(error) {
+    errorEl.textContent = apiErrorMessage(error);
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+});
 async function sendChatMessage(){
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
@@ -2183,14 +2629,54 @@ document.getElementById('closeActivityLogBtn').addEventListener('click', ()=>{
 // ---------------- Phase 3: Monitor tab, kept live with lightweight polling ----------------
 // Renders from whatever's currently in state (either the full assignment load, or a status-only
 // poll response merged into it) — one function so the initial paint and every poll tick look the same.
+// When a pupil's working time actually runs out: their own countdown (start + duration + any
+// extra minutes), but never later than the assignment's due date, since the server hard-closes
+// saves/submits at that point regardless of how much personal time is left.
+function pupilExamEndsAt(a, sub){
+  if(sub.status !== 'progress' || !sub.startedAt) return null;
+  let end = new Date(sub.startedAt).getTime() + ((a.durationMinutes || 0) + (sub.extraMinutes || 0)) * 60000;
+  if(a.dueAt){
+    const due = new Date(a.dueAt).getTime();
+    if(!isNaN(due)) end = Math.min(end, due);
+  }
+  return isNaN(end) ? null : end;
+}
+function formatRemaining(ms){
+  if(ms <= 0) return "Time's up";
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+  return (h > 0 ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(s).padStart(2, '0');
+}
+function monitorTimeCellHtml(a, sub){
+  if(sub.status === 'submitted') return '<span class="monitor-time muted">—</span>';
+  if(sub.status !== 'progress' || !sub.startedAt){
+    const total = (a.durationMinutes || 0) + (sub.extraMinutes || 0);
+    return `<span class="monitor-time muted">${total} min${sub.extraMinutes ? ` (incl. +${sub.extraMinutes})` : ''}</span>`;
+  }
+  const endsAt = pupilExamEndsAt(a, sub);
+  const remaining = endsAt - Date.now();
+  return `<span class="monitor-time${remaining < 5 * 60000 ? ' warn' : ''}" data-ends-at="${endsAt}">${formatRemaining(remaining)}</span>`;
+}
+// Ticks every visible countdown once a second without re-rendering the table (so it never
+// fights with the search box, open buttons, etc.).
+function tickMonitorTimes(){
+  document.querySelectorAll('#detailTbody .monitor-time[data-ends-at]').forEach(el=>{
+    const remaining = Number(el.dataset.endsAt) - Date.now();
+    el.textContent = formatRemaining(remaining);
+    el.classList.toggle('warn', remaining < 5 * 60000);
+  });
+}
 function renderMonitorPanel(a){
   const statuses = a.assignedTo.map(p=>a.submissions[p].status);
+  const now = Date.now();
   const counts = {
     all: statuses.length,
-    started: statuses.filter(s=>s==='progress').length,
-    ended: 0, // no "time expired but not submitted" distinct state is tracked yet
+    started: 0,
+    // "Ended" = started, not submitted, and out of time (their own countdown or the due date).
+    ended: a.assignedTo.filter(p=>{ const e = pupilExamEndsAt(a, a.submissions[p]); return e != null && e <= now; }).length,
     submitted: statuses.filter(s=>s==='submitted').length,
   };
+  counts.started = statuses.filter(s=>s==='progress').length - counts.ended;
   document.getElementById('detailStatTiles').innerHTML = `
     <div class="stat-tile"><div class="num">${counts.all}</div><div class="label">All</div></div>
     <div class="stat-tile"><div class="num started">${counts.started}</div><div class="label">Started</div></div>
@@ -2200,19 +2686,34 @@ function renderMonitorPanel(a){
 
   const tbody = document.getElementById('detailTbody');
   tbody.innerHTML = '';
-  a.assignedTo.forEach(p=>{
+  const query = (document.getElementById('monitorSearch').value || '').trim().toLowerCase();
+  const visible = a.assignedTo.filter(p=>{
+    if(!query) return true;
     const sub = a.submissions[p];
-    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
-    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
+    return p.toLowerCase().includes(query) || (sub.email || '').toLowerCase().includes(query);
+  });
+  if(visible.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5" class="sub" style="text-align:center;padding:16px;">${query ? `No pupils match "${escapeHtml(query)}".` : 'No pupils assigned yet.'}</td></tr>`;
+    return;
+  }
+  visible.forEach(p=>{
+    const sub = a.submissions[p];
+    const endsAt = pupilExamEndsAt(a, sub);
+    const timedOut = endsAt != null && endsAt <= now;
+    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? (timedOut ? 'idle' : 'progress') : 'idle');
+    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? (timedOut ? 'Ended' : 'In progress') : 'Not started');
+    const unreadDot = sub.hasUnreadFromPupil
+      ? `<span title="Unread message from ${escapeHtml(p)}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${p}</td>
+      <td>${escapeHtml(p)}${unreadDot}</td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      <td>${monitorTimeCellHtml(a, sub)}</td>
       <td>${sub.submittedAt || '—'}</td>
       <td class="row-actions" style="gap:6px;">
         ${sub.status==='submitted' ? `<button class="btn small outline" data-row-action="review">Review</button>` : ''}
         <button class="btn small outline" data-row-action="accommodate">Accommodate</button>
-        <button class="btn small outline" data-row-action="message">Message</button>
+        <button class="btn small outline" data-row-action="message">Message${sub.hasUnreadFromPupil ? ' •' : ''}</button>
       </td>
     `;
     tr.querySelector('[data-row-action="review"]')?.addEventListener('click', ()=>showReview(a.id, p));
@@ -2223,7 +2724,12 @@ function renderMonitorPanel(a){
 }
 function stopMonitorPolling(){
   if(state.monitorPollInterval){ clearInterval(state.monitorPollInterval); state.monitorPollInterval = null; }
+  if(state.monitorTickInterval){ clearInterval(state.monitorTickInterval); state.monitorTickInterval = null; }
 }
+document.getElementById('monitorSearch').addEventListener('input', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(a) renderMonitorPanel(a);
+});
 async function pollMonitorOnce(assignmentId){
   let result;
   try {
@@ -2239,13 +2745,17 @@ async function pollMonitorOnce(assignmentId){
     sub.status = r.status==='not_started' ? 'idle' : (r.status==='draft' ? 'progress' : r.status);
     sub.startedAt = r.startedAt;
     sub.submittedAt = r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null;
+    if(r.extraMinutes != null) sub.extraMinutes = r.extraMinutes;
+    if(r.hasUnreadFromPupil != null) sub.hasUnreadFromPupil = !!r.hasUnreadFromPupil;
   });
+  updateNotifBell();
   const monitorVisible = !document.getElementById('detailPanel-monitor').classList.contains('hidden');
   if(monitorVisible) renderMonitorPanel(a);
 }
 function startMonitorPolling(assignmentId){
   stopMonitorPolling();
   state.monitorPollInterval = setInterval(()=>pollMonitorOnce(assignmentId), 6000);
+  state.monitorTickInterval = setInterval(tickMonitorTimes, 1000);
 }
 
 function showAssignmentDetail(id){
@@ -2253,6 +2763,7 @@ function showAssignmentDetail(id){
   const a = state.assignments.find(x=>x.id===id);
   hideAll('#teacherView > div');
   document.getElementById('teacherAssignmentDetail').classList.remove('hidden');
+  document.getElementById('monitorSearch').value = '';
   document.getElementById('detailTitle').textContent = a.title;
   document.getElementById('detailPrompt').textContent = a.prompt;
   switchDetailTab('monitor');
@@ -2289,7 +2800,7 @@ function readableAnswer(item, value){
 }
 function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-async function showReview(assignmentId, pupil){
+async function showReview(assignmentId, pupil, focusItemId){
   hideAll('#teacherView > div');
   document.getElementById('teacherReview').classList.remove('hidden');
   const a = state.assignments.find(x=>x.id===assignmentId);
@@ -2313,7 +2824,7 @@ async function showReview(assignmentId, pupil){
 
   const sel = document.getElementById('reviewTextSelect');
   sel.innerHTML = refItems.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
-  sel.value = String(refItems[0].id);
+  sel.value = String(focusItemId && refItems.some(t=>t.id===focusItemId) ? focusItemId : refItems[0].id);
 
   let reviewTextId = Number(sel.value);
   let reviewDoc = null, page = 1;
@@ -2386,7 +2897,12 @@ async function showReview(assignmentId, pupil){
   sel.onchange = ()=>{ reviewTextId = Number(sel.value); loadReviewDoc(); };
   loadReviewDoc();
 }
-document.getElementById('backFromReview').addEventListener('click', ()=>showAssignmentDetail(state.currentAssignmentId));
+document.getElementById('backFromReview').addEventListener('click', ()=>{
+  const returnTab = state.reviewReturnTab;
+  state.reviewReturnTab = null;
+  showAssignmentDetail(state.currentAssignmentId);
+  if(returnTab) switchDetailTab(returnTab);
+});
 
 // ================= STUDENT SIDE =================
 async function showStudentLogin(){
@@ -2430,9 +2946,11 @@ function showStudentTaskList(){
     const locked = now < opens || now > closes;
     const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
     const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
+    const unreadDot = sub.hasUnreadFromTeacher
+      ? `<span title="New message from your teacher" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${a.title}</td>
+      <td>${a.title}${unreadDot}</td>
       <td>${a.due || '—'}</td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
       <td>${locked ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small">${sub.status==='submitted' ? 'View' : 'Open'}</button>`}</td>
@@ -2545,6 +3063,11 @@ function showSebBlockedNotice(assignmentId, title){
   document.getElementById('sebGateCancelBtn').onclick = ()=>{ backdrop.classList.add('hidden'); showStudentTaskList(); };
   document.getElementById('sebGateRetryBtn').onclick = ()=>{ backdrop.classList.add('hidden'); openStudentTask(assignmentId); };
 }
+function showAssignmentClosedNotice(){
+  const backdrop = document.getElementById('assignmentClosedBackdrop');
+  backdrop.classList.remove('hidden');
+  document.getElementById('assignmentClosedOkBtn').onclick = ()=>{ backdrop.classList.add('hidden'); };
+}
 
 async function ensureSubmissionStarted(a, sub){
   if(sub.status==='submitted' || sub.startedAt) return {ok:true};
@@ -2557,6 +3080,7 @@ async function ensureSubmissionStarted(a, sub){
     let code = null;
     try { code = JSON.parse(error.message).code; } catch(_) { /* not JSON */ }
     if(code === 'seb_required') return {ok:false, sebRequired:true};
+    if(code === 'assignment_closed') return {ok:false, closed:true};
     return {ok:true}; // Timer just won't be persisted if this fails for any other reason; exam still usable.
   }
 }
@@ -2602,7 +3126,7 @@ async function handleExamExpired(a, sub){
     document.getElementById('btnSubmit').textContent = 'Already submitted';
     document.getElementById('btnSubmit').disabled = true;
   } catch(error) {
-    alert('Time is up, but we could not auto-submit: ' + error.message + '. Please click Submit.');
+    alert('Time is up, but we could not auto-submit: ' + apiErrorMessage(error) + '. Please click Submit.');
   }
 }
 
@@ -2795,7 +3319,13 @@ function renderTaskGradeBanner(sub){
 document.getElementById('openChatFromTaskBtn').addEventListener('click', ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   const sub = a && a.submissions[state.currentPupil];
-  if(sub) openChatModal(sub.recipientId, `Message ${a.teacherName || 'your teacher'}`, true);
+  if(sub){
+    openChatModal(sub.recipientId, `Message ${a.teacherName || 'your teacher'}`, true);
+    // Opening the thread marks it read server-side (see messages_api) — clear the dot
+    // right away rather than waiting for the next background refresh.
+    sub.hasUnreadFromTeacher = false;
+    document.getElementById('openChatFromTaskDot').classList.add('hidden');
+  }
 });
 async function openStudentTask(assignmentId){
   const gateAssignment = state.assignments.find(x=>x.id===assignmentId);
@@ -2827,6 +3357,7 @@ async function openStudentTask(assignmentId){
   const sub = a.submissions[state.currentPupil];
   document.getElementById('taskTitle').textContent = a.title;
   document.getElementById('taskPrompt').textContent = a.prompt;
+  document.getElementById('openChatFromTaskDot').classList.toggle('hidden', !sub.hasUnreadFromTeacher);
   document.getElementById('openCalculatorBtn').classList.toggle('hidden', !a.allowCalculator);
   renderTaskGradeBanner(sub);
   document.getElementById('previewNotice').classList.toggle('hidden',
@@ -2855,6 +3386,11 @@ async function openStudentTask(assignmentId){
   if(!startResult.ok && startResult.sebRequired){
     showStudentTaskList();
     showSebBlockedNotice(assignmentId, a.title);
+    return;
+  }
+  if(!startResult.ok && startResult.closed){
+    showStudentTaskList();
+    showAssignmentClosedNotice();
     return;
   }
   setupExamTimer(a, sub, readOnly);
@@ -2894,9 +3430,13 @@ async function buildResourcesPanel(a, sub){
       container = details;
     }
     for(const item of block.items){
-      const group = document.createElement('div');
+      // Each item's own thumbnail list collapses independently — a multi-page PDF item can be
+      // closed once you're done with it so the next item's tile is right there, rather than
+      // having to scroll past every page thumbnail to reach it.
+      const group = document.createElement('details');
       group.className = 'resource-group';
-      group.innerHTML = `<div class="resource-group-label">${item.label}</div>`;
+      group.open = true;
+      group.innerHTML = `<summary class="resource-group-label">${item.label}</summary>`;
       if(item.type === 'pdf'){
         try {
           const doc = await pdfjsLib.getDocument(item.pdfUrl).promise;
@@ -3572,6 +4112,7 @@ if(new URLSearchParams(location.search).get('sebquit') === '1'){
   document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;"><div><h2>You can now close Safe Exam Browser</h2><p class="sub">Your work has been submitted.</p></div></div>';
 } else {
 loadAssignments().then(()=>{
+  startNotifPolling();
   if(document.body.dataset.role==='pupil'){
     switchRole('student');
     return;

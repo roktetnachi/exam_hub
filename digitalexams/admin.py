@@ -96,7 +96,7 @@ class SubmissionAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('recipient', 'sender_role', 'sender_name', 'created_at')
+    list_display = ('recipient', 'sender_role', 'sender_name', 'is_broadcast', 'created_at')
     readonly_fields = ('created_at',)
     search_fields = ('sender_name', 'text')
 

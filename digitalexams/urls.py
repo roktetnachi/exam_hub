@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('api/account/change-password/', views.change_password_api, name='change-password'),
     path('', views.home, name='home'),
     path('api/assignments/', views.assignments_api, name='assignments-api'),
     path('api/assignments/<int:assignment_id>/status/', views.assignment_status_api, name='assignment-status'),
@@ -25,6 +26,7 @@ urlpatterns = [
     path('api/recipients/<int:recipient_id>/accommodations/', views.update_recipient_accommodations_api, name='update-accommodations'),
     path('api/recipients/<int:recipient_id>/messages/', views.messages_api, name='messages-api'),
     path('api/recipients/<int:recipient_id>/messages/send/', views.send_message_api, name='send-message'),
+    path('api/assignments/<int:assignment_id>/broadcast-message/', views.broadcast_message_api, name='broadcast-message'),
     path('api/activity-log/', views.activity_log_api, name='activity-log'),
     path('api/submissions/<int:recipient_id>/grade/', views.grade_submission_api, name='grade-submission'),
     path('api/submissions/<int:recipient_id>/publish/', views.publish_submission_api, name='publish-submission'),
