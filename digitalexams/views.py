@@ -18,6 +18,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.db.models import Max, Prefetch, Q
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
@@ -52,7 +53,7 @@ def login_view(request):
         kind = account_kind(user)
         if kind != login_as:
             # The switch never grants a role; it only has to match the account's real one.
-            form.add_error(None, f'This is a {kind} account. Switch to "{kind.title()}" above to sign in.')
+            form.add_error(None, f'This is a {kind} account. Choose "I\'m a {kind}" above, then sign in again.')
         else:
             login(request, user)
             next_url = request.GET.get('next')
@@ -314,11 +315,41 @@ def auto_grade_item(item, response):
     return None, max_score  # long_answer / table / pdf, or no answer key set — manual only
 
 
+def annotated_recipients():
+    """Recipients with their submission and latest-message times fetched in ONE query, instead
+    of 3-4 queries per pupil. That per-pupil pattern made the dashboard take ~20 seconds for
+    ten assignments when the database is remote (local dev against Railway Postgres)."""
+    return (Recipient.objects.select_related('submission')
+        .annotate(last_pupil_msg=Max('messages__created_at', filter=Q(messages__sender_role=User.Role.PUPIL)),
+                  last_teacher_msg=Max('messages__created_at', filter=Q(messages__sender_role=User.Role.TEACHER)))
+        .order_by('id'))
+
+
+def _recipients_of(assignment):
+    cached = getattr(assignment, '_prefetched_objects_cache', {}).get('recipients')
+    if cached is not None and all(hasattr(r, 'last_pupil_msg') for r in cached):
+        return list(cached)
+    return list(annotated_recipients().filter(assignment=assignment))
+
+
+def _submission_of(recipient):
+    try:
+        return recipient.submission
+    except Submission.DoesNotExist:
+        return Submission.objects.create(recipient=recipient)
+
+
+def _unread_since(last_message_at, last_read_at):
+    """Same rule as _has_unread, from pre-fetched timestamps: a message from the other side newer
+    than your last read (or any message at all if you've never opened the thread)."""
+    return bool(last_message_at) and (last_read_at is None or last_message_at > last_read_at)
+
+
 def serialize_assignment(assignment, pupil_email=None):
     is_teacher_view = pupil_email is None
     recipients = []
-    for recipient in assignment.recipients.all():
-        sub, _ = Submission.objects.get_or_create(recipient=recipient)
+    for recipient in _recipients_of(assignment):
+        sub = _submission_of(recipient)
         # A pupil only ever sees scores once the teacher has explicitly published them —
         # being graded is not the same as being told.
         show_grades = is_teacher_view or sub.published
@@ -332,8 +363,8 @@ def serialize_assignment(assignment, pupil_email=None):
             # message yet. hasUnreadFromPupil drives the teacher-side dots (assignment row,
             # Monitor pupil row, bell); hasUnreadFromTeacher drives the pupil's own
             # "Message teacher" button and bell — always computed, cheap either way.
-            'hasUnreadFromPupil': _has_unread(recipient, User.Role.PUPIL, recipient.teacher_last_read_at),
-            'hasUnreadFromTeacher': _has_unread(recipient, User.Role.TEACHER, recipient.pupil_last_read_at),
+            'hasUnreadFromPupil': _unread_since(recipient.last_pupil_msg, recipient.teacher_last_read_at),
+            'hasUnreadFromTeacher': _unread_since(recipient.last_teacher_msg, recipient.pupil_last_read_at),
             # Exit lock (Phase 10). The resume code itself is only ever sent to the teacher's view.
             'locked': bool(sub.locked_at), 'lockReason': sub.lock_reason, 'lockCount': sub.lock_count,
             'resumeCode': sub.resume_code if (is_teacher_view and sub.locked_at) else None,
@@ -378,7 +409,7 @@ def serialize_assignment(assignment, pupil_email=None):
 @require_GET
 def assignments_api(request):
     email = request.GET.get('pupil_email')
-    qs = Assignment.objects.prefetch_related('recipients', 'items').all()
+    qs = Assignment.objects.prefetch_related(Prefetch('recipients', queryset=annotated_recipients()), 'items').all()
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
         email = request.user.email
     if email:
@@ -398,9 +429,21 @@ def item_pdf(request, item_id):
     if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
         return seb_required_response(request)
     filename = item.pdf.name.rsplit('/', 1)[-1]
-    response = FileResponse(item.pdf.open('rb'), content_type='application/pdf', as_attachment=False, filename=filename)
+    try:
+        handle = item.pdf.open('rb')
+    except (FileNotFoundError, ValueError):
+        return missing_file_response()
+    response = FileResponse(handle, content_type='application/pdf', as_attachment=False, filename=filename)
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
+
+
+def missing_file_response():
+    """The item's file record exists but the file itself isn't on this server's disk — e.g. it
+    was uploaded on another copy of the app (local vs Railway share one database but not one
+    disk), or the hosting platform wiped its disk on redeploy. A clear 404 instead of a crash."""
+    return JsonResponse({'code': 'file_missing',
+        'detail': "This file isn't available on the server any more. Ask your teacher to upload it again."}, status=404)
 
 
 def _serve_item_media(request, item_id, item_type, field_name):
@@ -416,7 +459,11 @@ def _serve_item_media(request, item_id, item_type, field_name):
     field = getattr(item, field_name)
     filename = field.name.rsplit('/', 1)[-1]
     content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-    response = FileResponse(field.open('rb'), content_type=content_type, as_attachment=False, filename=filename)
+    try:
+        handle = field.open('rb')
+    except (FileNotFoundError, ValueError):
+        return missing_file_response()
+    response = FileResponse(handle, content_type=content_type, as_attachment=False, filename=filename)
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
 
@@ -446,8 +493,8 @@ def assignment_status_api(request, assignment_id):
     if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
         return HttpResponseForbidden('Only teachers can view assignment status.')
     recipients = []
-    for recipient in assignment.recipients.all():
-        sub, _ = Submission.objects.get_or_create(recipient=recipient)
+    for recipient in annotated_recipients().filter(assignment=assignment):
+        sub = _submission_of(recipient)
         recipients.append({
             'id': recipient.id, 'name': recipient.pupil_name, 'email': recipient.pupil_email,
             'status': sub.status,
@@ -456,7 +503,7 @@ def assignment_status_api(request, assignment_id):
             # So the Monitor tab's "Time left" countdown and unread dots stay current between
             # full reloads (an accommodation or a new pupil message mid-exam shows up on the next poll).
             'extraMinutes': recipient.extra_minutes,
-            'hasUnreadFromPupil': _has_unread(recipient, User.Role.PUPIL, recipient.teacher_last_read_at),
+            'hasUnreadFromPupil': _unread_since(recipient.last_pupil_msg, recipient.teacher_last_read_at),
             'locked': bool(sub.locked_at), 'lockReason': sub.lock_reason, 'lockCount': sub.lock_count,
             'resumeCode': sub.resume_code if sub.locked_at else None,
         })
@@ -1300,7 +1347,7 @@ def publish_submission_api(request, recipient_id):
         payload = {}
     publish = payload.get('publish', True)
     if publish and submission.graded_at is None:
-        return HttpResponseBadRequest('Grade this submission before publishing it.')
+        return HttpResponseBadRequest('Grade this submission before releasing it to the pupil.')
     submission.published = bool(publish)
     submission.save()
     if publish:

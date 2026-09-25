@@ -1,4 +1,52 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Sign in — ExamHub</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f6f8;font-family:Arial,sans-serif;color:#1f2328}.card{width:min(360px,calc(100% - 40px));background:#fff;border:1px solid #d7dbe0;border-radius:10px;padding:28px;box-shadow:0 6px 24px #1a5fb41a}h1{color:#124a91;font-size:23px;margin:0 0 6px}p{color:#5b6470;font-size:14px;margin:0 0 22px}.field{margin-bottom:16px}label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd2d9;border-radius:5px;font-size:15px}.btn{width:100%;border:0;border-radius:20px;padding:11px;background:#1a5fb4;color:#fff;font-weight:bold;cursor:pointer}.errorlist{color:#b42318;font-size:13px;padding-left:18px}.switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#eef1f4;border-radius:22px;padding:4px;margin:0 0 20px}.switch input{position:absolute;opacity:0;width:1px;height:1px}.switch label{margin:0;text-align:center;padding:9px 0;border-radius:18px;font-size:14px;color:#5b6470;cursor:pointer}.switch input:checked+label{background:#fff;color:#124a91;box-shadow:0 1px 4px #1a5fb42e}.switch input:focus-visible+label{outline:2px solid #1a5fb4;outline-offset:1px}</style>
-</head><body><main class="card"><h1>ExamHub</h1><p>Sign in to access your teacher or pupil workspace.</p><form method="post">{% csrf_token %}<div class="switch" role="radiogroup" aria-label="Sign in as"><input type="radio" name="login_as" value="pupil" id="as_pupil"{% if login_as != "teacher" %} checked{% endif %}><label for="as_pupil">Pupil</label><input type="radio" name="login_as" value="teacher" id="as_teacher"{% if login_as == "teacher" %} checked{% endif %}><label for="as_teacher">Teacher</label></div>{{ form.non_field_errors }}<div class="field"><label for="id_username">Username</label>{{ form.username }}</div><div class="field"><label for="id_password">Password</label>{{ form.password }}</div><button class="btn" type="submit">Sign in</button></form></main></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — ExamHub</title>
+<style>
+  :root{--blue:#4b91c5;--blue-dark:#28186f;--danger:#d9231a;--danger-bg:#fbeae9;--text:#232733;--muted:#6b7280;--border:#d3dae6;--page-bg:#edf1f9;}
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--page-bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;}
+  .card{width:min(420px,100%);background:#fff;border-radius:22px;padding:34px 32px 30px;
+    box-shadow:0 1px 2px rgba(30,41,59,.04),0 18px 44px -18px rgba(30,41,59,.28);}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;color:var(--blue-dark);letter-spacing:-.01em;margin-bottom:22px;}
+  .brand .dot{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-dark));}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em;}
+  .lead{color:var(--muted);font-size:15px;margin:0 0 24px;line-height:1.5;}
+  .switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--page-bg);border-radius:999px;padding:5px;margin:0 0 24px;}
+  .switch input{position:absolute;opacity:0;width:1px;height:1px;}
+  .switch label{margin:0;text-align:center;padding:11px 0;border-radius:999px;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;}
+  .switch input:checked+label{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.16);}
+  .switch input:focus-visible+label{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;}
+  .field input{width:100%;min-height:48px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:#fbfcfe;font-family:inherit;}
+  .field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,145,197,.2);background:#fff;}
+  .btn{width:100%;min-height:50px;border:0;border-radius:999px;padding:13px;background:var(--blue);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;transition:background .15s;}
+  .btn:hover{background:var(--blue-dark);}
+  .btn:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
+  .errorlist{list-style:none;margin:0 0 18px;padding:12px 14px;border-radius:12px;background:var(--danger-bg);color:#a91c15;font-size:14.5px;line-height:1.45;}
+  .help{color:var(--muted);font-size:13.5px;text-align:center;margin:20px 0 0;line-height:1.5;}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand"><span class="dot"></span>ExamHub</div>
+  <h1>Welcome back</h1>
+  <p class="lead">Sign in to see your assignments.</p>
+  <form method="post">{% csrf_token %}
+    <div class="switch" role="radiogroup" aria-label="I am a">
+      <input type="radio" name="login_as" value="pupil" id="as_pupil"{% if login_as != "teacher" %} checked{% endif %}><label for="as_pupil">I'm a pupil</label>
+      <input type="radio" name="login_as" value="teacher" id="as_teacher"{% if login_as == "teacher" %} checked{% endif %}><label for="as_teacher">I'm a teacher</label>
+    </div>
+    {{ form.non_field_errors }}
+    <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
+    <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+  <p class="help">Forgot your password? Ask your teacher or school admin to reset it. Once you're in, you can change it any time from your account menu.</p>
+</main>
+</body>
+</html>

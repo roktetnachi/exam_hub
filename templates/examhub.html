@@ -175,7 +175,7 @@
 
   /* ---- task viewer (reused exam UI) ---- */
   .viewer{
-    display:flex;height:76vh;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;
+    display:flex;height:calc(100vh - 230px);min-height:520px;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff;
   }
   .resources-panel{width:140px;flex-shrink:0;border-right:1px solid var(--border);background:#fafbfc;overflow-y:auto;}
   .resources-head{padding:10px 10px 6px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
@@ -318,16 +318,159 @@
     background:#eaf7f8;border:1px solid #b7e4e8;color:var(--blue-dark);
     padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px;
   }
+
+  /* ================= Phase 11: readability & touch-target pass =================
+     Applied last so it lifts every screen at once: a modern system font, larger text, and
+     buttons/inputs that are comfortably big to click or tap (44px primary, 38px compact),
+     with visible keyboard-focus rings. */
+  html,body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;}
+  .app{padding:28px 28px 48px;}
+  h2{font-size:24px;letter-spacing:-.01em;margin-bottom:6px;}
+  .sub{font-size:14.5px;line-height:1.5;}
+  .card{padding:22px 24px;}
+  .brandbar{height:64px;padding:0 24px;gap:12px;position:sticky;top:0;z-index:40;}
+  .brand{font-size:19px;letter-spacing:-.01em;}
+  .brand .dot{width:12px;height:12px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));}
+  .btn{min-height:44px;padding:11px 22px;font-size:14.5px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    line-height:1.2;transition:background .15s,box-shadow .15s,transform .05s;text-decoration:none;white-space:nowrap;}
+  .btn:active:not(:disabled){transform:translateY(1px);}
+  .btn.small{min-height:38px;padding:8px 16px;font-size:13.5px;}
+  .btn.outline:hover{background:#eef5fb;}
+  .btn:focus-visible,.icon-btn:focus-visible,.mode-btn:focus-visible,.pill-tabs button:focus-visible,.link-btn:focus-visible,
+  .back-link:focus-visible,.role-toggle button:focus-visible,.itemtype-tile:focus-visible,.title-link:focus-visible,
+  .account-btn:focus-visible,.builder-section-chevron:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
+  .link-btn{font-size:13.5px;padding:6px 4px;font-weight:600;}
+  .back-link{font-size:14.5px;padding:8px 0;margin-bottom:14px;display:inline-flex;align-items:center;gap:4px;}
+  .back-link:hover{text-decoration:underline;}
+  .field{margin-bottom:18px;}
+  .field label{font-size:14px;color:var(--text);margin-bottom:7px;}
+  .field input[type=text], .field input[type=number], .field input[type=date], .field input[type=datetime-local],
+  .field input[type=email], .field input[type=password], .field textarea, .field select{
+    padding:11px 13px;font-size:15px;border-radius:10px;border-color:#d3dae6;min-height:44px;}
+  .field input:focus, .field textarea:focus, .field select:focus, .item-row input:focus, .item-row textarea:focus,
+  .builder-section-name:focus, #monitorSearch:focus, .exam-lock-card input:focus{
+    outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,145,197,.2);background:#fff;}
+  input[type=checkbox], input[type=radio]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
+  .pupil-check{font-size:15px;padding:8px 0;}
+  table{font-size:14.5px;}
+  th{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;padding:12px;}
+  td{padding:14px 12px;}
+  .badge{font-size:12.5px;padding:5px 12px;white-space:nowrap;}
+  .pill-tabs{padding:5px;}
+  .pill-tabs button{padding:10px 22px;font-size:14.5px;min-height:42px;}
+  .role-toggle button{padding:8px 16px;font-size:14px;min-height:38px;white-space:nowrap;}
+  .icon-btn{white-space:nowrap;}
+  .icon-btn{min-height:38px;padding:8px 12px;font-size:13.5px;border-radius:9px;}
+  .mode-btn{min-height:36px;padding:7px 13px;font-size:13.5px;border-radius:8px;}
+  .swatch{width:30px;height:30px;border-radius:7px;}
+  .rich-toolbar button{min-width:34px;height:34px;font-size:14px;}
+  .rich-toolbar select{height:34px;font-size:13.5px;}
+  .timer-chip{font-size:15px;padding:7px 14px;}
+  .stat-tile{padding:16px 24px;min-width:120px;}
+  .stat-tile .num{font-size:28px;}
+  .stat-tile .label{font-size:12.5px;}
+  .resources-panel{width:176px;}
+  .resources-head{font-size:12.5px;padding:12px 12px 6px;}
+  .resource-group-label,.resource-section summary{font-size:13.5px;}
+  .resource-thumb .thumb-label{font-size:12px;padding:3px 0;}
+  .itemtype-tiles{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+  .itemtype-tile{padding:16px 10px;min-height:92px;border-radius:14px;transition:border-color .15s,background .15s,transform .05s;}
+  .itemtype-tile:active{transform:translateY(1px);}
+  .itemtype-tile .itemtype-icon{font-size:26px;}
+  .itemtype-tile .itemtype-label{font-size:13px;}
+  .item-row{padding:16px 18px;}
+  .item-row-head{gap:10px;flex-wrap:wrap;}
+  .item-row-head .item-type-badge{font-size:12px;background:var(--page-bg);padding:5px 10px;border-radius:999px;color:var(--blue-dark);font-weight:700;}
+  .item-row-head input.item-label,.item-row textarea.item-prompt,.item-option-row input[type=text]{font-size:14.5px;padding:10px 12px;border-radius:9px;}
+  .builder-section-head{padding:14px 16px;}
+  .builder-section-name{font-size:15px;padding:7px 8px;}
+  .builder-section-chevron{font-size:16px;padding:8px 10px;border-radius:8px;}
+  .builder-section-chevron:hover{background:var(--page-bg);}
+  .answer-option{padding:14px 16px;font-size:15px;}
+  .answer-option input{width:20px;height:20px;}
+  .tf-toggle button{padding:14px;font-size:15px;min-height:48px;}
+  .fill-input{font-size:16px;}
+  .question-prompt-text{font-size:17px;}
+  .chat-msg{font-size:14.5px;padding:9px 13px;}
+  .grade-score-input{width:80px;padding:9px;font-size:15px;}
+  .grade-item-card textarea{font-size:14.5px;padding:10px 12px;min-height:60px;}
+  .editable{font-size:15.5px;}
+  .modal-backdrop{background:rgba(15,23,42,.45);padding:16px;}
+  .modal-backdrop .card{padding:26px 28px;border-radius:20px;max-height:calc(100vh - 32px);overflow-y:auto;}
+  .modal-backdrop .card h2{font-size:21px;}
+  .viewer-footer{padding:14px 18px;gap:10px;}
+  .title-link{background:none;border:none;padding:4px 0;font:inherit;font-weight:700;color:var(--blue-dark);text-align:left;cursor:pointer;}
+  .title-link:hover{text-decoration:underline;color:var(--blue);}
+  .empty-state{text-align:center;padding:44px 20px;}
+  .empty-state .empty-icon{font-size:40px;line-height:1;margin-bottom:10px;}
+  .empty-state h3{margin:0 0 6px;font-size:18px;}
+  .empty-state p{color:var(--muted);margin:0 0 18px;font-size:14.5px;}
+
+  /* account menu (brand bar) */
+  .account-btn{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:#fff;border-radius:999px;
+    padding:4px 12px 4px 4px;min-height:42px;font-size:14px;color:var(--text);}
+  .account-btn:hover{background:#f6f8fc;}
+  .account-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;letter-spacing:.02em;}
+  .account-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .menu-dropdown{position:absolute;right:0;top:calc(100% + 8px);min-width:240px;background:#fff;border-radius:14px;
+    box-shadow:0 12px 36px rgba(30,41,59,.18);padding:8px;z-index:60;}
+  .menu-dropdown .menu-head{padding:10px 12px 12px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+  .menu-dropdown .menu-item{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;text-align:left;
+    padding:11px 12px;border-radius:9px;font-size:14.5px;color:var(--text);min-height:44px;}
+  .menu-dropdown .menu-item:hover{background:var(--page-bg);}
+  .menu-dropdown .menu-item.danger{color:var(--danger-dark);}
+
+  /* toasts — replace browser pop-ups; they also never steal window focus, which matters for
+     the "browser with security" exit lock */
+  .toast-stack{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;
+    gap:8px;align-items:center;pointer-events:none;width:min(520px,calc(100% - 32px));}
+  .toast{pointer-events:auto;background:#1f2433;color:#fff;border-radius:12px;padding:13px 16px 13px 18px;font-size:14.5px;line-height:1.45;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;gap:12px;align-items:flex-start;width:100%;animation:toastIn .18s ease-out;}
+  .toast.success{background:#15803d;} .toast.error{background:var(--danger-dark);}
+  .toast .toast-close{margin-left:auto;background:none;border:none;color:#fff;opacity:.8;font-size:20px;line-height:1;padding:0 2px;min-width:24px;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .confirm-card{width:440px;max-width:100%;}
+  .confirm-card p{font-size:15px;line-height:1.55;color:var(--text);margin:0 0 6px;}
+  .submit-summary{background:var(--page-bg);border-radius:12px;padding:14px 16px;margin:12px 0 4px;font-size:15px;}
+  .submit-summary.warn{background:#fff7ed;color:#9a3412;}
+  .content-item{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border);}
+  .content-item:last-child{border-bottom:none;}
+  .content-item .ci-icon{width:40px;height:40px;border-radius:10px;background:var(--page-bg);display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--blue);flex-shrink:0;}
+  .content-section-title{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;margin:18px 0 2px;}
+  @media (max-width:720px){
+    .account-name{display:none;}
+    .brandbar{padding:0 14px;}
+    .app{padding:20px 16px 40px;}
+    #btnTeacherRole,#btnStudentRole{padding:8px 12px;font-size:13px;}
+  }
+  @media (max-width:640px){ .role-toggle{display:none;} }
+  @media (max-width:480px){ #sebMenuBtn span{display:none;} }
+  /* On narrow screens each dashboard row becomes a small card instead of a squeezed table row. */
+  @media (max-width:780px){
+    #assignmentTable thead{display:none;}
+    #assignmentTable, #assignmentTable tbody, #assignmentTable tr, #assignmentTable td{display:block;width:100%;}
+    #assignmentTable tr{position:relative;padding:16px 0 16px 38px;border-bottom:1px solid var(--border);}
+    #assignmentTable tr:hover td{background:transparent;}
+    #assignmentTable td{border:none;padding:2px 0;}
+    #assignmentTable td:first-child{position:absolute;left:0;top:18px;width:auto;}
+    #assignmentTable td:nth-child(2) .title-link{font-size:16px;}
+    #assignmentTable td:nth-child(3)::before{content:'Due ';color:var(--muted);}
+    #assignmentTable td:nth-child(4), #assignmentTable td:nth-child(5){display:inline-block;width:auto;margin-right:14px;color:var(--muted);font-size:14px;}
+    #assignmentTable td:nth-child(5)::before{content:'Submitted ';}
+    #assignmentTable .row-actions{margin-top:10px;}
+  }
+  @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important;}}
 </style>
 </head>
 <body data-role="{% if request.user.is_superuser %}teacher{% else %}{{ request.user.role }}{% endif %}" data-username="{{ request.user.username }}" data-email="{{ request.user.email }}" data-fullname="{{ request.user.get_full_name|default:request.user.username }}">
 
 <div class="brandbar">
   <div class="brand"><span class="dot"></span>ExamHub</div>
-  <div style="margin-left:auto;font-size:13px;color:#5b6470">Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><button type="button" id="btnChangePassword" style="border:0;background:none;color:var(--blue);cursor:pointer;margin-left:8px;">Change password</button><form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button style="border:0;background:none;color:var(--blue);cursor:pointer;margin-left:8px">Sign out</button></form></div>
-  <div class="role-toggle" id="roleToggleWrap" style="margin:0 12px;">
-    <button id="btnTeacherRole" class="active">Teacher</button>
-    <button id="btnStudentRole">Student</button>
+  <div style="margin-left:auto;"></div>
+  <div class="role-toggle" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
+    <button id="btnTeacherRole" class="active">Teacher view</button>
+    <button id="btnStudentRole">Pupil preview</button>
   </div>
   <div style="position:relative;">
     <button class="icon-btn" id="notifBellBtn" title="Messages" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;position:relative;">
@@ -343,7 +486,7 @@
   <div style="position:relative;">
     <button class="icon-btn" id="sebMenuBtn" title="Safe Exam Browser setup" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      SEB
+      <span>SEB setup</span>
     </button>
     <div class="hidden" id="sebMenuDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:320px;background:#fff;border-radius:14px;box-shadow:var(--card-shadow);padding:14px;z-index:50;">
       <strong style="font-size:13px;">Safe Exam Browser setup</strong>
@@ -354,6 +497,40 @@
         <a class="btn outline small" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
         <a class="btn outline small" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
       </div>
+    </div>
+  </div>
+  <div style="position:relative;">
+    <button type="button" class="account-btn" id="accountMenuBtn" aria-haspopup="true" aria-expanded="false">
+      <span class="account-avatar" id="accountAvatar"></span>
+      <span class="account-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="menu-dropdown hidden" id="accountMenu" role="menu">
+      <div class="menu-head">
+        <div style="font-weight:700;font-size:15px;">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="sub" style="margin:2px 0 0;font-size:13px;">{{ request.user.email|default:"No email on file" }}</div>
+      </div>
+      <button type="button" class="menu-item" id="btnChangePassword" role="menuitem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Change password
+      </button>
+      <form method="post" action="{% url 'logout' %}" style="margin:0;">{% csrf_token %}
+        <button type="submit" class="menu-item danger" role="menuitem">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          Sign out
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+<div class="modal-backdrop hidden" id="confirmDialog">
+  <div class="card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmDialogTitle">
+    <h2 id="confirmDialogTitle" style="margin-bottom:10px;"></h2>
+    <p id="confirmDialogMessage"></p>
+    <div class="row" style="justify-content:flex-end;gap:10px;margin-top:20px;">
+      <button type="button" class="btn outline" id="confirmDialogCancel">Cancel</button>
+      <button type="button" class="btn" id="confirmDialogOk">OK</button>
     </div>
   </div>
 </div>
@@ -385,20 +562,16 @@
 
 <div class="app">
 
-  <div class="note-banner">
-    Assign one or more texts (PDFs) to individual pupils, set an opening and closing time and an exam duration, and review their highlights, notes and outlines when they submit.
-  </div>
-
   <!-- ============ TEACHER SIDE ============ -->
   <div id="teacherView">
 
     <div id="teacherDashboard">
-      <h2>Teacher dashboard</h2>
-      <p class="sub">Create assignments, send them to specific pupils, and review what comes back.</p>
+      <h2>Your assignments</h2>
+      <p class="sub">Create an assignment, send it to your pupils, then follow along live and grade it — all from here.</p>
 
       <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn" id="btnNewAssignment">+ New assignment</button>
-        <button class="btn outline" id="btnManageRoster">Manage classes &amp; pupils</button>
+        <button class="btn outline" id="btnManageRoster">Classes &amp; pupils</button>
         <button class="btn outline" id="btnActivityLog">Activity log</button>
       </div>
 
@@ -414,7 +587,13 @@
           <thead><tr><th style="width:28px;"><input type="checkbox" id="bulkSelectAll"></th><th>Title</th><th>Due</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
           <tbody id="assignmentTbody"></tbody>
         </table>
-        <div class="empty hidden" id="assignmentEmpty">No assignments yet. Create one to get started.</div>
+        <div class="empty" id="assignmentLoading">Loading your assignments…</div>
+        <div class="empty-state hidden" id="assignmentEmpty">
+          <div class="empty-icon">&#128221;</div>
+          <h3>No assignments yet</h3>
+          <p>Create your first one — add a PDF or questions, choose how pupils take it, and assign it to a class.</p>
+          <button class="btn" type="button" onclick="document.getElementById('btnNewAssignment').click()">+ Create your first assignment</button>
+        </div>
       </div>
 
       <div class="modal-backdrop hidden" id="bulkScheduleModal">
@@ -625,7 +804,7 @@
       <p class="sub" id="detailPrompt"></p>
 
       <div class="pill-tabs" id="detailTabs">
-        <button type="button" data-detail-tab="create">Create</button>
+        <button type="button" data-detail-tab="create">Content</button>
         <button type="button" data-detail-tab="deliver">Deliver</button>
         <button type="button" class="active" data-detail-tab="monitor">Monitor</button>
         <button type="button" data-detail-tab="grade">Grade</button>
@@ -633,10 +812,7 @@
       </div>
 
       <div id="detailPanel-create" class="detail-panel hidden">
-        <div class="phase-placeholder">
-          <strong>Editing an assignment's texts &amp; prompt is coming soon</strong>
-          For now, assignments are set up from the New Assignment form on the dashboard.
-        </div>
+        <div class="card" id="contentOverviewCard"></div>
       </div>
 
       <div id="detailPanel-deliver" class="detail-panel hidden">
@@ -676,7 +852,7 @@
           <label class="sub" style="margin:0;">Pupil</label>
           <select id="gradePupilSelect" style="padding:7px;border-radius:9px;border:1px solid var(--border);min-width:220px;"></select>
           <div class="grow"></div>
-          <button class="btn small outline" id="publishAllGradesBtn">Publish all graded</button>
+          <button class="btn small outline" id="publishAllGradesBtn" title="Show grades to every pupil you've already graded">Release all graded</button>
         </div>
         <div id="gradeBody"></div>
       </div>
@@ -718,26 +894,30 @@
 
     <div id="studentLogin">
       <h2>Preview as a pupil</h2>
-      <p class="sub">Real pupils never see this screen — they log in with their own account and go straight to their task list. This picker is only for you to preview what a chosen pupil would see.</p>
+      <p class="sub">Choose a pupil to see ExamHub exactly as they do. Previews are read-only, and pupils never see this screen — they sign in and go straight to their own tasks.</p>
       <div class="card" style="max-width:400px;">
         <div class="field">
           <label>Preview as</label>
           <select id="pupilSelect"></select>
         </div>
-        <button class="btn" id="btnStudentLogin">View my assignments</button>
+        <button class="btn" id="btnStudentLogin">Preview their tasks</button>
       </div>
     </div>
 
     <div id="studentTaskList" class="hidden">
-      <button class="back-link" id="backFromTaskList">&larr; Switch pupil</button>
+      <button class="back-link" id="backFromTaskList">&larr; Preview a different pupil</button>
       <h2 id="studentGreeting"></h2>
-      <p class="sub">Your assigned tasks</p>
+      <p class="sub">Here's everything assigned to you. Open a task when it's time to start.</p>
       <div class="card">
         <table>
           <thead><tr><th>Title</th><th>Due</th><th>Status</th><th></th></tr></thead>
           <tbody id="studentTbody"></tbody>
         </table>
-        <div class="empty hidden" id="studentEmpty">No assignments yet.</div>
+        <div class="empty-state hidden" id="studentEmpty">
+          <div class="empty-icon">&#127881;</div>
+          <h3>Nothing to do right now</h3>
+          <p>When your teacher assigns you something, it'll appear here.</p>
+        </div>
       </div>
     </div>
 
@@ -748,10 +928,10 @@
         <button class="btn small outline" id="openChatFromTaskBtn">Message teacher<span class="hidden" id="openChatFromTaskDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:6px;"></span></button>
       </div>
       <div id="taskGradeBanner" class="hidden"></div>
-      <div id="previewNotice" class="hidden" style="background:var(--danger-bg);color:var(--danger-dark);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px;">Preview only — you're viewing this as a pupil would see it, but teachers can't answer or submit on a pupil's behalf. Have the pupil sign in with their own account to actually complete this.</div>
+      <div id="previewNotice" class="hidden" style="background:var(--danger-bg);color:var(--danger-dark);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px;">Preview only — this is exactly what the pupil sees. You can't answer or submit on their behalf.</div>
       <div class="viewer">
         <div class="resources-panel" id="resourcesPanel">
-          <div class="resources-head">Resources</div>
+          <div class="resources-head">Contents</div>
           <div id="resourcesList"></div>
         </div>
         <div class="pdf-pane">
@@ -778,17 +958,17 @@
             <span id="pdfOnlyControls2" style="display:contents;">
               <button class="icon-btn" id="hideNotesBtn" title="Hide all highlights and notes">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                Hide notes
+                <span id="hideNotesLabel">Hide notes</span>
               </button>
             </span>
             <div class="grow"></div>
             <span class="timer-chip" id="examTimer" title="Time remaining in this exam">--:--</span>
             <div class="page-nav" id="pageNavControls">
-              <button class="mode-btn small" id="prevPage">&lsaquo;</button>
+              <button class="mode-btn small" id="prevPage" aria-label="Previous page" title="Previous page" style="min-width:40px;font-size:18px;">&lsaquo;</button>
               <span id="pageLabel">Page 1</span>
-              <button class="mode-btn small" id="nextPage">&rsaquo;</button>
+              <button class="mode-btn small" id="nextPage" aria-label="Next page" title="Next page" style="min-width:40px;font-size:18px;">&rsaquo;</button>
             </div>
-            <span id="textLayerDiag" style="font-size:11px;color:var(--muted);margin-left:8px;" title="Diagnostic: how many selectable text spans pdf.js rendered on this page"></span>
+            <span id="textLayerDiag" class="hidden" style="font-size:11px;color:var(--muted);margin-left:8px;" title="Diagnostic: how many selectable text spans pdf.js rendered on this page"></span>
           </div>
           <div class="pdf-scroll" id="pdfScroll"><div class="pdf-stage" id="pdfStage"></div></div>
           <div class="question-prompt-pane hidden" id="questionPromptPane">
@@ -847,7 +1027,7 @@
       </div>
       <div class="viewer-footer">
         <button class="btn outline" id="btnSaveDraft">Save draft</button>
-        <button class="btn" id="btnSubmit">Submit to teacher</button>
+        <button class="btn" id="btnSubmit">Submit</button>
       </div>
     </div>
 
@@ -1091,7 +1271,7 @@
 
     <div class="modal-backdrop hidden" id="accommodationModal">
       <div class="card" style="width:380px;max-width:92vw;">
-        <h2 style="margin:0 0 6px;" id="accommodationTitle">Accommodations</h2>
+        <h2 style="margin:0 0 6px;" id="accommodationTitle">Extra time &amp; early access</h2>
         <p class="sub" style="margin-top:0;">Extra time and/or early access for this pupil, on top of the assignment's own schedule.</p>
         <div class="field">
           <label>Extra time (minutes)</label>
@@ -1167,6 +1347,49 @@ const state = {
 };
 
 function csrfToken(){ return document.cookie.match(/(?:^|; )csrftoken=([^;]*)/)?.[1] || document.querySelector('meta[name="csrf-token"]').content || ''; }
+// ---------------- toasts & confirm dialog (replace browser alert()/confirm()) ----------------
+// In-page messages instead of browser pop-ups: they look like part of the app, don't block the
+// page, and never pull focus away from the window (which would trip the exit lock in
+// "browser with security" exams).
+function showToast(message, type='info', ms){
+  const stack = document.getElementById('toastStack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'success' ? ' success' : type === 'error' ? ' error' : '');
+  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  const text = document.createElement('div');
+  text.textContent = message;
+  const close = document.createElement('button');
+  close.className = 'toast-close'; close.type = 'button'; close.setAttribute('aria-label', 'Dismiss'); close.innerHTML = '&times;';
+  close.addEventListener('click', ()=>el.remove());
+  el.append(text, close);
+  stack.appendChild(el);
+  setTimeout(()=>el.remove(), ms || (type === 'error' ? 7000 : 4000));
+}
+function confirmDialog({title='Are you sure?', message='', confirmLabel='OK', cancelLabel='Cancel', danger=false}={}){
+  return new Promise((resolve)=>{
+    const modal = document.getElementById('confirmDialog');
+    const ok = document.getElementById('confirmDialogOk');
+    const cancel = document.getElementById('confirmDialogCancel');
+    document.getElementById('confirmDialogTitle').textContent = title;
+    document.getElementById('confirmDialogMessage').textContent = message;
+    ok.textContent = confirmLabel; cancel.textContent = cancelLabel;
+    ok.classList.toggle('danger', !!danger);
+    modal.classList.remove('hidden');
+    ok.focus();
+    function done(result){
+      modal.classList.add('hidden');
+      ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onOk(){ done(true); }
+    function onCancel(){ done(false); }
+    function onKey(e){ if(e.key === 'Escape') done(false); }
+    ok.addEventListener('click', onOk); cancel.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKey);
+  });
+}
 async function request(url, options={}){
   const response = await fetch(url, {...options, headers:{'X-CSRFToken':csrfToken(), ...(options.headers||{})}});
   if(!response.ok) throw new Error(await response.text() || 'Something went wrong.');
@@ -1220,6 +1443,7 @@ function showTeacherDashboard(){
 function hideAll(selector){ document.querySelectorAll(selector).forEach(el=>el.classList.add('hidden')); }
 
 function renderAssignmentTable(){
+  document.getElementById('assignmentLoading').classList.add('hidden');
   const tbody = document.getElementById('assignmentTbody');
   tbody.innerHTML = '';
   document.getElementById('assignmentEmpty').classList.toggle('hidden', state.assignments.length>0);
@@ -1233,14 +1457,14 @@ function renderAssignmentTable(){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
-      <td><strong>${a.title}</strong>${unreadDot}</td>
+      <td><button type="button" class="title-link" data-action="view" data-id="${a.id}">${escapeHtml(a.title)}</button>${unreadDot}</td>
       <td>${a.due || '—'}</td>
-      <td>${a.assignedTo.length} pupil(s)</td>
-      <td>${submittedCount} / ${a.assignedTo.length}</td>
+      <td>${a.assignedTo.length} pupil${a.assignedTo.length === 1 ? '' : 's'}</td>
+      <td>${submittedCount} of ${a.assignedTo.length}</td>
       <td>
         <div class="row-actions">
-          <button class="btn small outline" data-action="view" data-id="${a.id}">View</button>
-          <button class="btn small outline" data-action="edit" data-id="${a.id}">Edit</button>
+          <button class="btn small" data-action="view" data-id="${a.id}">Open</button>
+          <button class="btn small outline" data-action="edit" data-id="${a.id}" title="Change title, schedule, duration or delivery mode">Settings</button>
           <button class="btn small outline danger" data-action="delete" data-id="${a.id}">Delete</button>
         </div>
       </td>
@@ -1249,7 +1473,7 @@ function renderAssignmentTable(){
       if(e.target.checked) state.selectedAssignmentIds.add(a.id); else state.selectedAssignmentIds.delete(a.id);
       updateBulkToolbar();
     });
-    tr.querySelector('[data-action="view"]').addEventListener('click', ()=>showAssignmentDetail(a.id));
+    tr.querySelectorAll('[data-action="view"]').forEach(b=>b.addEventListener('click', ()=>showAssignmentDetail(a.id)));
     tr.querySelector('[data-action="edit"]').addEventListener('click', ()=>openEditAssignmentModal(a.id));
     tr.querySelector('[data-action="delete"]').addEventListener('click', ()=>openDeleteAssignmentModal(a.id));
     tbody.appendChild(tr);
@@ -1619,16 +1843,16 @@ function refreshBuilderSectionCounts(){
     sec.querySelector('.builder-section-empty').classList.toggle('hidden', rows.length > 0);
   });
 }
-function removeBuilderSection(sec){
+async function removeBuilderSection(sec){
   const sections = builderSections();
-  if(sections.length <= 1){ alert('An assignment needs at least one section.'); return; }
+  if(sections.length <= 1){ showToast('An assignment needs at least one section.', 'error'); return; }
   const n = sec.querySelectorAll('.item-row').length;
   if(n > 0 && allBuilderItemRows().length - n < 1){
-    alert("This section holds the only item in the assignment — add an item to another section before removing it.");
+    showToast("This section holds the assignment's only item. Add an item to another section first, then remove this one.", 'error');
     return;
   }
   const name = sec.querySelector('.builder-section-name').value.trim() || 'this section';
-  if(n > 0 && !confirm(`Remove "${name}" and the ${n} item(s) in it?`)) return;
+  if(n > 0 && !(await confirmDialog({title: `Remove "${name}"?`, message: `This also removes the ${n} item${n === 1 ? '' : 's'} inside it.`, confirmLabel: 'Remove section', danger: true}))) return;
   const wasActive = sec.classList.contains('active');
   sec.remove();
   if(wasActive) setActiveBuilderSection(builderSections()[0]);
@@ -1833,7 +2057,23 @@ if(document.body.dataset.role === 'pupil'){
 }
 
 // ---------------- self-service password change ----------------
+// ---------------- account menu (brand bar) ----------------
+(function wireAccountMenu(){
+  const name = (document.body.dataset.fullname || document.body.dataset.username || '?').trim();
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w=>w[0]).join('').toUpperCase() || '?';
+  document.getElementById('accountAvatar').textContent = initials;
+  const btn = document.getElementById('accountMenuBtn');
+  const menu = document.getElementById('accountMenu');
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = menu.classList.toggle('hidden') === false;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  menu.addEventListener('click', (e)=>e.stopPropagation());
+  document.addEventListener('click', ()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); });
+})();
 document.getElementById('btnChangePassword').addEventListener('click', ()=>{
+  document.getElementById('accountMenu').classList.add('hidden');
   document.getElementById('currentPasswordInput').value = '';
   document.getElementById('newPasswordInput').value = '';
   document.getElementById('confirmPasswordInput').value = '';
@@ -2048,7 +2288,7 @@ function renderRosterModal(){
   });
   classList.querySelectorAll('[data-delete-class]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      if(!confirm('Delete this class? Pupils keep their accounts — only the grouping is removed.')) return;
+      if(!(await confirmDialog({title: 'Delete this class?', message: 'Pupils keep their accounts and their work — only the class grouping is removed.', confirmLabel: 'Delete class', danger: true}))) return;
       await request(`/api/classes/${btn.dataset.deleteClass}/delete/`, {method:'POST'});
       await refreshRosterAndChecklist();
       renderRosterModal();
@@ -2205,15 +2445,15 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   videoFiles.forEach(f=>form.append('videos', f));
 
   if(closeCondition === 'scheduled' && !due){
-    alert('Pick a closing date and time, or switch the close condition to Manual.');
+    showToast('Choose a closing date and time, or set "Close condition" to Manual.', 'error');
     return;
   }
   if(startCondition === 'scheduled' && !opensAt){
-    alert('Pick an opening date and time, or switch the start condition to Any time.');
+    showToast('Choose an opening date and time, or set "Start condition" to Any time.', 'error');
     return;
   }
   if(!title || items.length===0 || assignedTo.length===0){
-    alert('Please add a title, at least one text or question, and at least one pupil.');
+    showToast('To create the assignment, add a title, at least one item (a text or question), and at least one pupil.', 'error');
     return;
   }
   try {
@@ -2227,7 +2467,7 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
     form.append('recipients', JSON.stringify(assignedTo.map(name=>({name,email:state.pupilEmails[name]}))));
     await request('/api/assignments/create/', {method:'POST', body:form});
     await loadAssignments(); showTeacherDashboard();
-  } catch(error) { alert(error.message); }
+  } catch(error) { showToast(apiErrorMessage(error), 'error'); }
 });
 
 const DELIVERY_MODE_LABELS = {
@@ -2257,6 +2497,10 @@ function switchDetailTab(tab){
   if(tab === 'grade'){
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     if(a) renderGradeTab(a);
+  }
+  if(tab === 'create'){
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    if(a) renderContentTab(a);
   }
   if(tab === 'analyse'){
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
@@ -2334,12 +2578,12 @@ function renderGradeBody(a, pupil){
     </div>`;
   }).join('');
   const totalLine = sub.gradedAt
-    ? `<p class="sub">Total: <strong>${sub.totalScore}</strong> / ${sub.maxScore} · Graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? 'Published to pupil' : 'Not yet published'}</p>`
-    : '<p class="sub">Not graded yet — enter scores below and save.</p>';
+    ? `<p class="sub">Total: <strong>${sub.totalScore}</strong> / ${sub.maxScore} · Graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? 'Visible to the pupil' : 'Not yet visible to the pupil'}</p>`
+    : '<p class="sub">Not graded yet — enter scores and feedback below, then save. The pupil only sees their grade once you release it.</p>';
   body.innerHTML = `${totalLine}${rows}
     <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
       <button class="btn outline" id="saveGradeBtn">Save grades</button>
-      <button class="btn" id="togglePublishBtn">${sub.published ? 'Unpublish' : 'Publish to pupil'}</button>
+      <button class="btn" id="togglePublishBtn">${sub.published ? 'Hide grade from pupil' : 'Release grade to pupil'}</button>
     </div>`;
   body.querySelectorAll('.override-score-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -2382,7 +2626,7 @@ async function saveGrade(assignmentId, pupil){
     sub.itemScores = result.itemScores; sub.totalScore = result.totalScore; sub.maxScore = result.maxScore;
     sub.gradedAt = result.gradedAt; sub.published = result.published;
     renderGradeTab(a);
-  } catch(error) { alert(error.message || 'Could not save grades.'); }
+  } catch(error) { showToast(apiErrorMessage(error) || "Couldn't save grades.", 'error'); }
   finally { btn.disabled = false; }
 }
 async function togglePublish(assignmentId, pupil){
@@ -2392,7 +2636,7 @@ async function togglePublish(assignmentId, pupil){
     const result = await request(`/api/submissions/${sub.recipientId}/publish/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({publish: !sub.published})});
     sub.published = result.published;
     renderGradeTab(a);
-  } catch(error) { alert(error.message || 'Could not update publish state.'); }
+  } catch(error) { showToast(apiErrorMessage(error) || "Couldn't update whether this grade is published.", 'error'); }
 }
 document.getElementById('publishAllGradesBtn').addEventListener('click', async ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
@@ -2406,13 +2650,58 @@ document.getElementById('publishAllGradesBtn').addEventListener('click', async (
       if(sub.gradedAt) sub.published = true;
     });
     renderGradeTab(a);
-    alert(result.published ? `Published grades for ${result.published} pupil(s).` : 'Nothing new to publish — grade some submissions first.');
-  } catch(error) { alert(error.message || 'Could not publish grades.'); }
+    showToast(result.published ? `Grades released to ${result.published} pupil${result.published === 1 ? '' : 's'}.` : 'Nothing new to release — grade some submissions first.', result.published ? 'success' : 'info');
+  } catch(error) { showToast(apiErrorMessage(error) || "Couldn't release grades.", 'error'); }
   finally { btn.disabled = false; }
 });
 document.querySelectorAll('#detailTabs button').forEach(b=>{
   b.addEventListener('click', ()=>switchDetailTab(b.dataset.detailTab));
 });
+
+// ---------------- Content tab: a read-only overview of what's in the assignment ----------------
+function renderContentTab(a){
+  const card = document.getElementById('contentOverviewCard');
+  const totalPoints = a.items.reduce((sum, it)=>sum + (Number(it.points) || 0), 0);
+  let lastSection = null;
+  const rows = a.items.map((item, i)=>{
+    const section = (item.section || '').trim();
+    const header = section && section !== lastSection ? `<div class="content-section-title">${escapeHtml(section)}</div>` : '';
+    lastSection = section || lastSection;
+    const icon = item.type === 'pdf' ? '&#9636;' : (QUESTION_TYPE_ICONS[item.type] || '?');
+    const detail = item.prompt ? `<div style="margin-top:4px;font-size:14.5px;white-space:pre-wrap;">${escapeHtml(item.prompt)}</div>` : '';
+    const options = (item.options && Array.isArray(item.options) && item.options.length)
+      ? `<div class="sub" style="margin:6px 0 0;">Options: ${item.options.map(o=>escapeHtml(o.text || '')).join(' · ')}</div>` : '';
+    return `${header}<div class="content-item">
+      <div class="ci-icon">${icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <strong>${i + 1}. ${escapeHtml(item.label)}</strong>
+          <span class="sub" style="margin:0;">${ITEM_TYPE_LABELS[item.type] || item.type} · ${item.points} pt${Number(item.points) === 1 ? '' : 's'}</span>
+        </div>
+        ${detail}${options}
+      </div>
+    </div>`;
+  }).join('');
+  card.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+      <div>
+        <h2 style="margin-bottom:4px;">What's in this assignment</h2>
+        <p class="sub" style="margin:0;">${a.items.length} item${a.items.length === 1 ? '' : 's'} · ${totalPoints} point${totalPoints === 1 ? '' : 's'} in total</p>
+      </div>
+      <button class="btn outline small" type="button" id="contentPreviewBtn">Preview as a pupil</button>
+    </div>
+    ${a.prompt ? `<div class="submit-summary" style="margin:14px 0 6px;"><strong>Instructions for pupils:</strong> ${escapeHtml(a.prompt)}</div>` : ''}
+    ${rows || '<p class="sub">This assignment has no items.</p>'}
+    <p class="sub" style="margin:16px 0 0;font-size:13px;">To change the title, instructions, schedule or delivery mode, use <strong>Settings</strong> on the dashboard. Items and questions can't be changed once an assignment is created — if they need changing, create a new assignment.</p>`;
+  document.getElementById('contentPreviewBtn').addEventListener('click', ()=>{
+    const pupil = a.assignedTo[0];
+    if(!pupil){ showToast('Assign at least one pupil to preview this assignment.', 'info'); return; }
+    switchRole('student');
+    state.currentPupil = pupil;
+    state.currentPupilEmail = a.submissions[pupil] && a.submissions[pupil].email;
+    openStudentTask(a.id);
+  });
+}
 
 // ---------------- Phase 9: class analytics (top score, common mistakes, pass rate) ----------------
 // Everything here is computed client-side from data already loaded for the Monitor/Grade tabs
@@ -2486,7 +2775,7 @@ function openAccommodationModal(recipientId, pupilName){
   accommodatingRecipientId = recipientId;
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   const sub = a && Object.values(a.submissions).find(su=>su.recipientId===recipientId);
-  document.getElementById('accommodationTitle').textContent = pupilName ? `Accommodations — ${pupilName}` : 'Accommodations';
+  document.getElementById('accommodationTitle').textContent = pupilName ? `Extra time — ${pupilName}` : 'Extra time & early access';
   document.getElementById('accommodationExtraMinutes').value = sub ? (sub.extraMinutes || 0) : 0;
   document.getElementById('accommodationOpensOverride').value = sub ? toDatetimeLocalValue(sub.opensOverride) : '';
   const errorEl = document.getElementById('accommodationError');
@@ -2599,7 +2888,7 @@ document.getElementById('sendBroadcastMessageBtn').addEventListener('click', asy
     document.getElementById('broadcastMessageModal').classList.add('hidden');
     await loadAssignments();
     renderMonitorPanel(state.assignments.find(x=>x.id===a.id));
-    alert(`Message sent to ${result.sent} pupil(s).`);
+    showToast(`Message sent to ${result.sent} pupil${result.sent === 1 ? '' : 's'}.`, 'success');
   } catch(error) {
     errorEl.textContent = apiErrorMessage(error);
     errorEl.classList.remove('hidden');
@@ -2619,7 +2908,7 @@ async function sendChatMessage(){
     await request(`/api/recipients/${recipientId}/messages/send/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text, asPupil})});
     input.value = '';
     await pollChatOnce();
-  } catch(error) { alert(error.message || 'Could not send message.'); }
+  } catch(error) { showToast(apiErrorMessage(error) || "Couldn't send your message.", 'error'); }
   finally { btn.disabled = false; }
 }
 document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
@@ -2737,9 +3026,9 @@ function renderMonitorPanel(a){
       <td>${monitorTimeCellHtml(a, sub)}</td>
       <td>${sub.submittedAt || '—'}</td>
       <td class="row-actions" style="gap:6px;">
-        ${sub.status==='submitted' ? `<button class="btn small outline" data-row-action="review">Review</button>` : ''}
+        ${sub.status==='submitted' ? `<button class="btn small outline" data-row-action="review">Review work</button>` : ''}
         ${isLocked ? `<button class="btn small" data-row-action="unlock">Unlock</button>` : ''}
-        <button class="btn small outline" data-row-action="accommodate">Accommodate</button>
+        <button class="btn small outline" data-row-action="accommodate" title="Give this pupil extra time or early access">Extra time</button>
         <button class="btn small outline" data-row-action="message">Message${sub.hasUnreadFromPupil ? ' •' : ''}</button>
       </td>
     `;
@@ -2750,7 +3039,7 @@ function renderMonitorPanel(a){
         await request(`/api/submissions/${sub.recipientId}/unlock/`, {method:'POST'});
         sub.locked = false; sub.resumeCode = null;
         renderMonitorPanel(a);
-      } catch(error){ alert(apiErrorMessage(error)); e.target.disabled = false; }
+      } catch(error){ showToast(apiErrorMessage(error), 'error'); e.target.disabled = false; }
     });
     tr.querySelector('[data-row-action="accommodate"]').addEventListener('click', ()=>openAccommodationModal(sub.recipientId, p));
     tr.querySelector('[data-row-action="message"]').addEventListener('click', ()=>openChatModal(sub.recipientId, `${p} — ${a.title}`, false));
@@ -2974,6 +3263,7 @@ document.getElementById('backFromTaskList').addEventListener('click', showStuden
 function showStudentTaskList(){
   hideAll('#studentView > div');
   document.getElementById('studentTaskList').classList.remove('hidden');
+  document.getElementById('backFromTaskList').classList.toggle('hidden', document.body.dataset.role === 'pupil');
   document.getElementById('studentGreeting').textContent = `Hi, ${state.currentPupil}`;
   const mine = state.assignments.filter(a=>a.assignedTo.includes(state.currentPupil));
   const tbody = document.getElementById('studentTbody');
@@ -2994,7 +3284,7 @@ function showStudentTaskList(){
       <td>${a.title}${unreadDot}</td>
       <td>${a.due || '—'}</td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
-      <td>${locked ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small">${sub.status==='submitted' ? 'View' : 'Open'}</button>`}</td>
+      <td>${locked ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small${sub.status==='submitted' ? ' outline' : ''}">${sub.status==='submitted' ? 'View submission' : (sub.status==='progress' ? 'Continue' : 'Start')}</button>`}</td>
     `;
     tr.querySelector('button')?.addEventListener('click', ()=>openStudentTask(a.id));
     tbody.appendChild(tr);
@@ -3182,16 +3472,16 @@ async function handleExamExpired(a, sub){
   document.querySelectorAll('#responseEditables .editable').forEach(ed=>{ ed.contentEditable = false; });
   const notepadEl = document.getElementById('notepadEditable');
   if(notepadEl) notepadEl.contentEditable = false;
-  alert("Time's up! Your work is being submitted automatically.");
+  showToast("Time's up! Your work is being submitted automatically.", 'info', 6000);
   try {
     const {payload} = currentSubmissionPayload();
     const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
     document.getElementById('btnSaveDraft').style.display = 'none';
-    document.getElementById('btnSubmit').textContent = 'Already submitted';
+    document.getElementById('btnSubmit').textContent = 'Submitted ✓';
     document.getElementById('btnSubmit').disabled = true;
   } catch(error) {
-    alert('Time is up, but we could not auto-submit: ' + apiErrorMessage(error) + '. Please click Submit.');
+    showToast("Time's up, but your work couldn't be submitted automatically: " + apiErrorMessage(error) + " Please click Submit.", 'error', 12000);
   }
 }
 
@@ -3437,10 +3727,11 @@ async function openStudentTask(assignmentId){
 
   const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
   document.getElementById('btnSaveDraft').style.display = readOnly ? 'none' : 'inline-block';
-  document.getElementById('btnSubmit').textContent = sub.status === 'submitted' ? 'Already submitted'
-    : (readOnly ? "Preview only — teachers can't submit for a pupil" : 'Submit to teacher');
+  document.getElementById('btnSubmit').textContent = sub.status === 'submitted' ? 'Submitted ✓'
+    : (readOnly ? 'Submit (disabled in preview)' : 'Submit');
   document.getElementById('btnSubmit').disabled = readOnly;
   document.getElementById('hideNotesBtn').classList.remove('active');
+  document.getElementById('hideNotesLabel').textContent = 'Hide notes';
   document.getElementById('pdfStage').classList.remove('notes-hidden', 'erase-mode');
 
   // Notepad (shared outline notes, one per submission, shown in its own popup window)
@@ -3536,7 +3827,7 @@ async function buildResourcesPanel(a, sub){
           }
         } catch(error) {
           console.error('ExamHub: could not load PDF for', item.label, error);
-          group.innerHTML += `<div class="sub" style="padding:6px 4px;">Couldn't load this PDF.</div>`;
+          group.innerHTML += `<div class="sub" style="padding:6px 4px;font-size:12.5px;">This PDF couldn't be opened.</div>`;
         }
       } else {
         const thumb = document.createElement('div');
@@ -3679,7 +3970,7 @@ async function renderPdfPage(){
   const doc = state.textDocs[state.currentTextId];
   const stage = document.getElementById('pdfStage');
   if(!doc){
-    showPdfRenderError(stage, 'This PDF could not be loaded.');
+    showPdfRenderError(stage, "This PDF couldn't be opened. If it keeps happening, tell your teacher — the file may need uploading again.");
     return;
   }
   stage.innerHTML = '<div class="sub" style="padding:24px;">Loading page…</div>';
@@ -4101,7 +4392,7 @@ document.getElementById('modeHighlight').addEventListener('click', function(){
 document.getElementById('hideNotesBtn').addEventListener('click', function(){
   state.notesHidden = !state.notesHidden;
   this.classList.toggle('active', state.notesHidden);
-  this.lastChild.textContent = state.notesHidden ? ' Show notes' : ' Hide notes';
+  document.getElementById('hideNotesLabel').textContent = state.notesHidden ? 'Show notes' : 'Hide notes';
   document.getElementById('pdfStage').classList.toggle('notes-hidden', state.notesHidden);
 });
 document.getElementById('prevPage').addEventListener('click', async ()=>{
@@ -4254,22 +4545,50 @@ wireRichToolbar(document.getElementById('notepadToolbar'), ()=>document.getEleme
 document.getElementById('btnSaveDraft').addEventListener('click', async ()=>{
   const {sub,payload} = currentSubmissionPayload();
   try { await request(`/api/submissions/${sub.recipientId}/save/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-    alert('Draft saved. You can come back and keep editing anytime before submitting.'); showStudentTaskList();
-  } catch(error) { alert(apiErrorMessage(error)); }
+    showToast('Draft saved. You can come back and keep working any time before you submit.', 'success'); showStudentTaskList();
+  } catch(error) { showToast(apiErrorMessage(error), 'error'); }
 });
+// Which items still have no answer — shown in the submit confirmation so pupils don't hand in
+// by accident with questions left blank. Image/video items are reference material with nothing
+// to answer, so they're not counted.
+function isItemAnswered(item, v){
+  if(v == null) return false;
+  if(typeof v === 'string') return v.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+  if(item.type === 'mcq_single') return v.optionId != null;
+  if(item.type === 'mcq_multiple') return (v.optionIds || []).length > 0;
+  if(item.type === 'true_false') return v.value != null;
+  if(item.type === 'fill_text') return !!(v.text || '').trim();
+  if(item.type === 'table') return (v.cells || []).some(r=>(r || []).some(c=>(c || '').trim()));
+  return true;
+}
+function unansweredItems(a, responses){
+  return a.items.filter(item=>item.type !== 'image' && item.type !== 'video')
+    .filter(item=>!isItemAnswered(item, responses[item.id] ?? responses[String(item.id)]));
+}
 document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   const {sub,payload} = currentSubmissionPayload();
+  const answerable = a.items.filter(item=>item.type !== 'image' && item.type !== 'video').length;
+  const missing = unansweredItems(a, payload.responses || {});
+  const summary = missing.length
+    ? `You've answered ${answerable - missing.length} of ${answerable}. Still blank: ${missing.map(i=>i.label).join(', ')}. `
+    : `You've answered all ${answerable} item${answerable === 1 ? '' : 's'}. `;
+  const ok = await confirmDialog({
+    title: missing.length ? 'Submit with blank answers?' : 'Submit your work?',
+    message: summary + "Once you submit, you can't make any more changes.",
+    confirmLabel: 'Submit now', cancelLabel: 'Keep working',
+  });
+  if(!ok) return;
   try { const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
     clearExamTimer();
     if(a && a.deliveryMode === 'lockdown'){
-      alert('Submitted! Your teacher has been sent a review notification. Safe Exam Browser will now close.');
-      location.href = '/?sebquit=1';
+      showToast('Submitted! Your teacher has been notified. Safe Exam Browser will close in a moment.', 'success', 3000);
+      setTimeout(()=>{ location.href = '/?sebquit=1'; }, 2200);
     } else {
-      alert('Submitted! Your teacher has been sent a review notification.'); showStudentTaskList();
+      showToast('Submitted! Your teacher has been notified.', 'success'); showStudentTaskList();
     }
-  } catch(error) { alert(apiErrorMessage(error)); }
+  } catch(error) { showToast(apiErrorMessage(error), 'error'); }
 });
 
 // ---------------- init ----------------
