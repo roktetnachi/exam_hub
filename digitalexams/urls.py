@@ -32,4 +32,5 @@ urlpatterns = [
     path('api/submissions/<int:recipient_id>/publish/', views.publish_submission_api, name='publish-submission'),
     path('api/assignments/<int:assignment_id>/publish-grades/', views.publish_assignment_grades_api, name='publish-assignment-grades'),
     path('api/seb/config/', views.seb_config, name='seb-config'),
+    path('api/seb/check/', views.seb_check_api, name='seb-check'),
 ]

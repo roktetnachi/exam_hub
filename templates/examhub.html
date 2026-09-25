@@ -342,7 +342,9 @@
     </button>
     <div class="hidden" id="sebMenuDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:320px;background:#fff;border-radius:14px;box-shadow:var(--card-shadow);padding:14px;z-index:50;">
       <strong style="font-size:13px;">Safe Exam Browser setup</strong>
-      <p class="sub" style="margin:6px 0 10px;">For assignments delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — one-time setup: open this config in a real SEB install once, it'll show you a key, and paste that into Django admin under "Allowed Browser Exam Keys" (do this once per platform your pupils use). Until at least one key is added, lockdown assignments will refuse every real pupil.</p>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--blue-dark);font-weight:700;">&#10003; Ready — no key setup needed. ExamHub automatically trusts its own lockdown config.</p>
+      <p class="sub" style="margin:4px 0 0;font-size:11px;word-break:break-all;">This site's Config Key: <code>{{ seb_config_key }}</code>{% if seb_key_count %} · plus {{ seb_key_count }} extra key{{ seb_key_count|pluralize }} from Django admin{% endif %}</p>
+      <p class="sub" style="margin:6px 0 10px;">For assignments delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — pupils just open the exam through the lockdown link or file below. Don't edit and re-save the config in SEB's own settings tool: that changes its key and ExamHub will stop recognising it (if you ever need custom SEB settings, paste the edited file's Config Key into Django admin → "Allowed Browser Exam Keys").</p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <a class="btn outline small" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
         <a class="btn outline small" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
@@ -3028,25 +3030,40 @@ function sebProtocolLink(){
   const scheme = location.protocol === 'https:' ? 'sebs://' : 'seb://';
   return scheme + location.host + '/api/seb/config/';
 }
+// Asks the server whether THIS request really comes from SEB with ExamHub's config (the same
+// check that guards starting/saving/submitting). The browser's own User-Agent sniffing
+// (sebDetected) isn't reliable — some SEB versions/configs don't advertise "SEB" in it, and
+// trusting it wrongly used to bounce pupils who were already inside SEB straight back out
+// via the seb:// relaunch below.
+async function checkSebWithServer(){
+  try { return await request('/api/seb/check/'); } catch(_) { return null; }
+}
 function gateWithSeb(a){
-  return new Promise((resolve)=>{
-    if(sebDetected()){ resolve(true); return; }
+  return new Promise(async (resolve)=>{
+    const server = await checkSebWithServer();
+    if(server && server.ok){ resolve(true); return; }
+    if(!server && sebDetected()){ resolve(true); return; } // check failed to run — let start/save decide
+    const insideSeb = sebDetected() || (server && server.sebHeaders);
     const backdrop = document.getElementById('sebGateBackdrop');
     const msgEl = document.getElementById('sebGateMessage');
     const launchBtn = document.getElementById('sebGateLaunchBtn');
-    msgEl.textContent = `"${a.title}" is set to Lockdown mode by your teacher — it must be opened in Safe Exam Browser. If you already have it installed, it should open on its own in a moment.`;
+    msgEl.textContent = insideSeb
+      ? `You're in Safe Exam Browser, but not with this site's lockdown settings, so "${a.title}" can't open. Quit SEB, then open it again using the "Open in Safe Exam Browser" button below (or a freshly downloaded lockdown file from this site).`
+      : `"${a.title}" is set to Lockdown mode by your teacher — it must be opened in Safe Exam Browser. If you already have it installed, it should open on its own in a moment.`;
     launchBtn.href = sebProtocolLink();
     backdrop.classList.remove('hidden');
-    // Attempt the handoff right away too, in case SEB is already installed — still inside
-    // the same click that opened this gate, so browsers treat it as a real user gesture.
-    window.location.href = sebProtocolLink();
+    // Attempt the handoff right away — but never from inside SEB, where relaunching would just
+    // reload SEB back to the start page and look like the paper "didn't open".
+    if(!insideSeb) window.location.href = sebProtocolLink();
     function cleanup(){
       backdrop.classList.add('hidden');
       retryBtn.removeEventListener('click', onRetry);
       cancelBtn.removeEventListener('click', onCancel);
     }
-    function onRetry(){
-      if(sebDetected()){ cleanup(); resolve(true); }
+    async function onRetry(){
+      const again = await checkSebWithServer();
+      if((again && again.ok) || (!again && sebDetected())){ cleanup(); resolve(true); }
+      else if(again && again.sebHeaders){ msgEl.textContent = "Safe Exam Browser is running, but with different settings from this site's lockdown config. Quit SEB and reopen using a freshly downloaded lockdown file from this site."; }
       else { msgEl.textContent = "This browser tab still doesn't look like Safe Exam Browser. If a separate Safe Exam Browser window just opened, switch to it and open the assignment from there instead — this tab isn't it. Otherwise, install SEB or use the manual download above, then try again."; }
     }
     function onCancel(){ cleanup(); resolve(false); }
@@ -3056,9 +3073,11 @@ function gateWithSeb(a){
     cancelBtn.addEventListener('click', onCancel);
   });
 }
-function showSebBlockedNotice(assignmentId, title){
+function showSebBlockedNotice(assignmentId, title, detail){
   const backdrop = document.getElementById('sebGateBackdrop');
-  document.getElementById('sebGateMessage').textContent = `The server couldn't confirm "${title}" is running in Safe Exam Browser. Make sure you opened it via the downloaded lockdown file, then try again.`;
+  document.getElementById('sebGateMessage').textContent = detail
+    ? `"${title}": ${detail}`
+    : `The server couldn't confirm "${title}" is running in Safe Exam Browser. Make sure you opened it via the downloaded lockdown file, then try again.`;
   backdrop.classList.remove('hidden');
   document.getElementById('sebGateCancelBtn').onclick = ()=>{ backdrop.classList.add('hidden'); showStudentTaskList(); };
   document.getElementById('sebGateRetryBtn').onclick = ()=>{ backdrop.classList.add('hidden'); openStudentTask(assignmentId); };
@@ -3079,7 +3098,7 @@ async function ensureSubmissionStarted(a, sub){
   } catch(error) {
     let code = null;
     try { code = JSON.parse(error.message).code; } catch(_) { /* not JSON */ }
-    if(code === 'seb_required') return {ok:false, sebRequired:true};
+    if(code === 'seb_required') return {ok:false, sebRequired:true, detail: apiErrorMessage(error)};
     if(code === 'assignment_closed') return {ok:false, closed:true};
     return {ok:true}; // Timer just won't be persisted if this fails for any other reason; exam still usable.
   }
@@ -3385,7 +3404,7 @@ async function openStudentTask(assignmentId){
   const startResult = await ensureSubmissionStarted(a, sub);
   if(!startResult.ok && startResult.sebRequired){
     showStudentTaskList();
-    showSebBlockedNotice(assignmentId, a.title);
+    showSebBlockedNotice(assignmentId, a.title, startResult.detail);
     return;
   }
   if(!startResult.ok && startResult.closed){

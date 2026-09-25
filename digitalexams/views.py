@@ -27,7 +27,9 @@ from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, Assign
 
 @login_required
 def home(request):
-    return render(request, 'examhub.html')
+    # Shown to teachers in the SEB menu, so a missing one-time setup is obvious up front
+    # instead of only surfacing when a pupil gets blocked mid-exam.
+    return render(request, 'examhub.html', {'seb_key_count': AllowedBrowserExamKey.objects.count(), 'seb_config_key': seb_config_key(request.get_host(), _public_scheme(request))})
 
 
 def account_kind(user):
@@ -115,26 +117,101 @@ def log_activity(actor_name, actor_email, action, description, assignment=None):
 SEB_REQUEST_HASH_HEADER = 'X-SafeExamBrowser-RequestHash'
 
 
+def _public_scheme(request):
+    """The scheme the pupil's browser actually used. Behind Railway's proxy Django itself sees
+    plain http, but the proxy reports the real one in X-Forwarded-Proto."""
+    forwarded = request.META.get('HTTP_X_FORWARDED_PROTO', '')
+    return (forwarded.split(',')[0].strip() or request.scheme).lower()
+
+
+def seb_config_settings(host, scheme):
+    """The exact settings in ExamHub's shared lockdown .seb file for a given site address.
+    Kept in one place because the same dict is used both to write the file (seb_config) and to
+    recompute its Config Key (seb_config_key) — they must never drift apart."""
+    home = f'{scheme}://{host}{reverse("home")}'
+    return {
+        'startURL': home,
+        'quitURL': home + '?sebquit=1',
+        'allowQuit': True,
+        'quitURLConfirm': False,
+        'hashedQuitPassword': '',
+        # Makes SEB send the X-SafeExamBrowser-RequestHash / -ConfigKeyHash headers that
+        # seb_lockdown_ok() checks — without this, the whole mechanism silently never fires.
+        'sendBrowserExamKey': True,
+    }
+
+
+def _seb_json(value):
+    """SEB's own "SEB-JSON" serialisation used for the Config Key (per SEB's developer docs):
+    dictionary keys sorted case-insensitively, no whitespace, no character escaping, lowercase
+    true/false, empty dicts dropped."""
+    if isinstance(value, dict):
+        items = sorted(((k, v) for k, v in value.items() if not (isinstance(v, dict) and not v)),
+                       key=lambda kv: kv[0].lower())
+        return '{' + ','.join(f'"{k}":{_seb_json(v)}' for k, v in items) + '}'
+    if isinstance(value, (list, tuple)):
+        return '[' + ','.join(_seb_json(v) for v in value) + ']'
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, (int, float)):
+        return repr(value)
+    return f'"{value}"'
+
+
+def seb_config_key(host, scheme):
+    """ExamHub's own lockdown config's Config Key, computed the same way SEB computes it
+    (SHA256 of the SEB-JSON of the settings actually in the file). Because ExamHub writes that
+    file itself, it can trust its own key automatically — no copying keys out of SEB's settings
+    screens into Django admin needed."""
+    return hashlib.sha256(_seb_json(seb_config_settings(host, scheme)).encode('utf-8')).hexdigest()
+
+
 def seb_lockdown_ok(request):
     """True if this request carries a valid Browser Exam Key hash for any key we've been
     given. There's deliberately no soft fallback (User-Agent, etc.) here — those are shown
     client-side as a friendly hint, but this is the actual enforcement."""
-    received = request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH', '') or request.headers.get(SEB_REQUEST_HASH_HEADER, '')
+    # SEB sends two hashes: one built from the Browser Exam Key (changes with the SEB version
+    # installed) and one from the Config Key (depends only on the .seb file, so it's the same
+    # on every pupil's device). Either one matching a stored key is accepted, so an admin can
+    # paste whichever key SEB shows them.
+    received = [h.strip().lower() for h in (
+        request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH', ''),
+        request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH', ''),
+    ) if h and h.strip()]
     if not received:
         return False
-    absolute_url = request.build_absolute_uri()
-    for key_hash in AllowedBrowserExamKey.objects.values_list('key_hash', flat=True):
-        expected = hashlib.sha256((absolute_url + key_hash).encode('utf-8')).hexdigest()
-        if hmac.compare_digest(expected, received.strip().lower()):
-            return True
+    # SEB hashes the URL exactly as the pupil's browser sees it. Behind Railway's proxy Django
+    # sees the request as plain http:// even though the pupil is on https://, so both schemes
+    # are tried — the stored key is still required either way.
+    path_and_query = request.get_full_path()
+    host = request.get_host()
+    # Keys to accept: ExamHub's own config's Config Key (computed, for both schemes since the
+    # file may have been downloaded over http or https), plus anything an admin added by hand.
+    keys = {seb_config_key(host, 'https'), seb_config_key(host, 'http')}
+    keys.update((k or '').strip().lower() for k in AllowedBrowserExamKey.objects.values_list('key_hash', flat=True))
+    keys.discard('')
+    for scheme in ('https', 'http'):
+        url = f'{scheme}://{host}{path_and_query}'
+        for key in keys:
+            expected = hashlib.sha256((url + key).encode('utf-8')).hexdigest()
+            if any(hmac.compare_digest(expected, r) for r in received):
+                return True
     return False
 
 
-def seb_required_response():
-    return JsonResponse({
-        'code': 'seb_required',
-        'detail': 'This assignment must be opened in Safe Exam Browser.',
-    }, status=403)
+def seb_required_response(request=None):
+    got_headers = bool(request and (request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH')
+                                    or request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH')))
+    if request is not None and not got_headers:
+        detail = ("This assignment must be opened in Safe Exam Browser using ExamHub's lockdown "
+                  "config (from the SEB menu / your teacher's link). This browser didn't identify itself as SEB.")
+        reason = 'no_seb_headers'
+    else:
+        detail = ("Safe Exam Browser was detected, but not with ExamHub's current lockdown config. "
+                  "Download a fresh config from this site and open the exam with it (a config from a "
+                  "different address, or one edited and re-saved in SEB's settings, won't match).")
+        reason = 'key_mismatch'
+    return JsonResponse({'code': 'seb_required', 'reason': reason, 'detail': detail}, status=403)
 
 
 def is_real_pupil(request):
@@ -307,7 +384,7 @@ def item_pdf(request, item_id):
         if not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
             return HttpResponseForbidden('This PDF is not assigned to your account.')
     if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
-        return seb_required_response()
+        return seb_required_response(request)
     filename = item.pdf.name.rsplit('/', 1)[-1]
     response = FileResponse(item.pdf.open('rb'), content_type='application/pdf', as_attachment=False, filename=filename)
     response['Content-Disposition'] = f'inline; filename="{filename}"'
@@ -323,7 +400,7 @@ def _serve_item_media(request, item_id, item_type, field_name):
         if not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
             return HttpResponseForbidden('This file is not assigned to your account.')
     if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
-        return seb_required_response()
+        return seb_required_response(request)
     field = getattr(item, field_name)
     filename = field.name.rsplit('/', 1)[-1]
     content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
@@ -601,7 +678,7 @@ def start_submission(request, recipient_id):
             return HttpResponseForbidden('This work is not assigned to your account.')
     assignment = recipient.assignment
     if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
-        return seb_required_response()
+        return seb_required_response(request)
     if assignment.require_join_code:
         try:
             payload = json.loads(request.body or '{}')
@@ -634,7 +711,7 @@ def submission_from_request(request, recipient_id):
         if recipient.pupil_email.lower() != request.user.email.lower():
             return None, HttpResponseForbidden('This work is not assigned to your account.')
     if recipient.assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
-        return None, seb_required_response()
+        return None, seb_required_response(request)
     payload = json.loads(request.body or '{}')
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     if submission.status == 'submitted':
@@ -1113,6 +1190,17 @@ def publish_assignment_grades_api(request, assignment_id):
 
 @login_required
 @require_GET
+def seb_check_api(request):
+    """Lets the pupil page ask "is this request really SEB with ExamHub's config?" before
+    opening a lockdown paper — the same check start/save/submit enforce, just without side
+    effects. Replaces trusting the browser's User-Agent, which some SEB setups don't mark."""
+    has_headers = bool(request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH')
+                       or request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'))
+    return JsonResponse({'ok': seb_lockdown_ok(request), 'sebHeaders': has_headers})
+
+
+@login_required
+@require_GET
 def seb_config(request):
     """Generates ExamHub's single, shared Safe Exam Browser lockdown config as a real
     .seb file (Apple-plist format, which is what SEB expects). One config covers every
@@ -1125,18 +1213,7 @@ def seb_config(request):
     clipboard, etc.) per your school's policy — hand-guessing SEB's ~200 other settings here
     risks producing a config that's subtly wrong in ways nobody can check without SEB itself.
     """
-    start_url = request.build_absolute_uri(reverse('home'))
-    quit_url = request.build_absolute_uri(reverse('home')) + '?sebquit=1'
-    settings_dict = {
-        'startURL': start_url,
-        'quitURL': quit_url,
-        'allowQuit': True,
-        'quitURLConfirm': False,
-        'hashedQuitPassword': '',
-        # Required for SEB to actually send the X-SafeExamBrowser-RequestHash header that
-        # seb_lockdown_ok() checks — without this, the whole mechanism silently never fires.
-        'sendBrowserExamKey': True,
-    }
+    settings_dict = seb_config_settings(request.get_host(), _public_scheme(request))
     body = plistlib.dumps(settings_dict, fmt=plistlib.FMT_XML)
     response = HttpResponse(body, content_type='application/seb')
     response['Content-Disposition'] = 'attachment; filename="examhub-lockdown.seb"'
