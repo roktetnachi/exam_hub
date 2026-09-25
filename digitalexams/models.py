@@ -173,6 +173,14 @@ class Submission(models.Model):
     # A submission can be fully graded without pupils seeing anything yet — publishing is a
     # separate, explicit teacher action so a grade can be double-checked before it's shown.
     published = models.BooleanField(default=False)
+    # "Any browser with security" exit lock (Phase 10). Set when the pupil leaves the exam window
+    # (switches tab/app, opens a new tab or window, exits fullscreen). While locked_at is set the
+    # server refuses saves/submits until the pupil enters resume_code — a one-word lowercase code
+    # the teacher reads out from the Monitor tab — or the teacher unlocks them directly.
+    locked_at = models.DateTimeField(null=True, blank=True)
+    lock_reason = models.CharField(max_length=60, blank=True)
+    resume_code = models.CharField(max_length=24, blank=True)
+    lock_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f'{self.recipient} ({self.status})'

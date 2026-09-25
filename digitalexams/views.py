@@ -334,6 +334,9 @@ def serialize_assignment(assignment, pupil_email=None):
             # "Message teacher" button and bell — always computed, cheap either way.
             'hasUnreadFromPupil': _has_unread(recipient, User.Role.PUPIL, recipient.teacher_last_read_at),
             'hasUnreadFromTeacher': _has_unread(recipient, User.Role.TEACHER, recipient.pupil_last_read_at),
+            # Exit lock (Phase 10). The resume code itself is only ever sent to the teacher's view.
+            'locked': bool(sub.locked_at), 'lockReason': sub.lock_reason, 'lockCount': sub.lock_count,
+            'resumeCode': sub.resume_code if (is_teacher_view and sub.locked_at) else None,
             'itemScores': sub.item_scores if show_grades else {},
             'totalScore': sub.total_score if show_grades else None,
             'maxScore': sub.max_score if show_grades else None,
@@ -454,6 +457,8 @@ def assignment_status_api(request, assignment_id):
             # full reloads (an accommodation or a new pupil message mid-exam shows up on the next poll).
             'extraMinutes': recipient.extra_minutes,
             'hasUnreadFromPupil': _has_unread(recipient, User.Role.PUPIL, recipient.teacher_last_read_at),
+            'locked': bool(sub.locked_at), 'lockReason': sub.lock_reason, 'lockCount': sub.lock_count,
+            'resumeCode': sub.resume_code if sub.locked_at else None,
         })
     return JsonResponse({'id': assignment.id, 'recipients': recipients})
 
@@ -727,6 +732,8 @@ def submission_from_request(request, recipient_id):
         return None, JsonResponse({'detail': 'This work has already been submitted.'}, status=409)
     if assignment_closed(recipient.assignment):
         return None, assignment_closed_response()
+    if submission.locked_at:
+        return None, exam_locked_response()
     submission.annotations = payload.get('annotations', [])
     submission.outline_html = payload.get('outlineHtml', '')
     responses = payload.get('responses', {})
@@ -768,6 +775,130 @@ def submit_submission(request, recipient_id):
         f'{submission.recipient.pupil_name} submitted their annotated work. Review it at {review_url}',
         None, [assignment.teacher_email], fail_silently=False)
     return JsonResponse({'status': 'submitted', 'submittedAt': submission.submitted_at.isoformat()})
+
+
+# ---------------- "Any browser with security" exit lock (Phase 10) ----------------
+# A web page can't stop a browser opening a new tab or window, but it can tell the instant
+# the pupil leaves the exam (tab hidden, window loses focus, fullscreen exited). The pupil page
+# reports that here; from then on saves/submits are refused until they enter a one-word resume
+# code their teacher reads out from Monitor (a fresh code every time, so an old one can't be
+# reused), or the teacher unlocks them. Enforced server-side, so reloading the page or poking
+# at it in developer tools doesn't get round it.
+RESUME_WORDS = (
+    'apple amber anchor arrow badge basil beach berry bloom brick brook cabin candle canyon cedar '
+    'chalk cherry cloud clover cobalt comet coral cotton crane crystal daisy delta desert dolphin '
+    'eagle ember falcon feather fern flint forest fossil galaxy garden ginger glacier grape harbor '
+    'hazel honey island ivory jasmine jungle kettle kiwi lagoon lantern lemon lilac lotus maple '
+    'marble meadow melon mango mint moss nectar nutmeg oasis ocean olive orbit orchid otter panda '
+    'papaya parrot peach pebble pepper pine planet plum pollen poppy prism quartz rabbit radish '
+    'rain raven reef ribbon river robin rocket saffron salmon sand shell silver sky sparrow spruce '
+    'star stone summit sunset swan tiger topaz tulip tundra velvet violet walnut willow winter zebra'
+).split()
+
+
+def new_resume_code(previous=''):
+    choices = [w for w in RESUME_WORDS if w != previous]
+    return secrets.choice(choices)
+
+
+def exam_locked_response():
+    return JsonResponse({
+        'code': 'exam_locked',
+        'detail': 'Your exam is paused because you left the exam window. Ask your teacher for the resume code.',
+    }, status=403)
+
+
+def _own_submission(request, recipient_id):
+    """(recipient, submission, error) for a real pupil acting on their own attempt."""
+    recipient = get_object_or_404(Recipient, id=recipient_id)
+    if not is_real_pupil(request):
+        return recipient, None, HttpResponseForbidden('Only the pupil taking this exam can do this.')
+    if recipient.pupil_email.lower() != request.user.email.lower():
+        return recipient, None, HttpResponseForbidden('This work is not assigned to your account.')
+    submission, _ = Submission.objects.get_or_create(recipient=recipient)
+    return recipient, submission, None
+
+
+@login_required
+@require_POST
+def lock_submission_api(request, recipient_id):
+    recipient, submission, error = _own_submission(request, recipient_id)
+    if error:
+        return error
+    if recipient.assignment.delivery_mode != Assignment.DeliveryMode.BROWSER_SECURE or submission.status == 'submitted':
+        return JsonResponse({'locked': False})
+    if submission.locked_at:  # already locked (e.g. two exit events in a row): keep the same code
+        return JsonResponse({'locked': True, 'lockReason': submission.lock_reason})
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+    # Save whatever they had at the moment they left, so nothing typed before the lock is lost
+    # even if time runs out while they're waiting for the code.
+    if not assignment_closed(recipient.assignment) and isinstance(payload.get('responses'), dict):
+        submission.annotations = payload.get('annotations', submission.annotations)
+        submission.outline_html = payload.get('outlineHtml', submission.outline_html)
+        submission.responses = payload['responses']
+        if submission.status == 'not_started':
+            submission.status = 'draft'
+    reason = (payload.get('reason') or 'Left the exam window')[:60]
+    submission.locked_at = timezone.now()
+    submission.lock_reason = reason
+    submission.resume_code = new_resume_code(submission.resume_code)
+    submission.lock_count += 1
+    submission.save()
+    log_activity(recipient.pupil_name, recipient.pupil_email, 'locked',
+        f'{recipient.pupil_name} was locked out of "{recipient.assignment.title}" ({reason.lower()}).',
+        assignment=recipient.assignment)
+    return JsonResponse({'locked': True, 'lockReason': reason})
+
+
+@login_required
+@require_POST
+def resume_submission_api(request, recipient_id):
+    recipient, submission, error = _own_submission(request, recipient_id)
+    if error:
+        return error
+    if not submission.locked_at:
+        return JsonResponse({'locked': False})
+    try:
+        code = (json.loads(request.body or '{}').get('code') or '').strip().lower()
+    except json.JSONDecodeError:
+        code = ''
+    if not code or not hmac.compare_digest(code, submission.resume_code.lower()):
+        return JsonResponse({'detail': "That code isn't right. Check with your teacher."}, status=403)
+    submission.locked_at = None
+    submission.save(update_fields=['locked_at'])
+    log_activity(recipient.pupil_name, recipient.pupil_email, 'resumed',
+        f'{recipient.pupil_name} resumed "{recipient.assignment.title}" with the teacher\'s code.', assignment=recipient.assignment)
+    return JsonResponse({'locked': False})
+
+
+@login_required
+@require_POST
+def unlock_submission_api(request, recipient_id):
+    denied = _require_teacher(request)
+    if denied:
+        return denied
+    recipient = get_object_or_404(Recipient, id=recipient_id)
+    submission, _ = Submission.objects.get_or_create(recipient=recipient)
+    submission.locked_at = None
+    submission.save(update_fields=['locked_at'])
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'unlocked',
+        f'Unlocked {recipient.pupil_name} on "{recipient.assignment.title}".', assignment=recipient.assignment)
+    return JsonResponse({'locked': False})
+
+
+@login_required
+@require_GET
+def lock_status_api(request, recipient_id):
+    """Polled by a locked pupil's screen so it clears by itself if the teacher unlocks them."""
+    recipient = get_object_or_404(Recipient, id=recipient_id)
+    denied = _recipient_access_check(request, recipient)
+    if denied:
+        return denied
+    submission, _ = Submission.objects.get_or_create(recipient=recipient)
+    return JsonResponse({'locked': bool(submission.locked_at), 'lockReason': submission.lock_reason})
 
 
 # ---------------- classes & pupil roster (teacher-side, mirrors what admin can do) ----------------

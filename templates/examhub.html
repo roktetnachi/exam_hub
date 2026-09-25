@@ -86,6 +86,11 @@
   .badge.submitted{background:var(--ok);}
   .badge.progress{background:var(--warn);}
   .badge.idle{background:var(--idle);}
+  .badge.locked{background:var(--danger);}
+  .exam-lock-overlay{position:fixed;inset:0;z-index:9999;background:rgba(20,16,50,.92);display:flex;align-items:center;justify-content:center;padding:16px;}
+  .exam-lock-card{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:26px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .exam-lock-card h2{margin:6px 0 8px;color:var(--danger-dark);}
+  .exam-lock-card input{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:20px;text-align:center;letter-spacing:.06em;text-transform:lowercase;margin:14px 0 6px;}
 
   /* ---- AssessPrep-style pill tab bar (assignment detail view) ---- */
   .pill-tabs{display:flex;gap:6px;background:#fff;border-radius:var(--pill-radius);padding:4px;box-shadow:var(--card-shadow);
@@ -859,6 +864,18 @@
       </div>
     </div>
 
+    <div class="exam-lock-overlay hidden" id="examLockOverlay" role="alertdialog" aria-modal="true" aria-labelledby="examLockTitle">
+      <div class="exam-lock-card">
+        <div style="font-size:34px;line-height:1;">&#128274;</div>
+        <h2 id="examLockTitle">Exam paused</h2>
+        <p class="sub" id="examLockReason" style="margin:0;">You left the exam window.</p>
+        <p class="sub" style="margin:8px 0 0;">Raise your hand and ask your teacher for the <strong>resume code</strong>. Your work so far has been saved, but the timer keeps running.</p>
+        <input type="text" id="examLockCodeInput" placeholder="resume code" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p id="examLockError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:0 0 4px;"></p>
+        <button class="btn" id="examLockResumeBtn" type="button" style="width:100%;margin-top:6px;">Resume exam</button>
+      </div>
+    </div>
+
     <div class="modal-backdrop hidden" id="assignmentClosedBackdrop">
       <div class="card" style="width:380px;max-width:92vw;">
         <h2 style="margin-bottom:6px;">Assignment closed</h2>
@@ -1166,6 +1183,7 @@ function apiAssignment(a){
     extraMinutes:r.extraMinutes||0, opensOverride:r.opensOverride||null,
     itemScores:r.itemScores||{}, totalScore:r.totalScore ?? null, maxScore:r.maxScore ?? null,
     gradedAt:r.gradedAt||null, published:!!r.published,
+    locked:!!r.locked, lockReason:r.lockReason||'', lockCount:r.lockCount||0, resumeCode:r.resumeCode||null,
     hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher}; });
   return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt,durationMinutes:a.durationMinutes||60,items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'',
@@ -1778,7 +1796,7 @@ function collectItemsForSubmit(){
 // ---------------- generic pill-picker helper (delivery mode / start-close condition / assign-to) ----------------
 const DELIVERY_MODE_NOTES = {
   browser: 'No extra restrictions — pupils can use any browser normally.',
-  browser_secure: 'Adds soft anti-copy measures (disables right-click and clipboard copy) in the pupil\'s browser. This is a deterrent, not real lockdown security.',
+  browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click and copying. Enforced by ExamHub, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
   lockdown: 'Pupils must open this in Safe Exam Browser (SEB) — ExamHub verifies this server-side and blocks starting/saving/submitting otherwise. Download the shared lockdown config from the dashboard and see Django admin \u2192 Allowed Browser Exam Keys for one-time setup.',
   paper: 'For a paper-based sitting. The assignment is recorded but pupils won\'t open it in ExamHub.',
 };
@@ -2684,6 +2702,7 @@ function renderMonitorPanel(a){
     <div class="stat-tile"><div class="num started">${counts.started}</div><div class="label">Started</div></div>
     <div class="stat-tile"><div class="num ended">${counts.ended}</div><div class="label">Ended</div></div>
     <div class="stat-tile"><div class="num submitted">${counts.submitted}</div><div class="label">Submitted</div></div>
+    ${a.deliveryMode === 'browser_secure' ? `<div class="stat-tile"><div class="num" style="color:var(--danger);">${a.assignedTo.filter(p=>a.submissions[p].locked && a.submissions[p].status!=='submitted').length}</div><div class="label">Locked</div></div>` : ''}
   `;
 
   const tbody = document.getElementById('detailTbody');
@@ -2702,23 +2721,37 @@ function renderMonitorPanel(a){
     const sub = a.submissions[p];
     const endsAt = pupilExamEndsAt(a, sub);
     const timedOut = endsAt != null && endsAt <= now;
-    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? (timedOut ? 'idle' : 'progress') : 'idle');
-    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? (timedOut ? 'Ended' : 'In progress') : 'Not started');
+    const isLocked = sub.locked && sub.status !== 'submitted';
+    const badgeClass = isLocked ? 'locked' : (sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? (timedOut ? 'idle' : 'progress') : 'idle'));
+    const badgeLabel = isLocked ? 'Locked' : (sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? (timedOut ? 'Ended' : 'In progress') : 'Not started'));
+    // Exit lock (Phase 10): the one-word code the teacher reads out, plus how often they've left.
+    const lockInfo = isLocked
+      ? `<div style="margin-top:4px;font-size:12px;color:var(--danger-dark);">${escapeHtml(sub.lockReason || 'Left the exam window')} · resume code: <strong style="font-family:monospace;font-size:14px;letter-spacing:.04em;">${escapeHtml(sub.resumeCode || '…')}</strong></div>`
+      : (sub.lockCount ? `<div class="sub" style="margin-top:2px;font-size:11.5px;">Left the exam ${sub.lockCount}×</div>` : '');
     const unreadDot = sub.hasUnreadFromPupil
       ? `<span title="Unread message from ${escapeHtml(p)}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHtml(p)}${unreadDot}</td>
+      <td>${escapeHtml(p)}${unreadDot}${lockInfo}</td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
       <td>${monitorTimeCellHtml(a, sub)}</td>
       <td>${sub.submittedAt || '—'}</td>
       <td class="row-actions" style="gap:6px;">
         ${sub.status==='submitted' ? `<button class="btn small outline" data-row-action="review">Review</button>` : ''}
+        ${isLocked ? `<button class="btn small" data-row-action="unlock">Unlock</button>` : ''}
         <button class="btn small outline" data-row-action="accommodate">Accommodate</button>
         <button class="btn small outline" data-row-action="message">Message${sub.hasUnreadFromPupil ? ' •' : ''}</button>
       </td>
     `;
     tr.querySelector('[data-row-action="review"]')?.addEventListener('click', ()=>showReview(a.id, p));
+    tr.querySelector('[data-row-action="unlock"]')?.addEventListener('click', async (e)=>{
+      e.target.disabled = true;
+      try {
+        await request(`/api/submissions/${sub.recipientId}/unlock/`, {method:'POST'});
+        sub.locked = false; sub.resumeCode = null;
+        renderMonitorPanel(a);
+      } catch(error){ alert(apiErrorMessage(error)); e.target.disabled = false; }
+    });
     tr.querySelector('[data-row-action="accommodate"]').addEventListener('click', ()=>openAccommodationModal(sub.recipientId, p));
     tr.querySelector('[data-row-action="message"]').addEventListener('click', ()=>openChatModal(sub.recipientId, `${p} — ${a.title}`, false));
     tbody.appendChild(tr);
@@ -2749,6 +2782,7 @@ async function pollMonitorOnce(assignmentId){
     sub.submittedAt = r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null;
     if(r.extraMinutes != null) sub.extraMinutes = r.extraMinutes;
     if(r.hasUnreadFromPupil != null) sub.hasUnreadFromPupil = !!r.hasUnreadFromPupil;
+    if(r.locked != null){ sub.locked = !!r.locked; sub.lockReason = r.lockReason || ''; sub.lockCount = r.lockCount || 0; sub.resumeCode = r.resumeCode || null; }
   });
   updateNotifBell();
   const monitorVisible = !document.getElementById('detailPanel-monitor').classList.contains('hidden');
@@ -3378,6 +3412,11 @@ async function openStudentTask(assignmentId){
   }
   state.currentAssignmentId = assignmentId;
   state.examExpiredHandled = false;
+  // Reset the lock screen from any previous paper (UI only — this paper's own lock state is
+  // checked further down, after it's loaded).
+  state.examLocked = false;
+  document.getElementById('examLockOverlay').classList.add('hidden');
+  if(state.examLockPoll){ clearInterval(state.examLockPoll); state.examLockPoll = null; }
   state.notesHidden = false;
   state.mode = 'highlight';
   state.pendingImageNote = null;
@@ -3425,6 +3464,13 @@ async function openStudentTask(assignmentId){
     return;
   }
   setupExamTimer(a, sub, readOnly);
+  // Reopening (or reloading) a paper that's still locked shows the lock screen straight away —
+  // the lock lives on the server, so going back or refreshing doesn't clear it.
+  if(sub.locked && examLockApplies()){
+    state.examLocked = true;
+    showExamLockOverlay(sub.lockReason || 'You left the exam window');
+    startExamLockPolling(sub.recipientId);
+  }
 
   state.currentTextId = a.items[0].id;
   state.currentPage = 1;
@@ -3931,6 +3977,97 @@ function tryCreateHighlightFromSelection(textLayerDiv, sub){
   container.addEventListener('contextmenu', (e)=>{ if(securityActive()) e.preventDefault(); });
   container.addEventListener('copy', (e)=>{ if(securityActive()) e.preventDefault(); });
 })();
+
+// ---------------- exit lock ("Any browser with security", Phase 10) ----------------
+// A web page can't stop the browser opening a new tab/window, but it can see the moment the
+// pupil leaves the exam: the tab is hidden (new tab, switching tabs, closing it), the window
+// loses focus (new window, switching apps) or fullscreen is exited. Any of those pauses the
+// exam here AND on the server (which then refuses saves/submits), until the pupil types the
+// one-word resume code the teacher sees on the Monitor tab — or the teacher unlocks them.
+function examLockApplies(){
+  if(document.body.dataset.role !== 'pupil') return false;
+  if(document.getElementById('studentTask').classList.contains('hidden')) return false;
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a || a.deliveryMode !== 'browser_secure') return false;
+  const sub = a.submissions[state.currentPupil];
+  return !!sub && sub.status !== 'submitted' && !state.examExpiredHandled;
+}
+function currentExamSub(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  return a ? a.submissions[state.currentPupil] : null;
+}
+function showExamLockOverlay(reason){
+  document.getElementById('examLockReason').textContent = (reason || 'You left the exam window') + '.';
+  document.getElementById('examLockCodeInput').value = '';
+  document.getElementById('examLockError').classList.add('hidden');
+  document.getElementById('examLockOverlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('examLockCodeInput').focus(), 50);
+}
+function hideExamLock(){
+  state.examLocked = false;
+  document.getElementById('examLockOverlay').classList.add('hidden');
+  if(state.examLockPoll){ clearInterval(state.examLockPoll); state.examLockPoll = null; }
+  const sub = currentExamSub();
+  if(sub) sub.locked = false;
+}
+function startExamLockPolling(recipientId){
+  if(state.examLockPoll) clearInterval(state.examLockPoll);
+  // Clears the screen by itself if the teacher unlocks this pupil from Monitor instead.
+  state.examLockPoll = setInterval(async ()=>{
+    if(document.getElementById('studentTask').classList.contains('hidden')){ clearInterval(state.examLockPoll); state.examLockPoll = null; return; }
+    try { const r = await request(`/api/submissions/${recipientId}/lock-status/`); if(!r.locked) hideExamLock(); } catch(_) {}
+  }, 5000);
+}
+async function triggerExamLock(reason){
+  if(state.examLocked || !examLockApplies()) return;
+  state.examLocked = true;
+  showExamLockOverlay(reason);
+  const {sub, payload} = currentSubmissionPayload();
+  sub.locked = true;
+  try {
+    // keepalive lets the lock still reach the server if the pupil is closing the tab — but
+    // browsers cap keepalive bodies at 64KB, so a big draft (lots of annotations) goes without it.
+    const body = JSON.stringify(Object.assign({reason}, payload));
+    const r = await request(`/api/submissions/${sub.recipientId}/lock/`, {method:'POST', keepalive: body.length < 60000,
+      headers:{'Content-Type':'application/json'}, body});
+    if(r && r.locked === false){ hideExamLock(); return; }
+  } catch(_) { /* screen stays locked; the server check on save/submit still applies */ }
+  startExamLockPolling(sub.recipientId);
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) triggerExamLock('You switched away from the exam tab'); });
+let examBlurTimer = null;
+window.addEventListener('blur', ()=>{
+  clearTimeout(examBlurTimer);
+  // Short grace period so momentary focus blips (e.g. an on-page alert) don't count as leaving.
+  examBlurTimer = setTimeout(()=>{ if(!document.hasFocus()) triggerExamLock('You left the exam window'); }, 1500);
+});
+window.addEventListener('focus', ()=>clearTimeout(examBlurTimer));
+document.addEventListener('fullscreenchange', ()=>{
+  if(document.fullscreenElement){ state.examWasFullscreen = true; return; }
+  if(state.examWasFullscreen){ state.examWasFullscreen = false; triggerExamLock('You exited fullscreen'); }
+});
+async function submitResumeCode(){
+  const sub = currentExamSub();
+  const errorEl = document.getElementById('examLockError');
+  const code = document.getElementById('examLockCodeInput').value.trim().toLowerCase();
+  if(!sub) return;
+  if(!code){ errorEl.textContent = 'Type the code your teacher gives you.'; errorEl.classList.remove('hidden'); return; }
+  const btn = document.getElementById('examLockResumeBtn');
+  btn.disabled = true;
+  try {
+    await request(`/api/submissions/${sub.recipientId}/resume/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})});
+    hideExamLock();
+    // This click is a real user gesture, so going back into fullscreen is allowed here.
+    if(document.documentElement.requestFullscreen && !document.fullscreenElement){
+      try { await document.documentElement.requestFullscreen(); } catch(_) {}
+    }
+  } catch(error) {
+    errorEl.textContent = apiErrorMessage(error);
+    errorEl.classList.remove('hidden');
+  } finally { btn.disabled = false; }
+}
+document.getElementById('examLockResumeBtn').addEventListener('click', submitResumeCode);
+document.getElementById('examLockCodeInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') submitResumeCode(); });
 
 // ---------------- toolbar interactions ----------------
 document.querySelectorAll('.pdf-toolbar .swatch').forEach(sw=>{
