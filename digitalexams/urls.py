@@ -33,4 +33,7 @@ urlpatterns = [
     path('api/assignments/<int:assignment_id>/publish-grades/', views.publish_assignment_grades_api, name='publish-assignment-grades'),
     path('api/seb/config/', views.seb_config, name='seb-config'),
     path('api/seb/check/', views.seb_check_api, name='seb-check'),
+    path('api/seb/launch/', views.seb_launch_api, name='seb-launch'),
+    path('seb/launch/<str:token>/config.seb', views.seb_launch_config, name='seb-launch-config'),
+    path('seb/enter/<str:token>/', views.seb_enter, name='seb-enter'),
 ]

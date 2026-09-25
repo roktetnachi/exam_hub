@@ -2913,6 +2913,11 @@ async function showStudentLogin(){
     loadAssignments(state.currentPupilEmail).then(()=>{
       state.currentPupil = state.assignments[0]?.assignedTo[0] || document.body.dataset.username;
       showStudentTaskList();
+      const pendingId = state.pendingOpenAssignmentId;
+      state.pendingOpenAssignmentId = null;
+      if(pendingId && state.assignments.some(x=>x.id===pendingId && x.assignedTo.includes(state.currentPupil))){
+        openStudentTask(pendingId);
+      }
     });
     return;
   }
@@ -3049,12 +3054,19 @@ function gateWithSeb(a){
     const launchBtn = document.getElementById('sebGateLaunchBtn');
     msgEl.textContent = insideSeb
       ? `You're in Safe Exam Browser, but not with this site's lockdown settings, so "${a.title}" can't open. Quit SEB, then open it again using the "Open in Safe Exam Browser" button below (or a freshly downloaded lockdown file from this site).`
-      : `"${a.title}" is set to Lockdown mode by your teacher — it must be opened in Safe Exam Browser. If you already have it installed, it should open on its own in a moment.`;
-    launchBtn.href = sebProtocolLink();
+      : `"${a.title}" is set to Lockdown mode by your teacher — it must be opened in Safe Exam Browser. If you already have it installed, it will open straight into this paper in a moment — no need to sign in again.`;
+    // A one-time launch link signs this pupil in inside SEB and opens this exact paper (SEB
+    // can't see this browser's login). Falls back to the plain config if it can't be made.
+    let launchUrl = sebProtocolLink();
+    if(!insideSeb){
+      try { launchUrl = (await request('/api/seb/launch/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({assignmentId: a.id})})).sebUrl || launchUrl; }
+      catch(_) { /* keep the generic config link */ }
+    }
+    launchBtn.href = launchUrl;
     backdrop.classList.remove('hidden');
     // Attempt the handoff right away — but never from inside SEB, where relaunching would just
     // reload SEB back to the start page and look like the paper "didn't open".
-    if(!insideSeb) window.location.href = sebProtocolLink();
+    if(!insideSeb) window.location.href = launchUrl;
     function cleanup(){
       backdrop.classList.add('hidden');
       retryBtn.removeEventListener('click', onRetry);
@@ -4130,6 +4142,13 @@ if(new URLSearchParams(location.search).get('sebquit') === '1'){
   // doesn't (e.g. testing in a regular browser, or an SEB config without quitURLConfirm).
   document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;"><div><h2>You can now close Safe Exam Browser</h2><p class="sub">Your work has been submitted.</p></div></div>';
 } else {
+// Arriving in SEB via a one-time launch link lands on /?open=<assignmentId> already signed
+// in — remember which paper to open straight away, and tidy the URL.
+const openParam = Number(new URLSearchParams(location.search).get('open'));
+if(openParam){
+  state.pendingOpenAssignmentId = openParam;
+  history.replaceState(null, '', location.pathname);
+}
 loadAssignments().then(()=>{
   startNotifPolling();
   if(document.body.dataset.role==='pupil'){

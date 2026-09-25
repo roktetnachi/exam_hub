@@ -8,6 +8,7 @@ import secrets
 import string
 from zoneinfo import ZoneInfo
 
+from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -124,13 +125,16 @@ def _public_scheme(request):
     return (forwarded.split(',')[0].strip() or request.scheme).lower()
 
 
-def seb_config_settings(host, scheme):
-    """The exact settings in ExamHub's shared lockdown .seb file for a given site address.
-    Kept in one place because the same dict is used both to write the file (seb_config) and to
-    recompute its Config Key (seb_config_key) — they must never drift apart."""
+def seb_config_settings(host, scheme, start_path=None):
+    """The exact settings in ExamHub's lockdown .seb file for a given site address.
+    Kept in one place because the same dict is used both to write the file (seb_config /
+    seb_launch_config) and to recompute its Config Key (seb_config_key) — they must never drift
+    apart. `start_path` is only set for a one-time launch config (see seb_launch_api), whose
+    start page signs the pupil in and opens their paper directly."""
     home = f'{scheme}://{host}{reverse("home")}'
+    start = f'{scheme}://{host}{start_path}' if start_path else home
     return {
-        'startURL': home,
+        'startURL': start,
         'quitURL': home + '?sebquit=1',
         'allowQuit': True,
         'quitURLConfirm': False,
@@ -158,15 +162,15 @@ def _seb_json(value):
     return f'"{value}"'
 
 
-def seb_config_key(host, scheme):
+def seb_config_key(host, scheme, start_path=None):
     """ExamHub's own lockdown config's Config Key, computed the same way SEB computes it
     (SHA256 of the SEB-JSON of the settings actually in the file). Because ExamHub writes that
     file itself, it can trust its own key automatically — no copying keys out of SEB's settings
     screens into Django admin needed."""
-    return hashlib.sha256(_seb_json(seb_config_settings(host, scheme)).encode('utf-8')).hexdigest()
+    return hashlib.sha256(_seb_json(seb_config_settings(host, scheme, start_path)).encode('utf-8')).hexdigest()
 
 
-def seb_lockdown_ok(request):
+def seb_lockdown_ok(request, extra_keys=()):
     """True if this request carries a valid Browser Exam Key hash for any key we've been
     given. There's deliberately no soft fallback (User-Agent, etc.) here — those are shown
     client-side as a friendly hint, but this is the actual enforcement."""
@@ -189,6 +193,11 @@ def seb_lockdown_ok(request):
     # file may have been downloaded over http or https), plus anything an admin added by hand.
     keys = {seb_config_key(host, 'https'), seb_config_key(host, 'http')}
     keys.update((k or '').strip().lower() for k in AllowedBrowserExamKey.objects.values_list('key_hash', flat=True))
+    # A pupil who arrived via a one-time launch link is running a per-launch config (its start
+    # page differs), so its Config Key differs too — remembered on their SEB session at sign-in.
+    keys.update(extra_keys)
+    if hasattr(request, 'session'):
+        keys.update(request.session.get('seb_config_keys', []))
     keys.discard('')
     for scheme in ('https', 'http'):
         url = f'{scheme}://{host}{path_and_query}'
@@ -1186,6 +1195,90 @@ def publish_assignment_grades_api(request, assignment_id):
             'published', f'Published grades for {count} pupil(s) on "{assignment.title}".',
             assignment=assignment)
     return JsonResponse({'published': count})
+
+
+# ---------------- one-click SEB launch that keeps the pupil signed in ----------------
+# SEB is a separate browser with its own cookies, so a pupil signed in to ExamHub in Chrome
+# would otherwise land on the login page inside SEB and then have to find the paper again.
+# Instead, clicking Open on a lockdown paper asks for a short-lived, single-use launch token:
+# SEB is handed a config whose start page (/seb/enter/<token>/) signs that pupil in and opens
+# that paper directly. The token is signed (can't be forged), expires after a few minutes, is
+# only accepted from SEB running that exact config, and stops working the moment it's used
+# (it's bound to the account's last_login, which signing in updates).
+SEB_LAUNCH_SALT = 'examhub-seb-launch'
+SEB_LAUNCH_MAX_AGE = 300  # seconds
+
+
+def _launch_stamp(user):
+    return user.last_login.isoformat() if user.last_login else ''
+
+
+def make_seb_launch_token(user, assignment_id):
+    return signing.dumps({'u': user.pk, 'a': assignment_id, 'l': _launch_stamp(user)}, salt=SEB_LAUNCH_SALT)
+
+
+def read_seb_launch_token(token, require_unused=True):
+    """Returns (user, assignment_id) for a valid token, else (None, None)."""
+    try:
+        data = signing.loads(token, salt=SEB_LAUNCH_SALT, max_age=SEB_LAUNCH_MAX_AGE)
+    except signing.BadSignature:  # includes SignatureExpired
+        return None, None
+    user = User.objects.filter(pk=data.get('u'), is_active=True).first()
+    if not user or (require_unused and _launch_stamp(user) != data.get('l')):
+        return None, None
+    return user, data.get('a')
+
+
+@login_required
+@require_POST
+def seb_launch_api(request):
+    try:
+        assignment_id = int(json.loads(request.body or '{}').get('assignmentId'))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return HttpResponseBadRequest('Missing assignment.')
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    if is_real_pupil(request) and not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
+        return HttpResponseForbidden('This work is not assigned to your account.')
+    token = make_seb_launch_token(request.user, assignment.id)
+    scheme = 'sebs' if _public_scheme(request) == 'https' else 'seb'
+    return JsonResponse({'sebUrl': f"{scheme}://{request.get_host()}{reverse('seb-launch-config', args=[token])}"})
+
+
+@require_GET
+def seb_launch_config(request, token):
+    """The per-launch .seb file. Deliberately NOT login_required: SEB downloads its config
+    with its own HTTP client, which has none of the browser's cookies — the signed token is
+    what authorises it."""
+    user, _ = read_seb_launch_token(token)
+    if not user:
+        return HttpResponseForbidden('This exam link has expired. Go back to ExamHub and click Open again.')
+    settings_dict = seb_config_settings(request.get_host(), _public_scheme(request), reverse('seb-enter', args=[token]))
+    response = HttpResponse(plistlib.dumps(settings_dict, fmt=plistlib.FMT_XML), content_type='application/seb')
+    response['Content-Disposition'] = 'attachment; filename="examhub-exam.seb"'
+    return response
+
+
+@require_GET
+def seb_enter(request, token):
+    """SEB's start page for a one-time launch: sign the pupil in and open their paper."""
+    open_url = lambda aid: f"{reverse('home')}?open={aid}"
+    # SEB reloading this page after it already signed the pupil in: just carry on.
+    same_user, aid = read_seb_launch_token(token, require_unused=False)
+    if (same_user and request.user.is_authenticated and request.user.pk == same_user.pk
+            and request.session.get('seb_config_keys')):
+        return redirect(open_url(aid))
+    user, aid = read_seb_launch_token(token)
+    if not user:
+        return HttpResponse('<p style="font-family:sans-serif;padding:24px">This exam link has expired or was already used. '
+                            f'<a href="{reverse("login")}">Sign in</a> and open the paper again.</p>', status=403)
+    host = request.get_host()
+    start_path = reverse('seb-enter', args=[token])
+    token_keys = [seb_config_key(host, s, start_path) for s in ('https', 'http')]
+    if not seb_lockdown_ok(request, extra_keys=token_keys):
+        return HttpResponseForbidden('This link only works inside Safe Exam Browser.')
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    request.session['seb_config_keys'] = token_keys
+    return redirect(open_url(aid))
 
 
 @login_required
