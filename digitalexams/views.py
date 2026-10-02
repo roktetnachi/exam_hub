@@ -31,7 +31,57 @@ from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, Assign
 def home(request):
     # Shown to teachers in the SEB menu, so a missing one-time setup is obvious up front
     # instead of only surfacing when a pupil gets blocked mid-exam.
-    return render(request, 'examhub.html', {'seb_key_count': AllowedBrowserExamKey.objects.count(), 'seb_config_key': seb_config_key(request.get_host(), _public_scheme(request))})
+    return render(request, 'examhub.html', {'seb_key_count': AllowedBrowserExamKey.objects.count(), 'seb_config_key': seb_config_key(request.get_host(), _public_scheme(request)),
+                                            **tour_context(request.user)})
+
+
+def tour_context(user):
+    """Template context for the first-login guided tour (templates/_tour.html)."""
+    return {'tour_role': user.tour_role, 'show_tour': user.tour_completed_at is None}
+
+
+@login_required
+@require_POST
+def tour_done_api(request):
+    """Marks the guided tour as finished/skipped so it doesn't open again on its own."""
+    if request.user.tour_completed_at is None:
+        request.user.tour_completed_at = timezone.now()
+        request.user.save(update_fields=['tour_completed_at'])
+    return JsonResponse({'done': True})
+
+
+def _teacher_page(request, template):
+    """Teacher-only standalone pages (Classes, Activity, Teachers). Pupils get bounced to the dashboard."""
+    if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
+        return redirect('home')
+    return render(request, template, {'can_manage_classes': request.user.can_manage_classes,
+                                      'is_main_admin': request.user.is_superuser,
+                                      **tour_context(request.user)})
+
+
+@login_required
+def roles_page(request):
+    """Main-admin (superuser) only: set each teacher account to Admin or Teacher, and add
+    new teacher/admin accounts."""
+    if not request.user.is_superuser:
+        return redirect('classes-page' if request.user.role == User.Role.TEACHER else 'home')
+    return _teacher_page(request, 'teachers.html')
+
+
+@login_required
+def teachers_page(request):
+    """Old /teachers/ address — now the Roles page."""
+    return redirect('roles-page')
+
+
+@login_required
+def classes_page(request):
+    return _teacher_page(request, 'classes.html')
+
+
+@login_required
+def activity_page(request):
+    return _teacher_page(request, 'activity.html')
 
 
 def account_kind(user):
@@ -96,13 +146,13 @@ def change_password_api(request):
     return JsonResponse({'changed': True})
 
 
-def log_activity(actor_name, actor_email, action, description, assignment=None):
+def log_activity(actor_name, actor_email, action, description, assignment=None, school_class=None):
     """Best-effort audit-trail write for the teacher-facing activity log. Never lets a
     logging failure break the request that triggered it — this is a nice-to-have, not a
     system of record."""
     try:
         ActivityLogEntry.objects.create(actor_name=actor_name or '', actor_email=actor_email or '',
-            action=action, description=description, assignment=assignment)
+            action=action, description=description, assignment=assignment, school_class=school_class)
     except Exception:
         pass
 
@@ -518,8 +568,8 @@ def pupils_api(request):
     by that email, so an account with a blank email can't be assigned anything."""
     if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
         return HttpResponseForbidden('Only teachers can view the pupil list.')
-    pupils = User.assignable_pupils().order_by('first_name', 'last_name', 'username')
-    return JsonResponse({'pupils': [
+    pupils = request.user.teachable_pupils().order_by('first_name', 'last_name', 'username')
+    return JsonResponse({'canManageClasses': request.user.can_manage_classes, 'pupils': [
         {'id': p.id, 'name': p.get_full_name() or p.username, 'email': p.email}
         for p in pupils if p.email
     ]})
@@ -609,6 +659,14 @@ def create_assignment(request):
             raise ValueError
     except (ValueError, json.JSONDecodeError):
         return HttpResponseBadRequest('Add at least one pupil with an email address.')
+    # A regular teacher may only assign to pupils in the classes they've been assigned to.
+    allowed_emails = {e.lower() for e in request.user.teachable_pupils().values_list('email', flat=True) if e}
+    outside = [p.get('name') or p.get('email') for p in recipients
+               if (p.get('email') or '').strip() and (p.get('email') or '').strip().lower() not in allowed_emails]
+    if outside:
+        return HttpResponseForbidden(
+            'You can only assign work to pupils in your own classes. Not allowed: ' + ', '.join(outside[:5]) +
+            ('…' if len(outside) > 5 else ''))
     try:
         duration_minutes = int(request.POST.get('duration_minutes') or 60)
         if duration_minutes < 1:
@@ -956,11 +1014,30 @@ def _require_teacher(request):
     return None
 
 
+def _require_class_admin(request):
+    """Creating/editing/deleting classes and adding pupil accounts is admin-only. A regular
+    teacher is assigned to classes by an admin and can then assign work to those pupils."""
+    denied = _require_teacher(request)
+    if denied:
+        return denied
+    if not request.user.can_manage_classes:
+        return HttpResponseForbidden('Only admins can create or manage classes. Ask an admin to add you to a class.')
+    return None
+
+
+def assignable_teachers():
+    return User.objects.filter(is_active=True).filter(Q(role=User.Role.TEACHER) | Q(is_superuser=True))
+
+
 def serialize_class(cls):
     return {
         'id': cls.id,
         'name': cls.name,
         'teacherNames': [t.get_full_name() or t.username for t in cls.teachers.all()],
+        'teachers': [
+            {'id': t.id, 'name': t.get_full_name() or t.username, 'email': t.email}
+            for t in cls.teachers.all()
+        ],
         'pupils': [
             {'id': p.id, 'name': p.get_full_name() or p.username, 'email': p.email}
             for p in cls.pupils.all().order_by('first_name', 'last_name', 'username')
@@ -974,14 +1051,21 @@ def classes_api(request):
     denied = _require_teacher(request)
     if denied:
         return denied
-    classes = SchoolClass.objects.all().prefetch_related('pupils', 'teachers')
-    return JsonResponse({'classes': [serialize_class(c) for c in classes]})
+    classes = request.user.visible_classes().prefetch_related('pupils', 'teachers')
+    data = {'canManageClasses': request.user.can_manage_classes,
+            'classes': [serialize_class(c) for c in classes]}
+    if request.user.can_manage_classes:
+        data['teachers'] = [
+            {'id': t.id, 'name': t.get_full_name() or t.username, 'email': t.email}
+            for t in assignable_teachers().order_by('first_name', 'last_name', 'username')
+        ]
+    return JsonResponse(data)
 
 
 @login_required
 @require_POST
 def create_class_api(request):
-    denied = _require_teacher(request)
+    denied = _require_class_admin(request)
     if denied:
         return denied
     try:
@@ -995,19 +1079,20 @@ def create_class_api(request):
         return HttpResponseBadRequest('A class with that name already exists.')
     pupil_ids = payload.get('pupilIds') or []
     cls = SchoolClass.objects.create(name=name)
-    cls.teachers.add(request.user)
+    if payload.get('teacherIds'):
+        cls.teachers.set(assignable_teachers().filter(id__in=payload['teacherIds']))
     if pupil_ids:
         pupils = User.assignable_pupils().filter(id__in=pupil_ids)
         cls.pupils.set(pupils)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
-        'class_created', f'Created class "{cls.name}".')
+        'class_created', f'Created class "{cls.name}".', school_class=cls)
     return JsonResponse(serialize_class(cls), status=201)
 
 
 @login_required
 @require_POST
 def update_class_api(request, class_id):
-    denied = _require_teacher(request)
+    denied = _require_class_admin(request)
     if denied:
         return denied
     cls = get_object_or_404(SchoolClass, id=class_id)
@@ -1015,23 +1100,45 @@ def update_class_api(request, class_id):
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
         return HttpResponseBadRequest('Invalid class data.')
+    actor = request.user.get_full_name() or request.user.username
     name = (payload.get('name') or '').strip()
-    if name and name.lower() != cls.name.lower():
+    if name and name != cls.name:
         if SchoolClass.objects.filter(name__iexact=name).exclude(id=cls.id).exists():
             return HttpResponseBadRequest('A class with that name already exists.')
+        old_name = cls.name
         cls.name = name
         cls.save()
+        log_activity(actor, request.user.email, 'class_renamed',
+            f'Renamed class "{old_name}" to "{cls.name}".', school_class=cls)
     if 'pupilIds' in payload:
-        pupils = User.assignable_pupils().filter(id__in=payload.get('pupilIds') or [])
+        before = {p.id: p for p in cls.pupils.all()}
+        pupils = list(User.assignable_pupils().filter(id__in=payload.get('pupilIds') or []))
         cls.pupils.set(pupils)
-    cls.teachers.add(request.user)
+        after = {p.id: p for p in pupils}
+        added = [after[i] for i in after if i not in before]
+        removed = [before[i] for i in before if i not in after]
+        label = lambda people: ', '.join(p.get_full_name() or p.username for p in people[:5]) + ('…' if len(people) > 5 else '')
+        if added:
+            log_activity(actor, request.user.email, 'class_pupils',
+                f'Added {label(added)} to class "{cls.name}".', school_class=cls)
+        if removed:
+            log_activity(actor, request.user.email, 'class_pupils',
+                f'Removed {label(removed)} from class "{cls.name}".', school_class=cls)
+    if 'teacherIds' in payload:
+        before = set(cls.teachers.values_list('id', flat=True))
+        cls.teachers.set(assignable_teachers().filter(id__in=payload.get('teacherIds') or []))
+        if set(cls.teachers.values_list('id', flat=True)) != before:
+            log_activity(request.user.get_full_name() or request.user.username, request.user.email,
+                'class_teachers', f'Updated teachers of class "{cls.name}": '
+                f'{", ".join(t.get_full_name() or t.username for t in cls.teachers.all()) or "none"}.',
+                school_class=cls)
     return JsonResponse(serialize_class(cls))
 
 
 @login_required
 @require_POST
 def delete_class_api(request, class_id):
-    denied = _require_teacher(request)
+    denied = _require_class_admin(request)
     if denied:
         return denied
     cls = get_object_or_404(SchoolClass, id=class_id)
@@ -1039,6 +1146,96 @@ def delete_class_api(request, class_id):
         'class_deleted', f'Deleted class "{cls.name}".')
     cls.delete()
     return JsonResponse({'deleted': True})
+
+
+def _serialize_teacher(t):
+    return {
+        'id': t.id, 'name': t.get_full_name() or t.username, 'username': t.username, 'email': t.email,
+        'isMainAdmin': t.is_superuser,
+        'isAdmin': t.can_manage_classes,
+        'isActive': t.is_active,
+        'classes': [c.name for c in t.classes_taught.all()],
+        'lastLogin': t.last_login.isoformat() if t.last_login else None,
+    }
+
+
+@login_required
+@require_GET
+def teachers_api(request):
+    """Main admin only: every teacher account with its admin status and classes."""
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Only the main admin can manage teacher roles.')
+    teachers = (User.objects.filter(Q(role=User.Role.TEACHER) | Q(is_superuser=True))
+                .prefetch_related('classes_taught').order_by('-is_superuser', 'first_name', 'last_name', 'username'))
+    return JsonResponse({'teachers': [_serialize_teacher(t) for t in teachers]})
+
+
+@login_required
+@require_POST
+def set_teacher_admin_api(request, user_id):
+    """Main admin only: make a teacher an admin (can set up classes, assign teachers and
+    pupils, add pupil accounts) or turn them back into a regular teacher. Stored as Django's
+    is_staff flag, so it's the same switch as "Staff status" in Django admin. Superusers are
+    always admins and can't be changed here."""
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Only the main admin can change teacher roles.')
+    target = get_object_or_404(User, id=user_id)
+    if target.is_superuser:
+        return HttpResponseBadRequest("Main admins are always admins — change superuser status in Django admin instead.")
+    if target.role != User.Role.TEACHER:
+        return HttpResponseBadRequest('Only teacher accounts can be made admins.')
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid request.')
+    make_admin = bool(payload.get('isAdmin'))
+    if target.is_staff != make_admin:
+        target.is_staff = make_admin
+        target.save(update_fields=['is_staff'])
+        name = target.get_full_name() or target.username
+        log_activity(request.user.get_full_name() or request.user.username, request.user.email,
+            'admin_granted' if make_admin else 'admin_revoked',
+            f'Made {name} an admin.' if make_admin else f'Changed {name} back to a regular teacher.')
+    target = User.objects.prefetch_related('classes_taught').get(id=target.id)
+    return JsonResponse(_serialize_teacher(target))
+
+
+@login_required
+@require_POST
+def create_teacher_api(request):
+    """Main admin only: add a staff account as either "admin" or "teacher". Returns a one-time
+    temporary password to hand over (they can change it from their account menu)."""
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Only the main admin can add teachers and admins.')
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid request.')
+    first_name = (payload.get('firstName') or '').strip()
+    last_name = (payload.get('lastName') or '').strip()
+    email = (payload.get('email') or '').strip()
+    role = payload.get('role')
+    if role not in ('admin', 'teacher'):
+        return HttpResponseBadRequest('Choose a role: Admin or Teacher.')
+    if not first_name or not email:
+        return HttpResponseBadRequest('A first name and email are required.')
+    try:
+        from django.core.validators import validate_email
+        validate_email(email)
+    except DjangoValidationError:
+        return HttpResponseBadRequest('That email address doesn\'t look right.')
+    if User.objects.filter(email__iexact=email).exists():
+        return HttpResponseBadRequest('An account with that email already exists.')
+    username = _unique_username((email.split('@')[0] or first_name).lower())
+    temp_password = secrets.token_urlsafe(6)
+    user = User.objects.create_user(username=username, email=email, first_name=first_name, last_name=last_name,
+                                    password=temp_password, role=User.Role.TEACHER, is_staff=(role == 'admin'))
+    name = user.get_full_name() or user.username
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'teacher_created',
+                 f'Added {name} ({email}) as {"an admin" if role == "admin" else "a teacher"}.')
+    data = _serialize_teacher(User.objects.prefetch_related('classes_taught').get(id=user.id))
+    data.update({'tempPassword': temp_password})
+    return JsonResponse(data, status=201)
 
 
 def _unique_username(base):
@@ -1054,11 +1251,11 @@ def _unique_username(base):
 @login_required
 @require_POST
 def create_pupil_api(request):
-    """Lets a teacher (not just admin) add a pupil on the spot while building a class or
+    """Lets a class admin add a pupil on the spot while building a class or
     an assignment. Generates a one-time temporary password the teacher can hand to the
     pupil — there's no self-registration or password-reset flow yet, so this is the only
-    way a brand-new pupil gets into their account."""
-    denied = _require_teacher(request)
+    way a brand-new pupil gets into their account. Class admins only."""
+    denied = _require_class_admin(request)
     if denied:
         return denied
     try:
@@ -1080,12 +1277,12 @@ def create_pupil_api(request):
         password=temp_password, role=User.Role.PUPIL,
     )
     class_id = payload.get('classId')
-    if class_id:
-        cls = SchoolClass.objects.filter(id=class_id).first()
-        if cls:
-            cls.pupils.add(pupil)
+    cls = SchoolClass.objects.filter(id=class_id).first() if class_id else None
+    if cls:
+        cls.pupils.add(pupil)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
-        'pupil_created', f'Added pupil {pupil.get_full_name() or pupil.username} ({pupil.email}).')
+        'pupil_created', f'Added pupil {pupil.get_full_name() or pupil.username} ({pupil.email})'
+        + (f' to class "{cls.name}".' if cls else '.'), school_class=cls)
     return JsonResponse({
         'id': pupil.id, 'name': pupil.get_full_name() or pupil.username, 'email': pupil.email,
         'username': pupil.username, 'tempPassword': temp_password,
@@ -1245,23 +1442,87 @@ def broadcast_message_api(request, assignment_id):
     return JsonResponse({'sent': len(recipients)}, status=201)
 
 
+ACTIVITY_CATEGORIES = {
+    'assignments': ['created', 'updated', 'deleted', 'broadcast', 'accommodation'],
+    'submissions': ['submitted', 'locked', 'unlocked', 'resumed'],
+    'grading': ['graded', 'published'],
+    'classes': ['class_created', 'class_renamed', 'class_deleted', 'class_teachers', 'class_pupils', 'pupil_created'],
+    'roles': ['admin_granted', 'admin_revoked', 'teacher_created'],
+}
+
+
+def _activity_category(action):
+    for category, actions in ACTIVITY_CATEGORIES.items():
+        if action in actions:
+            return category
+    return 'other'
+
+
+def _class_activity_q(classes):
+    """Entries tied to any of `classes`: roster actions on the class itself, plus anything
+    about an assignment that was set for at least one of the class's pupils."""
+    emails = list(User.objects.filter(classes_enrolled__in=classes).exclude(email='')
+                  .values_list('email', flat=True).distinct())
+    return Q(school_class__in=classes) | Q(assignment__recipients__pupil_email__in=emails)
+
+
 @login_required
 @require_GET
 def activity_log_api(request):
+    """Activity feed for the Activity page (and the old dashboard modal). Admins see
+    everything; a regular teacher sees their own actions plus anything touching the classes
+    they're assigned to. Filters: ?class=<id>, ?category=assignments|submissions|grading|classes,
+    ?q=<text>, ?offset=, ?limit= (max 300)."""
     denied = _require_teacher(request)
     if denied:
         return denied
     try:
-        limit = min(int(request.GET.get('limit') or 100), 300)
+        limit = max(1, min(int(request.GET.get('limit') or 100), 300))
+        offset = max(0, int(request.GET.get('offset') or 0))
     except ValueError:
-        limit = 100
-    entries = ActivityLogEntry.objects.all()[:limit]
-    return JsonResponse({'entries': [
-        {'id': e.id, 'actorName': e.actor_name, 'actorEmail': e.actor_email, 'action': e.action,
-         'description': e.description, 'assignmentId': e.assignment_id,
-         'createdAt': e.created_at.isoformat()}
-        for e in entries
-    ]})
+        limit, offset = 100, 0
+
+    user = request.user
+    visible_classes = user.visible_classes()
+    entries = ActivityLogEntry.objects.select_related('assignment', 'school_class')
+    if not user.can_manage_classes:
+        entries = entries.filter(_class_activity_q(visible_classes) | Q(actor_email__iexact=user.email) if user.email
+                                 else _class_activity_q(visible_classes))
+
+    class_id = request.GET.get('class')
+    selected_class = None
+    if class_id:
+        selected_class = visible_classes.filter(id=class_id).first()
+        if not selected_class:
+            return HttpResponseForbidden("You don't have access to that class.")
+        entries = entries.filter(_class_activity_q(SchoolClass.objects.filter(id=selected_class.id)))
+
+    category = request.GET.get('category')
+    if category in ACTIVITY_CATEGORIES:
+        entries = entries.filter(action__in=ACTIVITY_CATEGORIES[category])
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        entries = entries.filter(Q(description__icontains=query) | Q(actor_name__icontains=query))
+
+    entries = entries.distinct().order_by('-created_at', '-id')
+    page = list(entries[offset:offset + limit + 1])
+    has_more = len(page) > limit
+    page = page[:limit]
+    return JsonResponse({
+        'entries': [
+            {'id': e.id, 'actorName': e.actor_name, 'actorEmail': e.actor_email, 'action': e.action,
+             'category': _activity_category(e.action), 'description': e.description,
+             'assignmentId': e.assignment_id, 'assignmentTitle': e.assignment.title if e.assignment else None,
+             'classId': e.school_class_id, 'className': e.school_class.name if e.school_class else None,
+             'createdAt': e.created_at.isoformat()}
+            for e in page
+        ],
+        'hasMore': has_more,
+        'nextOffset': offset + len(page),
+        'classes': [{'id': c.id, 'name': c.name} for c in visible_classes.order_by('name')],
+        'selectedClass': {'id': selected_class.id, 'name': selected_class.name} if selected_class else None,
+        'canManageClasses': user.can_manage_classes,
+    })
 
 
 # ---------------- grading & publishing (Phase 5) ----------------

@@ -7,6 +7,18 @@ class User(AbstractUser):
         TEACHER = "teacher", "Teacher"
         PUPIL = "pupil", "Pupil"
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.PUPIL)
+    # When this person finished (or skipped) the first-login guided tour. Null = show it on
+    # their next page load. They can replay it any time from their account menu.
+    tour_completed_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def tour_role(self):
+        """Which guided tour this account gets: main_admin / admin / teacher / pupil."""
+        if self.is_superuser:
+            return 'main_admin'
+        if self.can_manage_classes:
+            return 'admin'
+        return 'teacher' if self.role == self.Role.TEACHER else 'pupil'
 
     def save(self, *args, **kwargs):
         # A brand-new superuser (e.g. from `createsuperuser`) is an admin, not a pupil: make
@@ -16,6 +28,28 @@ class User(AbstractUser):
             self.role = self.Role.TEACHER
         super().save(*args, **kwargs)
 
+    @property
+    def can_manage_classes(self):
+        """Class admins: a superuser, or a teacher whose "Staff status" is ticked in Django
+        admin. They create/rename/delete classes, set each class's teachers and pupils, and
+        add pupil accounts. Every other teacher only works with the classes they've been
+        assigned to (see teachable_pupils)."""
+        return self.is_active and (self.is_superuser or (self.is_staff and self.role == self.Role.TEACHER))
+
+    def teachable_pupils(self):
+        """Pupils this account may assign work to: every assignable pupil for a class admin,
+        otherwise only the pupils enrolled in a class this teacher is assigned to."""
+        pupils = User.assignable_pupils()
+        if self.can_manage_classes:
+            return pupils
+        return pupils.filter(classes_enrolled__teachers=self).distinct()
+
+    def visible_classes(self):
+        """All classes for a class admin; only the classes this teacher is assigned to otherwise."""
+        if self.can_manage_classes:
+            return SchoolClass.objects.all()
+        return self.classes_taught.all()
+
     @classmethod
     def assignable_pupils(cls):
         """Accounts a teacher can assign work to: active, role=Pupil, never an admin."""
@@ -24,8 +58,9 @@ class User(AbstractUser):
 
 class SchoolClass(models.Model):
     """A roster group (e.g. "Grade 10 - Newton") that teachers can assign work to as a
-    whole, instead of picking pupils one by one every time. Visible/editable by any
-    teacher account, and manageable from Django admin too."""
+    whole, instead of picking pupils one by one every time. Only class admins (see
+    User.can_manage_classes) create or edit classes; a regular teacher sees only the classes
+    listed in `teachers` and can assign work only to those classes' pupils."""
     name = models.CharField(max_length=120, unique=True)
     teachers = models.ManyToManyField(
         User, related_name='classes_taught', blank=True,
@@ -237,6 +272,10 @@ class ActivityLogEntry(models.Model):
     action = models.CharField(max_length=40)
     description = models.CharField(max_length=255)
     assignment = models.ForeignKey(Assignment, null=True, blank=True, on_delete=models.SET_NULL, related_name='activity_entries')
+    # Set for class-roster actions (class created, teachers/pupils changed, …) so the Activity
+    # page can filter by class. Assignment actions are matched to a class through their
+    # recipients instead, so they don't need this.
+    school_class = models.ForeignKey(SchoolClass, null=True, blank=True, on_delete=models.SET_NULL, related_name='activity_entries')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

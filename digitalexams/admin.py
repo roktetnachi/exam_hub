@@ -15,6 +15,11 @@ class RequireUniqueEmailMixin:
         if 'email' in self.fields:
             self.fields['email'].required = True
             self.fields['email'].help_text = 'Required. Pupils are matched to assignments by this email.'
+        if 'is_staff' in self.fields:
+            self.fields['is_staff'].help_text = (
+                'For teachers, this also makes them an ExamHub class admin: they can create and edit '
+                'classes, assign teachers to classes, and add pupils. Teachers without it can only '
+                'assign work to pupils in the classes they are assigned to.')
 
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip()

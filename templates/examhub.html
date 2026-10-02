@@ -33,6 +33,11 @@
     border:none;background:transparent;padding:8px 20px;border-radius:var(--pill-radius);font-size:13px;font-weight:600;color:var(--muted);
   }
   .role-toggle button.active{background:var(--blue);color:#fff;}
+  .topnav{display:flex;gap:4px;background:var(--page-bg);border-radius:999px;padding:4px;margin-left:18px;}
+  .topnav a{padding:8px 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap;}
+  .topnav a:hover{color:var(--blue-dark);}
+  .topnav a.active{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.14);}
+  @media (max-width:900px){ .topnav{display:none;} }
 
   .app{padding:26px 26px 40px;max-width:1300px;margin:0 auto;}
   .hidden{display:none !important;}
@@ -463,10 +468,18 @@
   @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important;}}
 </style>
 </head>
-<body data-role="{% if request.user.is_superuser %}teacher{% else %}{{ request.user.role }}{% endif %}" data-username="{{ request.user.username }}" data-email="{{ request.user.email }}" data-fullname="{{ request.user.get_full_name|default:request.user.username }}">
+<body data-role="{% if request.user.is_superuser %}teacher{% else %}{{ request.user.role }}{% endif %}" data-username="{{ request.user.username }}" data-email="{{ request.user.email }}" data-fullname="{{ request.user.get_full_name|default:request.user.username }}" data-can-manage-classes="{% if request.user.can_manage_classes %}1{% else %}0{% endif %}">
 
 <div class="brandbar">
   <div class="brand"><span class="dot"></span>ExamHub</div>
+  {% if request.user.is_superuser or request.user.role == 'teacher' %}
+  <nav class="topnav" id="teacherTopNav" aria-label="Sections">
+    <a href="{% url 'home' %}" class="active" aria-current="page">Assignments</a>
+    <a href="{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes{% else %}My classes{% endif %}</a>
+    <a href="{% url 'activity-page' %}">Activity</a>
+    {% if request.user.is_superuser %}<a href="{% url 'roles-page' %}">Roles</a>{% endif %}
+  </nav>
+  {% endif %}
   <div style="margin-left:auto;"></div>
   <div class="role-toggle" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
     <button id="btnTeacherRole" class="active">Teacher view</button>
@@ -513,6 +526,10 @@
       <button type="button" class="menu-item" id="btnChangePassword" role="menuitem">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Change password
+      </button>
+      <button type="button" class="menu-item" id="btnTakeTour" role="menuitem" data-start-tour>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        Take the tour
       </button>
       <form method="post" action="{% url 'logout' %}" style="margin:0;">{% csrf_token %}
         <button type="submit" class="menu-item danger" role="menuitem">
@@ -571,8 +588,8 @@
 
       <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn" id="btnNewAssignment">+ New assignment</button>
-        <button class="btn outline" id="btnManageRoster">Classes &amp; pupils</button>
-        <button class="btn outline" id="btnActivityLog">Activity log</button>
+        <a class="btn outline" id="btnManageRoster" href="{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes &amp; pupils{% else %}My classes{% endif %}</a>
+        <a class="btn outline" id="btnActivityLog" href="{% url 'activity-page' %}">Activity log</a>
       </div>
 
       <div class="card hidden" id="bulkToolbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--page-bg);box-shadow:none;">
@@ -782,12 +799,14 @@
         <div id="createStep-assign" class="wizard-step hidden">
         <div class="field">
           <label>Assign to</label>
-          <p class="sub" style="margin:0 0 8px;">Tick a class to select everyone in it, or tick individual pupils below.</p>
+          <p class="sub" style="margin:0 0 8px;">Tick a class to select everyone in it, or tick individual pupils below.{% if not request.user.can_manage_classes %} You can assign to the pupils in the classes an admin has assigned you to.{% endif %}</p>
+          {% if request.user.can_manage_classes %}
           <div style="display:flex;gap:8px;margin-bottom:10px;">
             <button type="button" class="btn small outline" id="quickNewClassBtn">+ New class</button>
             <button type="button" class="btn small outline" id="quickNewPupilBtn">+ New pupil</button>
             <button type="button" class="btn small outline" id="manageRosterBtn">Manage classes &amp; pupils</button>
           </div>
+          {% endif %}
           <div id="pupilChecklist"></div>
         </div>
           <div class="row" style="justify-content:space-between;margin-top:6px;">
@@ -1163,14 +1182,19 @@
     <div class="modal-backdrop hidden" id="rosterModal">
       <div class="card" style="width:720px;max-width:94vw;max-height:86vh;overflow:auto;">
         <div class="row" style="justify-content:space-between;align-items:center;">
-          <h2 style="margin:0;">Classes &amp; pupils</h2>
+          <h2 style="margin:0;">{% if request.user.can_manage_classes %}Classes &amp; pupils{% else %}My classes{% endif %}</h2>
           <button type="button" class="btn outline small" id="closeRosterBtn">Close</button>
         </div>
-        <p class="sub">Shared across all teachers — anyone can add a class or pupil here, or create them in Django admin.</p>
+        {% if request.user.can_manage_classes %}
+        <p class="sub">Admin view — create classes, choose which teachers teach each one, and add pupils. Teachers can only assign work to pupils in the classes they're assigned to.</p>
+        {% else %}
+        <p class="sub">The classes an admin has assigned you to. You can assign work to any pupil in these classes. Ask an admin if a class or pupil is missing.</p>
+        {% endif %}
         <div class="row" style="gap:18px;align-items:flex-start;flex-wrap:wrap;">
           <div style="flex:1;min-width:280px;">
             <h3 style="margin:10px 0 6px;font-size:14px;">Classes</h3>
             <div id="rosterClassList"></div>
+            {% if request.user.can_manage_classes %}
             <div class="field" style="margin-top:10px;">
               <label>New class name</label>
               <div class="row" style="gap:8px;">
@@ -1179,10 +1203,12 @@
               </div>
               <p id="classFormError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
             </div>
+            {% endif %}
           </div>
           <div style="flex:1;min-width:280px;">
             <h3 style="margin:10px 0 6px;font-size:14px;">Pupils</h3>
             <div id="rosterPupilList" style="max-height:220px;overflow:auto;"></div>
+            {% if request.user.can_manage_classes %}
             <div class="field" style="margin-top:10px;">
               <label>New pupil</label>
               <input type="text" id="newPupilFirstName" placeholder="First name" style="margin-bottom:6px;">
@@ -1192,6 +1218,7 @@
               <p id="pupilFormError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
               <p id="pupilFormSuccess" class="hidden" style="color:var(--blue);font-size:12.5px;margin:6px 0 0;"></p>
             </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -1325,7 +1352,9 @@ const state = {
   pupils: [],          // populated from /api/pupils/ (real accounts an admin or teacher created with role=Pupil)
   pupilEmails: {},
   pupilIds: {},          // name -> id, so the "assign to" checklist can add a not-yet-grouped pupil to a class
-  classes: [],          // populated from /api/classes/ — [{id,name,teacherNames,pupils:[{id,name,email}]}]
+  classes: [],          // populated from /api/classes/ — [{id,name,teacherNames,teachers:[{id,name,email}],pupils:[{id,name,email}]}]
+  teachers: [],         // admins only: every teacher account, for the per-class "add teacher" picker
+  canManageClasses: document.body.dataset.canManageClasses === '1',  // admin-teacher: create/edit classes; else assign-only
   assignments: [], // {id,title,prompt,items:[{id,type,label,order,...}],assignedTo:[],submissions:{pupil:{status,annotations:[],responses:{itemId:...},outlineHtml,submittedAt}}}
   currentPupil: null,
   currentPupilEmail: null,
@@ -1429,6 +1458,7 @@ function switchRole(role){
   document.getElementById('btnStudentRole').classList.toggle('active', role==='student');
   document.getElementById('teacherView').classList.toggle('hidden', role!=='teacher');
   document.getElementById('studentView').classList.toggle('hidden', role!=='student');
+  document.getElementById('teacherTopNav')?.classList.toggle('hidden', role!=='teacher');
   if(role==='teacher') showTeacherDashboard();
   if(role==='student') showStudentLogin();
 }
@@ -2221,8 +2251,11 @@ async function loadClasses(){
   try {
     const result = await request('/api/classes/');
     state.classes = result.classes;
+    state.teachers = result.teachers || [];
+    state.canManageClasses = !!result.canManageClasses;
   } catch(error) {
     state.classes = [];
+    state.teachers = [];
   }
 }
 
@@ -2236,7 +2269,11 @@ function renderPupilChecklist(){
   const checklist = document.getElementById('pupilChecklist');
   checklist.innerHTML = '';
   if(state.pupils.length === 0){
-    checklist.innerHTML = '<p class="sub">No pupil accounts yet — add one with "+ New pupil" above, or ask your admin to create some in Django admin (role: Pupil, with an email set).</p>';
+    checklist.innerHTML = state.canManageClasses
+      ? '<p class="sub">No pupil accounts yet — add one with "+ New pupil" above, or create some in Django admin (role: Pupil, with an email set).</p>'
+      : (state.classes.length
+          ? '<p class="sub">Your classes don\'t have any pupils yet. Ask an admin to add pupils to them.</p>'
+          : '<p class="sub">You haven\'t been assigned to a class yet, so there\'s no one to assign work to. Ask an admin to add you to a class.</p>');
     return;
   }
   const groupedIds = new Set();
@@ -2277,13 +2314,25 @@ async function refreshRosterAndChecklist(){
 
 function renderRosterModal(){
   const classList = document.getElementById('rosterClassList');
-  classList.innerHTML = state.classes.length ? '' : '<p class="sub">No classes yet.</p>';
+  classList.innerHTML = state.classes.length ? '' : (state.canManageClasses ? '<p class="sub">No classes yet.</p>' : '<p class="sub">You haven\'t been assigned to any classes yet.</p>');
   state.classes.forEach(cls=>{
     const card = document.createElement('div');
     card.className = 'roster-class-card';
+    const teachers = cls.teachers || [];
+    if(!state.canManageClasses){
+      // Regular teacher: read-only view of the classes they've been assigned to.
+      card.innerHTML = `<div class="roster-class-card-head"><span>${escapeHtml(cls.name)}</span><span class="sub" style="font-weight:normal;">${cls.pupils.length} pupil${cls.pupils.length===1?'':'s'}</span></div>` +
+        `<div class="sub" style="margin-top:4px;">Teachers: ${teachers.map(t=>escapeHtml(t.name)).join(', ') || '—'}</div>` +
+        `<div>${cls.pupils.map(p=>`<span class="chip">${escapeHtml(p.name)}</span>`).join('') || '<span class="sub">No pupils yet.</span>'}</div>`;
+      classList.appendChild(card);
+      return;
+    }
+    const selectStyle = 'font-size:12.5px;padding:5px;border-radius:8px;border:1px solid var(--border);';
     card.innerHTML = `<div class="roster-class-card-head"><span>${cls.name}</span><button type="button" class="link-btn" data-delete-class="${cls.id}">Delete</button></div>` +
-      `<div>${cls.pupils.map(p=>`<span class="chip">${p.name} <button type="button" class="link-btn" data-remove-pupil="${p.id}" data-from-class="${cls.id}" style="color:var(--muted);">×</button></span>`).join('') || '<span class="sub">No pupils yet.</span>'}</div>` +
-      `<div style="margin-top:8px;"><select data-add-to-class="${cls.id}" style="font-size:12.5px;padding:5px;border-radius:8px;border:1px solid var(--border);"><option value="">+ Add pupil to class…</option>${state.pupils.filter(name=>!cls.pupils.some(p=>p.name===name)).map(name=>`<option value="${name}">${name}</option>`).join('')}</select></div>`;
+      `<div style="margin-top:6px;"><span class="sub" style="font-size:12px;">Teachers:</span> ${teachers.map(t=>`<span class="chip">${escapeHtml(t.name)} <button type="button" class="link-btn" data-remove-teacher="${t.id}" data-from-class="${cls.id}" style="color:var(--muted);">×</button></span>`).join('') || '<span class="sub">None yet — no teacher can assign to this class.</span>'}</div>` +
+      `<div style="margin-top:6px;"><select data-add-teacher-to-class="${cls.id}" style="${selectStyle}"><option value="">+ Assign teacher…</option>${state.teachers.filter(t=>!teachers.some(x=>x.id===t.id)).map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select></div>` +
+      `<div style="margin-top:8px;"><span class="sub" style="font-size:12px;">Pupils:</span> ${cls.pupils.map(p=>`<span class="chip">${p.name} <button type="button" class="link-btn" data-remove-pupil="${p.id}" data-from-class="${cls.id}" style="color:var(--muted);">×</button></span>`).join('') || '<span class="sub">No pupils yet.</span>'}</div>` +
+      `<div style="margin-top:8px;"><select data-add-to-class="${cls.id}" style="${selectStyle}"><option value="">+ Add pupil to class…</option>${state.pupils.filter(name=>!cls.pupils.some(p=>p.name===name)).map(name=>`<option value="${name}">${name}</option>`).join('')}</select></div>`;
     classList.appendChild(card);
   });
   classList.querySelectorAll('[data-delete-class]').forEach(btn=>{
@@ -2300,6 +2349,27 @@ function renderRosterModal(){
       const cls = state.classes.find(c=>String(c.id)===classId);
       const remainingIds = cls.pupils.map(p=>p.id).filter(id=>String(id)!==btn.dataset.removePupil);
       await request(`/api/classes/${classId}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pupilIds:remainingIds})});
+      await refreshRosterAndChecklist();
+      renderRosterModal();
+    });
+  });
+  classList.querySelectorAll('[data-remove-teacher]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const classId = btn.dataset.fromClass;
+      const cls = state.classes.find(c=>String(c.id)===classId);
+      const remainingIds = (cls.teachers || []).map(t=>t.id).filter(id=>String(id)!==btn.dataset.removeTeacher);
+      await request(`/api/classes/${classId}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({teacherIds:remainingIds})});
+      await refreshRosterAndChecklist();
+      renderRosterModal();
+    });
+  });
+  classList.querySelectorAll('[data-add-teacher-to-class]').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      if(!sel.value) return;
+      const classId = sel.dataset.addTeacherToClass;
+      const cls = state.classes.find(c=>String(c.id)===classId);
+      const nextIds = (cls.teachers || []).map(t=>t.id).concat(Number(sel.value));
+      await request(`/api/classes/${classId}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({teacherIds:nextIds})});
       await refreshRosterAndChecklist();
       renderRosterModal();
     });
@@ -2333,23 +2403,23 @@ function renderRosterModal(){
 
 function openRosterModal(){
   document.getElementById('rosterModal').classList.remove('hidden');
-  document.getElementById('classFormError').classList.add('hidden');
-  document.getElementById('pupilFormError').classList.add('hidden');
-  document.getElementById('pupilFormSuccess').classList.add('hidden');
+  ['classFormError','pupilFormError','pupilFormSuccess'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
   renderRosterModal();
 }
-['btnManageRoster','manageRosterBtn'].forEach(id=>{
+// The dashboard's "Classes" button is now a link to the /classes/ page; only the in-wizard
+// button still opens this modal, so the half-built assignment isn't lost.
+['manageRosterBtn'].forEach(id=>{
   const el = document.getElementById(id);
   if(el) el.addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); });
 });
-document.getElementById('quickNewClassBtn').addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); document.getElementById('newClassName').focus(); });
-document.getElementById('quickNewPupilBtn').addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); document.getElementById('newPupilFirstName').focus(); });
+document.getElementById('quickNewClassBtn')?.addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); document.getElementById('newClassName').focus(); });
+document.getElementById('quickNewPupilBtn')?.addEventListener('click', async ()=>{ await refreshRosterAndChecklist(); openRosterModal(); document.getElementById('newPupilFirstName').focus(); });
 document.getElementById('closeRosterBtn').addEventListener('click', async ()=>{
   document.getElementById('rosterModal').classList.add('hidden');
   // The assignment picker may be open behind the modal — keep it in sync with any roster changes.
   if(!document.getElementById('teacherCreate').classList.contains('hidden')) renderPupilChecklist();
 });
-document.getElementById('createClassBtn').addEventListener('click', async ()=>{
+document.getElementById('createClassBtn')?.addEventListener('click', async ()=>{
   const nameInput = document.getElementById('newClassName');
   const errorEl = document.getElementById('classFormError');
   errorEl.classList.add('hidden');
@@ -2365,7 +2435,7 @@ document.getElementById('createClassBtn').addEventListener('click', async ()=>{
     errorEl.classList.remove('hidden');
   }
 });
-document.getElementById('createPupilBtn').addEventListener('click', async ()=>{
+document.getElementById('createPupilBtn')?.addEventListener('click', async ()=>{
   const firstName = document.getElementById('newPupilFirstName').value.trim();
   const lastName = document.getElementById('newPupilLastName').value.trim();
   const email = document.getElementById('newPupilEmail').value.trim();
@@ -2930,7 +3000,7 @@ async function openActivityLogModal(){
     body.innerHTML = `<p class="sub" style="text-align:center;color:var(--danger);">${escapeHtml(error.message || 'Could not load the activity log.')}</p>`;
   }
 }
-document.getElementById('btnActivityLog').addEventListener('click', openActivityLogModal);
+// Dashboard "Activity log" is now a link to the /activity/ page (openActivityLogModal kept for reuse).
 document.getElementById('closeActivityLogBtn').addEventListener('click', ()=>{
   document.getElementById('activityLogModal').classList.add('hidden');
 });
@@ -4626,5 +4696,6 @@ loadAssignments().then(()=>{
 }).catch(()=>showTeacherDashboard());
 }
 </script>
+{% include "_tour.html" %}
 </body>
 </html>
