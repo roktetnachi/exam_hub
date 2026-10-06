@@ -1,0 +1,265 @@
+{% extends "teacher_base.html" %}
+{% block title %}{% if can_manage_classes %}Classes{% else %}My classes{% endif %}{% endblock %}
+{% block nav_classes %}class="active" aria-current="page"{% endblock %}
+
+{% block style %}
+  .layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+  .class-list{padding:14px;}
+  .class-list .search{margin-bottom:10px;}
+  .class-item{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:12px;padding:12px 14px;margin-bottom:4px;color:var(--text);}
+  .class-item:hover{background:var(--page-bg);}
+  .class-item.active{background:var(--blue-tint);border-color:#cfe1f0;}
+  .class-item .nm{font-weight:700;font-size:14.5px;}
+  .class-item .meta{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .class-item .warn{color:var(--warn);font-weight:600;}
+  .new-class{border-top:1px solid var(--border);margin-top:10px;padding-top:12px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .section{padding:18px 0;border-top:1px solid var(--border);}
+  .section:first-of-type{border-top:none;}
+  .section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+  .count{background:var(--page-bg);color:var(--muted);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;margin-left:6px;}
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .name-edit{display:flex;gap:8px;align-items:center;max-width:460px;width:100%;}
+  .name-edit input{font-size:20px;font-weight:700;padding:6px 10px;}
+  .pupil-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .pupil-table td{padding:8px 4px;border-bottom:1px solid var(--border);}
+  .pupil-table tr:last-child td{border-bottom:none;}
+  .pupil-table .em{color:var(--muted);}
+  .pick-list{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:4px 10px;margin:8px 0;}
+  .pick-list label{display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13.5px;}
+  .pick-list .em{color:var(--muted);font-size:12.5px;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .feed-row{padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+  .feed-row:last-child{border-bottom:none;}
+  .feed-row .meta{color:var(--muted);font-size:12px;margin-top:2px;}
+  .placeholder{text-align:center;padding:60px 20px;}
+  .callout{background:#fff8e6;border:1px solid #f3dfa6;color:#7a5a00;border-radius:12px;padding:10px 14px;font-size:13px;margin-top:12px;}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} .two{grid-template-columns:1fr;} }
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if can_manage_classes %}Classes{% else %}My classes{% endif %}</h1>
+    {% if can_manage_classes %}
+    <p class="sub">Set up classes, choose which teachers teach each one, and enrol pupils. Teachers can only assign work to pupils in their own classes.</p>
+    {% else %}
+    <p class="sub">The classes an admin has assigned you to. You can assign work to any pupil in these classes.</p>
+    {% endif %}
+  </div>
+  <div class="row">
+    {% if can_manage_classes %}<button class="btn small" id="bulkImportBtn" type="button">Bulk import classes (Excel / Google Sheets)</button>{% endif %}
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="card class-list">
+    <input type="search" class="search" id="classSearch" placeholder="Search classes…" aria-label="Search classes">
+    <div id="classList"><p class="empty">Loading…</p></div>
+    {% if can_manage_classes %}
+    <div class="new-class">
+      <label class="lbl" for="newClassName">New class</label>
+      <div class="row">
+        <input type="text" id="newClassName" placeholder="e.g. Grade 10 — Newton">
+        <button class="btn small" id="createClassBtn" type="button">Add</button>
+      </div>
+      <p class="err hidden" id="classFormError"></p>
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="card" id="detail">
+    <div class="placeholder"><p class="sub">Loading classes…</p></div>
+  </section>
+</div>
+
+{% if can_manage_classes %}{% include "_bulk_import.html" %}{% endif %}
+{% endblock %}
+
+{% block script %}
+<script>
+const state = { classes: [], teachers: [], pupils: [], selectedId: null, filter: '' };
+
+function selectedClass(){ return state.classes.find(c=>c.id === state.selectedId) || null; }
+
+async function loadAll(){
+  const [classesRes, pupilsRes] = await Promise.all([request('/api/classes/'), request('/api/pupils/')]);
+  state.classes = classesRes.classes;
+  state.teachers = classesRes.teachers || [];
+  state.pupils = pupilsRes.pupils;
+  const fromUrl = Number(new URLSearchParams(location.search).get('class'));
+  if(!state.classes.some(c=>c.id === state.selectedId)){
+    state.selectedId = state.classes.some(c=>c.id === fromUrl) ? fromUrl : (state.classes[0]?.id ?? null);
+  }
+}
+
+function selectClass(id){
+  state.selectedId = id;
+  const url = new URL(location.href);
+  if(id) url.searchParams.set('class', id); else url.searchParams.delete('class');
+  history.replaceState(null, '', url);
+  renderList(); renderDetail();
+}
+
+function renderList(){
+  const list = document.getElementById('classList');
+  const q = state.filter.toLowerCase();
+  const shown = state.classes.filter(c=>!q || c.name.toLowerCase().includes(q));
+  if(!state.classes.length){
+    list.innerHTML = `<p class="empty">${CAN_MANAGE ? 'No classes yet — add the first one below.' : "You haven't been assigned to a class yet. Ask an admin to add you."}</p>`;
+    return;
+  }
+  if(!shown.length){ list.innerHTML = '<p class="empty">No classes match.</p>'; return; }
+  list.innerHTML = shown.map(c=>{
+    const t = c.teachers.length;
+    const teacherText = t ? escapeHtml(c.teachers.map(x=>x.name).join(', ')) : '<span class="warn">No teacher yet</span>';
+    return `<button type="button" class="class-item${c.id===state.selectedId?' active':''}" data-id="${c.id}">
+      <div class="nm">${escapeHtml(c.name)}</div>
+      <div class="meta">${c.pupils.length} pupil${c.pupils.length===1?'':'s'} · ${teacherText}</div>
+    </button>`;
+  }).join('');
+  list.querySelectorAll('.class-item').forEach(b=>b.addEventListener('click', ()=>selectClass(Number(b.dataset.id))));
+}
+
+function renderDetail(){
+  const el = document.getElementById('detail');
+  const cls = selectedClass();
+  if(!cls){
+    el.innerHTML = `<div class="placeholder"><h2>${CAN_MANAGE ? 'Create a class to get started' : 'No classes yet'}</h2>
+      <p class="sub" style="margin-top:6px;">${CAN_MANAGE ? 'Add a class on the left, then assign its teachers and pupils here.' : 'Once an admin adds you to a class, its pupils will show up here and in the assignment picker.'}</p></div>`;
+    return;
+  }
+  const pupilRows = cls.pupils.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="em">${escapeHtml(p.email)}</td>
+    ${CAN_MANAGE ? `<td style="text-align:right;"><button type="button" class="icon-x" title="Remove from class" aria-label="Remove ${escapeHtml(p.name)}" data-remove-pupil="${p.id}">&times;</button></td>` : ''}</tr>`).join('');
+
+  el.innerHTML = `
+    <div class="detail-head">
+      ${CAN_MANAGE
+        ? `<div class="name-edit"><input type="text" id="className" value="${escapeHtml(cls.name)}" aria-label="Class name"><button class="btn small outline" id="renameBtn" type="button">Save name</button></div>`
+        : `<h2 style="font-size:22px;">${escapeHtml(cls.name)}</h2>`}
+      <div class="row">
+        ${CAN_MANAGE ? '<button class="btn small danger" id="deleteClassBtn" type="button">Delete class</button>' : ''}
+      </div>
+    </div>
+    ${CAN_MANAGE && !cls.teachers.length ? '<div class="callout">No teacher is assigned yet, so no teacher can set work for this class.</div>' : ''}
+
+    <div class="section" style="margin-top:8px;">
+      <div class="section-head"><h3 style="margin:0;">Teachers<span class="count">${cls.teachers.length}</span></h3></div>
+      <div>${cls.teachers.map(t=>`<span class="chip${CAN_MANAGE?'':' plain'}">${escapeHtml(t.name)}${CAN_MANAGE ? ` <button type="button" class="icon-x" title="Remove teacher" aria-label="Remove ${escapeHtml(t.name)}" data-remove-teacher="${t.id}">&times;</button>` : ''}</span>`).join('') || '<p class="empty" style="padding:4px 0;">None yet.</p>'}</div>
+      ${CAN_MANAGE ? `<div class="row" style="margin-top:6px;max-width:420px;">
+        <select id="addTeacherSelect" aria-label="Assign a teacher"><option value="">Assign a teacher…</option>${
+          state.teachers.filter(t=>!cls.teachers.some(x=>x.id===t.id)).map(t=>`<option value="${t.id}">${escapeHtml(t.name)}${t.email?` (${escapeHtml(t.email)})`:''}</option>`).join('')}</select>
+        <button class="btn small" id="addTeacherBtn" type="button">Assign</button></div>` : ''}
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h3 style="margin:0;">Pupils<span class="count">${cls.pupils.length}</span></h3></div>
+      ${cls.pupils.length ? `<table class="pupil-table"><tbody>${pupilRows}</tbody></table>` : '<p class="empty" style="padding:4px 0;">No pupils in this class yet.</p>'}
+      ${CAN_MANAGE ? `
+        <div style="margin-top:16px;max-width:520px;">
+          <label class="lbl">Add pupils to this class</label>
+          <input type="search" id="pickSearch" placeholder="Search pupils…">
+          <div class="pick-list" id="pickList"></div>
+          <div class="row" style="justify-content:space-between;flex-wrap:wrap;">
+            <button class="btn small" id="addPupilsBtn" type="button" disabled>Add selected</button>
+            <span class="sub" style="font-size:12.5px;">New pupil? Create their account on the <a href="${SCHOOL_PREFIX}/roles/?tab=pupils">Roles page</a> first.</span>
+          </div>
+        </div>` : ''}
+    </div>
+
+`;
+
+  wireDetail(cls);
+}
+
+async function updateClass(cls, data, okMessage){
+  try {
+    await postJson(`/api/classes/${cls.id}/update/`, data);
+    await loadAll();
+    renderList(); renderDetail();
+    if(okMessage) showToast(okMessage);
+  } catch(error){ showToast(error.message || 'Could not save that change.', 'error'); }
+}
+
+function renderPickList(cls){
+  const box = document.getElementById('pickList');
+  if(!box) return;
+  const q = (document.getElementById('pickSearch').value || '').toLowerCase();
+  const available = state.pupils.filter(p=>!cls.pupils.some(x=>x.id===p.id))
+    .filter(p=>!q || p.name.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
+  box.innerHTML = available.length ? available.map(p=>`<label><input type="checkbox" value="${p.id}"> ${escapeHtml(p.name)} <span class="em">${escapeHtml(p.email)}</span></label>`).join('')
+    : '<p class="empty" style="padding:8px 0;">No other pupils to add.</p>';
+  const btn = document.getElementById('addPupilsBtn');
+  const sync = ()=>{ btn.disabled = !box.querySelector('input:checked'); };
+  box.querySelectorAll('input').forEach(i=>i.addEventListener('change', sync));
+  sync();
+}
+
+function wireDetail(cls){
+  if(!CAN_MANAGE) return;
+  document.getElementById('renameBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('className').value.trim();
+    if(!name) return showToast('Give the class a name.', 'error');
+    if(name === cls.name) return;
+    updateClass(cls, {name}, 'Class renamed.');
+  });
+  document.getElementById('deleteClassBtn').addEventListener('click', async ()=>{
+    if(!confirm(`Delete "${cls.name}"? Pupils keep their accounts and their work — only the class grouping is removed.`)) return;
+    try {
+      await postJson(`/api/classes/${cls.id}/delete/`);
+      state.selectedId = null;
+      await loadAll(); selectClass(state.selectedId);
+      showToast('Class deleted.');
+    } catch(error){ showToast(error.message, 'error'); }
+  });
+  document.getElementById('addTeacherBtn').addEventListener('click', ()=>{
+    const id = Number(document.getElementById('addTeacherSelect').value);
+    if(!id) return;
+    updateClass(cls, {teacherIds: cls.teachers.map(t=>t.id).concat(id)}, 'Teacher assigned.');
+  });
+  document.querySelectorAll('[data-remove-teacher]').forEach(b=>b.addEventListener('click', ()=>{
+    updateClass(cls, {teacherIds: cls.teachers.map(t=>t.id).filter(id=>id !== Number(b.dataset.removeTeacher))}, 'Teacher removed.');
+  }));
+  document.querySelectorAll('[data-remove-pupil]').forEach(b=>b.addEventListener('click', ()=>{
+    updateClass(cls, {pupilIds: cls.pupils.map(p=>p.id).filter(id=>id !== Number(b.dataset.removePupil))}, 'Pupil removed from class.');
+  }));
+  document.getElementById('pickSearch').addEventListener('input', ()=>renderPickList(cls));
+  renderPickList(cls);
+  document.getElementById('addPupilsBtn').addEventListener('click', ()=>{
+    const ids = Array.from(document.querySelectorAll('#pickList input:checked')).map(i=>Number(i.value));
+    if(ids.length) updateClass(cls, {pupilIds: cls.pupils.map(p=>p.id).concat(ids)}, `Added ${ids.length} pupil${ids.length===1?'':'s'}.`);
+  });
+}
+
+document.getElementById('classSearch').addEventListener('input', (e)=>{ state.filter = e.target.value; renderList(); });
+
+const createBtn = document.getElementById('createClassBtn');
+if(createBtn){
+  const nameInput = document.getElementById('newClassName');
+  const create = async ()=>{
+    const err = document.getElementById('classFormError');
+    err.classList.add('hidden');
+    const name = nameInput.value.trim();
+    if(!name){ err.textContent = 'Give the class a name.'; err.classList.remove('hidden'); return; }
+    try {
+      const cls = await postJson('/api/classes/create/', {name});
+      nameInput.value = '';
+      await loadAll();
+      selectClass(cls.id);
+      showToast('Class created — now assign its teachers and pupils.');
+    } catch(error){ err.textContent = error.message || 'Could not create that class.'; err.classList.remove('hidden'); }
+  };
+  createBtn.addEventListener('click', create);
+  nameInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') create(); });
+}
+
+window.onBulkImported = async ()=>{ await loadAll(); renderList(); renderDetail(); };
+const bulkBtn = document.getElementById('bulkImportBtn');
+if(bulkBtn) bulkBtn.addEventListener('click', ()=>openBulk('classes'));
+
+(async ()=>{
+  try { await loadAll(); renderList(); renderDetail(); }
+  catch(error){ document.getElementById('detail').innerHTML = `<p class="err">${escapeHtml(error.message || 'Could not load classes.')}</p>`; }
+})();
+</script>
+{% endblock %}

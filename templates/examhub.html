@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="csrf-token" content="{{ csrf_token }}">
-<title>ExamHub — Teacher &amp; Student Portal</title>
+<title>{{ request.school.name|default:"ExamHub" }} — Teacher &amp; Student Portal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
-    --blue:#4b91c5; --blue-dark:#28186f; --border:#e3e8f2;
+    --blue:{% if request.school and request.school.primary_color %}{{ request.school.primary_color }}{% else %}#4b91c5{% endif %}; --blue-dark:#28186f; --border:#e3e8f2;
     --page-bg:#edf1f9; --text:#232733; --muted:#6b7280;
     --yellow:#ffe873; --green:#8bdc7a; --cyan:#7fe0f0; --magenta:#f56fd0;
     --ok:#16a34a; --warn:#d97706; --idle:#94a0b0;
@@ -97,7 +97,7 @@
   .exam-lock-card h2{margin:6px 0 8px;color:var(--danger-dark);}
   .exam-lock-card input{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:20px;text-align:center;letter-spacing:.06em;text-transform:lowercase;margin:14px 0 6px;}
 
-  /* ---- AssessPrep-style pill tab bar (assignment detail view) ---- */
+  /* ---- AssessPrep-style pill tab bar (exam detail view) ---- */
   .pill-tabs{display:flex;gap:6px;background:#fff;border-radius:var(--pill-radius);padding:4px;box-shadow:var(--card-shadow);
     width:fit-content;margin-bottom:18px;flex-wrap:wrap;}
   .pill-tabs button{border:none;background:transparent;padding:9px 18px;border-radius:var(--pill-radius);
@@ -136,6 +136,20 @@
   .activity-row .meta{color:var(--muted);font-size:11.5px;margin-top:2px;}
   #taskGradeBanner{background:#eaf7f8;border:1px solid #b7e4e8;border-radius:10px;padding:12px 16px;margin-bottom:12px;}
   #taskGradeBanner .score{font-size:20px;font-weight:800;color:var(--blue-dark);}
+  .autosave-status{font-size:12.5px;color:var(--muted);margin-right:auto;display:flex;align-items:center;gap:6px;}
+  .autosave-status.error{color:var(--danger);}
+  .autosave-status.ok::before{content:'✓';color:#1f7a35;font-weight:800;}
+  #taskGradeBanner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .gs-total{background:#e4f3e4;color:#1f7a35;border-radius:14px;padding:8px 14px;text-align:center;flex-shrink:0;}
+  .gs-total .n{font-size:24px;font-weight:800;line-height:1.1;} .gs-total .p{font-size:11.5px;font-weight:700;}
+  .gs-item{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+  .gs-item-head{display:flex;gap:10px;align-items:flex-start;}
+  .gs-item-head .t{flex:1;min-width:0;font-weight:700;font-size:13.5px;line-height:1.4;}
+  .gs-item-head .s{font-weight:800;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;background:#eef1f9;color:var(--blue-dark);}
+  .gs-item-head .s.full{background:#e4f3e4;color:#1f7a35;} .gs-item-head .s.zero{background:#fbeae9;color:#a91c15;}
+  .gs-fb{margin-top:8px;background:#f3f8ee;border:1px solid #d6e9c6;border-radius:9px;padding:8px 11px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;}
+  .gs-fb.none{background:#f6f7f9;border-color:var(--border);color:var(--muted);font-style:italic;}
+  .gs-overall{margin-top:12px;background:#f5f7fb;border-radius:12px;padding:10px 13px;font-size:13.5px;line-height:1.5;}
 
   .calc-body{padding:12px;}
   .calc-display{background:#f7f9fd;border:1px solid var(--border);border-radius:9px;padding:12px 10px;text-align:right;
@@ -289,6 +303,68 @@
   .pdf-stage.notes-hidden .hl-note-btn,.pdf-stage.notes-hidden .hl-note-pop{display:none !important;}
 
   .page-nav{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .sched-block{border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:#fbfcfe;}
+  .sched-block .sched-time{max-width:300px;margin:4px 0 8px;}
+  .exam-state{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+  .exam-state::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .exam-state.st-live{background:#e4f3e4;color:#1f7a35;} .exam-state.st-scheduled{background:#eaf2fb;color:#1f5f99;}
+  .exam-state.st-hidden{background:#f1f3f6;color:#5b6472;} .exam-state.st-closed{background:#fbeae9;color:#a91c15;}
+  .exam-when{font-size:12px;color:var(--muted);margin-top:3px;}
+  .exam-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border-radius:16px;padding:12px 16px;margin:0 0 14px;box-shadow:var(--card-shadow);}
+  .exam-bar .row{gap:8px;flex-wrap:wrap;}
+
+  /* ---- teacher review (annotated source + collapsible answers) ---- */
+  .rv-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
+  .rv-score{background:#e4f3e4;color:#1f7a35;font-weight:800;border-radius:999px;padding:6px 14px;font-size:14px;}
+  .rv-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,1fr);gap:16px;align-items:start;}
+  .rv-layout.wide{grid-template-columns:minmax(0,2.2fr) minmax(320px,1fr);}
+  .rv-layout.no-viewer{grid-template-columns:minmax(0,1fr);max-width:900px;}
+  .rv-viewer{position:sticky;top:12px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:480px;}
+  .rv-toolbar{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:#fafbfd;}
+  .rv-toolbar select{font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;max-width:220px;}
+  .rv-toolbar .grow{flex:1;}
+  .rv-zoom{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .rv-zoom #reviewZoomLabel{min-width:40px;text-align:center;}
+  .rv-toggle{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .rv-scroll{flex:1;overflow:auto;background:#e9edf2;padding:18px;display:flex;justify-content:center;align-items:flex-start;}
+  .rv-scroll .pdf-stage{flex-shrink:0;}
+  .rv-scroll .pdf-stage.no-annotations .hl-box,.rv-scroll .pdf-stage.no-annotations .note,.rv-scroll .pdf-stage.no-annotations .rv-hl-note{display:none;}
+  .rv-hl-note{position:absolute;max-width:220px;background:#fff;border:1px solid var(--border);border-left:3px solid #e2b500;border-radius:6px;box-shadow:0 3px 10px rgba(0,0,0,.14);padding:6px 8px;font-size:12.5px;line-height:1.4;z-index:6;pointer-events:none;}
+  .rv-hl-note .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}
+  .note.readonly-note .note-body{padding:6px 8px;font-size:12.5px;line-height:1.4;white-space:pre-wrap;}
+  .rv-flash{animation:rvFlash 1.4s ease-out 2;}
+  @keyframes rvFlash{0%,100%{box-shadow:0 0 0 0 rgba(75,145,197,0)}50%{box-shadow:0 0 0 6px rgba(75,145,197,.55)}}
+  .rv-answers{background:#fff;border:1px solid var(--border);border-radius:14px;padding:6px 0;min-width:0;}
+  .rv-answers-head .link-btn{color:var(--blue);font-size:12.5px;font-weight:600;}
+  .rv-answers-head{display:flex;justify-content:space-between;align-items:center;padding:8px 16px 10px;border-bottom:1px solid var(--border);}
+  .rv-sec{border-bottom:1px solid var(--border);}
+  .rv-sec:last-child{border-bottom:none;}
+  .rv-sec > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 16px;}
+  .rv-sec > summary::-webkit-details-marker{display:none;}
+  .rv-sec > summary::before{content:'▸';font-size:10px;color:var(--muted);transition:transform .12s;flex-shrink:0;}
+  .rv-sec[open] > summary::before{transform:rotate(90deg);}
+  .rv-sec > summary:hover{background:#fafbfd;}
+  .rv-sec.focus > summary{background:#eef5fb;}
+  .rv-num{width:24px;height:24px;border-radius:7px;background:var(--page-bg);color:var(--blue-dark);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .rv-sum-title{flex:1;min-width:0;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rv-chip{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;flex-shrink:0;}
+  .rv-chip.ok{background:#e4f3e4;color:#1f7a35;} .rv-chip.no{background:#fbeae9;color:#a91c15;}
+  .rv-chip.blank{background:#f1f3f6;color:var(--muted);} .rv-chip.pts{background:#eef1f9;color:var(--blue-dark);}
+  .rv-chip.notes{background:#fff6cf;color:#7a5d00;}
+  .rv-body{padding:2px 16px 16px 50px;font-size:14px;line-height:1.55;}
+  .rv-body .rv-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px;}
+  .rv-body .rv-label:first-child{margin-top:4px;}
+  .rv-answer{background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:10px 12px;overflow-x:auto;word-break:break-word;}
+  .rv-answer p:first-child{margin-top:0;} .rv-answer p:last-child{margin-bottom:0;}
+  .rv-feedback{background:#f3f8ee;border:1px solid #d6e9c6;border-radius:10px;padding:8px 12px;font-size:13.5px;white-space:pre-wrap;}
+  .rv-ann-list{display:flex;flex-direction:column;gap:6px;}
+  .rv-ann{display:flex;gap:8px;align-items:flex-start;text-align:left;border:1px solid var(--border);background:#fff;border-radius:9px;padding:7px 9px;cursor:pointer;font-size:13px;width:100%;font-family:inherit;}
+  .rv-ann:hover{border-color:var(--blue);}
+  .rv-ann .sw{width:12px;height:12px;border-radius:3px;margin-top:3px;flex-shrink:0;}
+  .rv-ann .sw.y{background:var(--yellow);} .rv-ann .sw.g{background:var(--green);} .rv-ann .sw.c{background:var(--cyan);} .rv-ann .sw.m{background:var(--magenta);} .rv-ann .sw.sw-note{background:#fdf6b2;border:1px solid #d5bd30;}
+  .rv-ann .pg{color:var(--muted);font-size:11.5px;white-space:nowrap;margin-left:auto;padding-left:8px;}
+  .rv-show-btn{margin-top:10px;}
+  @media (max-width: 1000px){ .rv-layout,.rv-layout.wide{grid-template-columns:minmax(0,1fr);} .rv-viewer{position:relative;top:0;height:70vh;} }
 
   .resp-pane{flex:1;display:flex;flex-direction:column;min-width:0;}
   .resp-top{padding:14px 16px 8px 16px;}
@@ -471,17 +547,24 @@
 <body data-role="{% if request.user.is_superuser %}teacher{% else %}{{ request.user.role }}{% endif %}" data-username="{{ request.user.username }}" data-email="{{ request.user.email }}" data-fullname="{{ request.user.get_full_name|default:request.user.username }}" data-can-manage-classes="{% if request.user.can_manage_classes %}1{% else %}0{% endif %}">
 
 <div class="brandbar">
-  <div class="brand"><span class="dot"></span>ExamHub</div>
+  <div class="brand">
+    {% if request.school and request.school.logo %}
+      <img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" style="height:28px;max-width:140px;object-fit:contain;border-radius:4px;">
+    {% else %}
+      <span class="dot"></span>
+    {% endif %}
+    <span>{{ request.school.name|default:"ExamHub" }}</span>
+  </div>
   {% if request.user.is_superuser or request.user.role == 'teacher' %}
   <nav class="topnav" id="teacherTopNav" aria-label="Sections">
-    <a href="{% url 'home' %}" class="active" aria-current="page">Assignments</a>
-    <a href="{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes{% else %}My classes{% endif %}</a>
-    <a href="{% url 'activity-page' %}">Activity</a>
-    {% if request.user.is_superuser %}<a href="{% url 'roles-page' %}">Roles</a>{% endif %}
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}" class="active" aria-current="page">Exams</a>
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes{% else %}My classes{% endif %}</a>
+    {% if request.user.can_view_activity %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}">Activity</a>{% endif %}
+    {% if request.user.is_superuser or request.user.is_school_admin %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}">Roles</a>{% endif %}
   </nav>
   {% endif %}
   <div style="margin-left:auto;"></div>
-  <div class="role-toggle" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
+  <div class="role-toggle{% if request.user.role == 'pupil' and not request.user.is_superuser %} hidden{% endif %}" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
     <button id="btnTeacherRole" class="active">Teacher view</button>
     <button id="btnStudentRole">Pupil preview</button>
   </div>
@@ -497,7 +580,7 @@
     </div>
   </div>
   <div style="position:relative;">
-    <button class="icon-btn" id="sebMenuBtn" title="Safe Exam Browser setup" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+    <button class="icon-btn{% if request.user.role == 'pupil' and not request.user.is_superuser %} hidden{% endif %}" id="sebMenuBtn" title="Safe Exam Browser setup" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>SEB setup</span>
     </button>
@@ -505,7 +588,7 @@
       <strong style="font-size:13px;">Safe Exam Browser setup</strong>
       <p style="margin:8px 0 0;font-size:12.5px;color:var(--blue-dark);font-weight:700;">&#10003; Ready — no key setup needed. ExamHub automatically trusts its own lockdown config.</p>
       <p class="sub" style="margin:4px 0 0;font-size:11px;word-break:break-all;">This site's Config Key: <code>{{ seb_config_key }}</code>{% if seb_key_count %} · plus {{ seb_key_count }} extra key{{ seb_key_count|pluralize }} from Django admin{% endif %}</p>
-      <p class="sub" style="margin:6px 0 10px;">For assignments delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — pupils just open the exam through the lockdown link or file below. Don't edit and re-save the config in SEB's own settings tool: that changes its key and ExamHub will stop recognising it (if you ever need custom SEB settings, paste the edited file's Config Key into Django admin → "Allowed Browser Exam Keys").</p>
+      <p class="sub" style="margin:6px 0 10px;">For exams delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — pupils just open the exam through the lockdown link or file below. Don't edit and re-save the config in SEB's own settings tool: that changes its key and ExamHub will stop recognising it (if you ever need custom SEB settings, paste the edited file's Config Key into Django admin → "Allowed Browser Exam Keys").</p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <a class="btn outline small" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
         <a class="btn outline small" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
@@ -531,7 +614,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
         Take the tour
       </button>
-      <form method="post" action="{% url 'logout' %}" style="margin:0;">{% csrf_token %}
+      <form method="post" action="{{ request.school_url_prefix|default:'' }}{% url 'logout' %}" style="margin:0;">{% csrf_token %}
         <button type="submit" class="menu-item danger" role="menuitem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
           Sign out
@@ -556,7 +639,8 @@
   <div class="card" style="width:360px;max-width:92vw;">
     <h2 style="margin-bottom:6px;">Change password</h2>
     <p class="sub" style="margin-top:0;">Change the password you sign in with. You'll stay signed in.</p>
-    <div class="field">
+    {% if can_skip_current_password %}<p class="sub" id="otpPasswordNote" style="margin-top:0;">You signed in with an email code, so you don't need your old password.</p>{% endif %}
+    <div class="field" id="currentPasswordField"{% if can_skip_current_password %} style="display:none;"{% endif %}>
       <label>Current password</label>
       <input type="password" id="currentPasswordInput" autocomplete="current-password">
     </div>
@@ -580,16 +664,16 @@
 <div class="app">
 
   <!-- ============ TEACHER SIDE ============ -->
-  <div id="teacherView">
+  <div id="teacherView"{% if request.user.role == 'pupil' and not request.user.is_superuser %} class="hidden"{% endif %}>
 
     <div id="teacherDashboard">
-      <h2>Your assignments</h2>
-      <p class="sub">Create an assignment, send it to your pupils, then follow along live and grade it — all from here.</p>
+      <h2>Your exams</h2>
+      <p class="sub">Create an exam, send it to your pupils, then follow along live and grade it — all from here.</p>
 
       <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn" id="btnNewAssignment">+ New assignment</button>
-        <a class="btn outline" id="btnManageRoster" href="{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes &amp; pupils{% else %}My classes{% endif %}</a>
-        <a class="btn outline" id="btnActivityLog" href="{% url 'activity-page' %}">Activity log</a>
+        <button class="btn" id="btnNewAssignment">+ New exam</button>
+        <a class="btn outline" id="btnManageRoster" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes &amp; pupils{% else %}My classes{% endif %}</a>
+        {% if request.user.can_view_activity %}<a class="btn outline" id="btnActivityLog" href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}">Activity log</a>{% endif %}
       </div>
 
       <div class="card hidden" id="bulkToolbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--page-bg);box-shadow:none;">
@@ -601,33 +685,33 @@
       </div>
       <div class="card">
         <table id="assignmentTable">
-          <thead><tr><th style="width:28px;"><input type="checkbox" id="bulkSelectAll"></th><th>Title</th><th>Due</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
+          <thead><tr><th style="width:28px;"><input type="checkbox" id="bulkSelectAll"></th><th>Title</th><th>Status</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
           <tbody id="assignmentTbody"></tbody>
         </table>
-        <div class="empty" id="assignmentLoading">Loading your assignments…</div>
+        <div class="empty" id="assignmentLoading">Loading your exams…</div>
         <div class="empty-state hidden" id="assignmentEmpty">
           <div class="empty-icon">&#128221;</div>
-          <h3>No assignments yet</h3>
+          <h3>No exams yet</h3>
           <p>Create your first one — add a PDF or questions, choose how pupils take it, and assign it to a class.</p>
-          <button class="btn" type="button" onclick="document.getElementById('btnNewAssignment').click()">+ Create your first assignment</button>
+          <button class="btn" type="button" onclick="document.getElementById('btnNewAssignment').click()">+ Create your first exam</button>
         </div>
       </div>
 
       <div class="modal-backdrop hidden" id="bulkScheduleModal">
         <div class="card" style="width:440px;max-width:92vw;">
-          <h2 style="margin:0 0 6px;">Edit schedule for <span id="bulkScheduleCount"></span> assignments</h2>
-          <p class="sub" style="margin-top:0;">Only the fields you tick below are changed — everything else about each assignment stays as it is. Times are Philippines time (GMT+8).</p>
+          <h2 style="margin:0 0 6px;">Edit schedule for <span id="bulkScheduleCount"></span> exams</h2>
+          <p class="sub" style="margin-top:0;">Only the fields you tick below are changed — everything else about each exam stays as it is. Times are Philippines time (GMT+8).</p>
           <div class="field">
             <div class="pupil-check" style="margin-bottom:4px;">
               <input type="checkbox" id="bulkSetOpensAt">
-              <label for="bulkSetOpensAt">Set opens at (GMT+8)</label>
+              <label for="bulkSetOpensAt">Set "visible from" (GMT+8)</label>
             </div>
             <input type="datetime-local" id="bulkOpensAtInput" disabled>
           </div>
           <div class="field">
             <div class="pupil-check" style="margin-bottom:4px;">
               <input type="checkbox" id="bulkSetDueAt">
-              <label for="bulkSetDueAt">Set due at (GMT+8)</label>
+              <label for="bulkSetDueAt">Set end time (GMT+8) — leave blank to close manually</label>
             </div>
             <input type="datetime-local" id="bulkDueAtInput" disabled>
           </div>
@@ -641,8 +725,8 @@
 
       <div class="modal-backdrop hidden" id="bulkDeliveryModal">
         <div class="card" style="width:440px;max-width:92vw;">
-          <h2 style="margin:0 0 6px;">Edit delivery mode for <span id="bulkDeliveryCount"></span> assignments</h2>
-          <p class="sub" style="margin-top:0;">Every other setting for each assignment stays as it is.</p>
+          <h2 style="margin:0 0 6px;">Edit delivery mode for <span id="bulkDeliveryCount"></span> exams</h2>
+          <p class="sub" style="margin-top:0;">Every other setting for each exam stays as it is.</p>
           <div class="field">
             <label>Delivery mode</label>
             <select id="bulkDeliveryModeSelect" style="padding:9px 10px;border:1px solid var(--border);border-radius:9px;width:100%;">
@@ -663,7 +747,7 @@
 
     <div id="teacherCreate" class="hidden">
       <button class="back-link" id="backFromCreate">&larr; Back to dashboard</button>
-      <h2>New assignment</h2>
+      <h2>New exam</h2>
       <div class="card">
         <p class="sub" id="teacherIdentityNote" style="margin-top:0;"></p>
 
@@ -746,35 +830,34 @@
           </div>
           <p class="sub" id="deliveryModeNote" style="margin:6px 0 0"></p>
         </div>
-        <div class="row">
-          <div class="field" style="flex:1;min-width:220px;">
-            <label>Start condition</label>
+        <div class="sched-block">
+          <div class="field" style="margin-bottom:8px;">
+            <label>When can pupils see it?</label>
             <div class="pill-tabs" id="startConditionPicker">
-              <button type="button" class="active" data-cond="any">Any time</button>
-              <button type="button" data-cond="scheduled">Scheduled time</button>
+              <button type="button" class="active" data-cond="now">Visible now</button>
+              <button type="button" data-cond="scheduled">At a set time</button>
+              <button type="button" data-cond="hidden">Keep hidden — I'll open it</button>
             </div>
           </div>
-          <div class="field" style="flex:1;min-width:220px;">
-            <label>Opens at (GMT+8)</label>
-            <input type="datetime-local" id="aOpen" disabled>
+          <div class="field sched-time" id="aOpenWrap" style="display:none;">
+            <label>Visible from (GMT+8)</label>
+            <input type="datetime-local" id="aOpen">
           </div>
+          <p class="sub" id="visibilityNote" style="margin:0;"></p>
         </div>
-        <div class="row">
-          <div class="field" style="flex:1;min-width:220px;">
-            <label>Close condition</label>
+        <div class="sched-block">
+          <div class="field" style="margin-bottom:8px;">
+            <label>How does it close?</label>
             <div class="pill-tabs" id="closeConditionPicker">
-              <button type="button" class="active" data-cond="manual">Manual</button>
-              <button type="button" data-cond="scheduled">Scheduled</button>
+              <button type="button" class="active" data-cond="scheduled">Automatically at the end time</button>
+              <button type="button" data-cond="manual">I'll close it manually</button>
             </div>
           </div>
-          <div class="field" style="flex:1;min-width:220px;">
-            <label>Closes at (GMT+8)</label>
-            <input type="datetime-local" id="aDue" disabled>
+          <div class="field sched-time" id="aDueWrap">
+            <label>Ends at (GMT+8)</label>
+            <input type="datetime-local" id="aDue">
           </div>
-        </div>
-        <div class="field">
-          <label>Exam duration (minutes)</label>
-          <input type="number" id="aDuration" min="1" value="60">
+          <p class="sub" id="closeNote" style="margin:0;"></p>
         </div>
         <div class="field">
           <div class="pupil-check">
@@ -821,6 +904,7 @@
       <button class="back-link" id="backFromDetail">&larr; Back to dashboard</button>
       <h2 id="detailTitle"></h2>
       <p class="sub" id="detailPrompt"></p>
+      <div class="exam-bar" id="examStateBar"></div>
 
       <div class="pill-tabs" id="detailTabs">
         <button type="button" data-detail-tab="create">Content</button>
@@ -882,36 +966,57 @@
     </div>
 
     <div id="teacherReview" class="hidden">
-      <button class="back-link" id="backFromReview">&larr; Back to assignment</button>
-      <h2 id="reviewHeading"></h2>
-      <p class="sub" id="reviewMeta"></p>
-      <div class="viewer">
-        <div class="pdf-pane" style="flex:1.5;" id="reviewPdfPane">
-          <div class="pdf-toolbar">
-            <span class="page-nav">Annotated source <span class="readonly-tag">(read-only)</span></span>
-            <select id="reviewTextSelect" style="margin-left:8px;font-size:12px;padding:4px;"></select>
-            <div class="grow"></div>
-            <div class="page-nav">
-              <button class="mode-btn small" id="reviewPrevPage">&lsaquo;</button>
-              <span id="reviewPageLabel">Page 1</span>
-              <button class="mode-btn small" id="reviewNextPage">&rsaquo;</button>
-            </div>
-          </div>
-          <div class="pdf-scroll"><div class="pdf-stage" id="reviewStage"></div></div>
+      <button class="back-link" id="backFromReview">&larr; Back to exam</button>
+      <div class="rv-header">
+        <div style="min-width:0;">
+          <h2 id="reviewHeading" style="margin-bottom:2px;"></h2>
+          <p class="sub" id="reviewMeta" style="margin:0;"></p>
         </div>
-        <div class="resp-pane">
-          <div class="resp-top"><strong>Pupil's response / outline</strong></div>
-          <div class="editable" id="reviewResponse" style="pointer-events:none;background:#fbfbfc;"></div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <span id="reviewScoreChip" class="rv-score hidden"></span>
+          <button class="btn outline small" id="reviewToGradeBtn" type="button">Grade this pupil</button>
         </div>
       </div>
+      <div class="rv-layout" id="reviewLayout">
+        <section class="rv-viewer" id="reviewPdfPane">
+          <div class="rv-toolbar">
+            <select id="reviewTextSelect" aria-label="Source to show"></select>
+            <div class="page-nav">
+              <button class="mode-btn small" id="reviewPrevPage" type="button" aria-label="Previous page">&lsaquo;</button>
+              <span id="reviewPageLabel">Page 1</span>
+              <button class="mode-btn small" id="reviewNextPage" type="button" aria-label="Next page">&rsaquo;</button>
+            </div>
+            <div class="grow"></div>
+            <div class="rv-zoom">
+              <button class="mode-btn small" id="reviewZoomOut" type="button" title="Zoom out">&minus;</button>
+              <span id="reviewZoomLabel">100%</span>
+              <button class="mode-btn small" id="reviewZoomIn" type="button" title="Zoom in">+</button>
+              <button class="mode-btn small" id="reviewZoomFit" type="button" title="Fit to width">Fit</button>
+            </div>
+            <label class="rv-toggle"><input type="checkbox" id="reviewShowAnnotations" checked> Annotations</label>
+            <button class="mode-btn small" id="reviewExpandViewer" type="button" title="Give the document more room" aria-label="Wider viewer">&#x2922;</button>
+          </div>
+          <div class="rv-scroll" id="reviewScroll"><div class="pdf-stage" id="reviewStage"></div></div>
+        </section>
+        <section class="rv-answers">
+          <div class="rv-answers-head">
+            <strong>Pupil's work</strong>
+            <div class="row" style="gap:6px;">
+              <button class="link-btn" id="reviewExpandAll" type="button">Expand all</button>
+              <button class="link-btn" id="reviewCollapseAll" type="button">Collapse all</button>
+            </div>
+          </div>
+          <div id="reviewResponse"></div>
+        </section>
+      </div>
     </div>
-
   </div>
 
   <!-- ============ STUDENT SIDE ============ -->
-  <div id="studentView" class="hidden">
+  <div id="studentView"{% if not request.user.is_superuser and request.user.role == 'pupil' %}{% else %} class="hidden"{% endif %}>
 
-    <div id="studentLogin">
+    {% if request.user.role == 'pupil' and not request.user.is_superuser %}<div id="pupilLoading" class="empty" style="padding:60px 0;text-align:center;">Loading your exams…</div>{% endif %}
+    <div id="studentLogin"{% if request.user.role == 'pupil' and not request.user.is_superuser %} class="hidden"{% endif %}>
       <h2>Preview as a pupil</h2>
       <p class="sub">Choose a pupil to see ExamHub exactly as they do. Previews are read-only, and pupils never see this screen — they sign in and go straight to their own tasks.</p>
       <div class="card" style="max-width:400px;">
@@ -929,7 +1034,7 @@
       <p class="sub">Here's everything assigned to you. Open a task when it's time to start.</p>
       <div class="card">
         <table>
-          <thead><tr><th>Title</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Exam</th><th>Ends</th><th>Status</th><th></th></tr></thead>
           <tbody id="studentTbody"></tbody>
         </table>
         <div class="empty-state hidden" id="studentEmpty">
@@ -947,6 +1052,7 @@
         <button class="btn small outline" id="openChatFromTaskBtn">Message teacher<span class="hidden" id="openChatFromTaskDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:6px;"></span></button>
       </div>
       <div id="taskGradeBanner" class="hidden"></div>
+      <div id="submittedNotice" class="hidden" style="background:#eef5fb;color:#1f4f73;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px;">You've submitted this — you're viewing your work read-only. Nothing here can be changed.</div>
       <div id="previewNotice" class="hidden" style="background:var(--danger-bg);color:var(--danger-dark);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px;">Preview only — this is exactly what the pupil sees. You can't answer or submit on their behalf.</div>
       <div class="viewer">
         <div class="resources-panel" id="resourcesPanel">
@@ -1045,7 +1151,7 @@
         </div>
       </div>
       <div class="viewer-footer">
-        <button class="btn outline" id="btnSaveDraft">Save draft</button>
+        <span class="autosave-status" id="autosaveStatus" aria-live="polite"></span>
         <button class="btn" id="btnSubmit">Submit</button>
       </div>
     </div>
@@ -1077,8 +1183,8 @@
 
     <div class="modal-backdrop hidden" id="assignmentClosedBackdrop">
       <div class="card" style="width:380px;max-width:92vw;">
-        <h2 style="margin-bottom:6px;">Assignment closed</h2>
-        <p class="sub">This assignment's due date has already passed, so it no longer accepts new work — even if you were still in the middle of it.</p>
+        <h2 style="margin-bottom:6px;">Exam closed</h2>
+        <p class="sub" id="assignmentClosedText">This exam has closed, so it no longer accepts new work. Anything you'd already written was saved and handed in automatically.</p>
         <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
           <button class="btn small" id="assignmentClosedOkBtn" type="button">OK</button>
         </div>
@@ -1227,10 +1333,10 @@
     <div class="modal-backdrop hidden" id="editAssignmentModal">
       <div class="card" style="width:520px;max-width:94vw;max-height:86vh;overflow:auto;">
         <div class="row" style="justify-content:space-between;align-items:center;">
-          <h2 style="margin:0;">Edit assignment</h2>
+          <h2 style="margin:0;">Edit exam</h2>
           <button type="button" class="btn outline small" id="closeEditAssignmentBtn">Close</button>
         </div>
-        <p class="sub">Settings only — to change the PDFs or questions themselves, delete and recreate the assignment for now.</p>
+        <p class="sub">Settings only — to change the PDFs or questions themselves, delete and recreate the exam for now.</p>
         <div class="field">
           <label>Title</label>
           <input type="text" id="editAssignmentTitle">
@@ -1240,20 +1346,33 @@
           <textarea id="editAssignmentInstructions" rows="2"></textarea>
         </div>
         <div class="row" style="gap:10px;">
-          <div class="field" style="flex:1;">
-            <label>Opens at (GMT+8)</label>
+          <div class="field" style="flex:1;min-width:180px;">
+            <label>Visible to pupils</label>
+            <select id="editVisibility">
+              <option value="now">Visible now</option>
+              <option value="scheduled">At a set time</option>
+              <option value="hidden">Hidden — I'll open it</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:180px;" id="editOpensWrap">
+            <label>Visible from (GMT+8)</label>
             <input type="datetime-local" id="editAssignmentOpensAt">
           </div>
-          <div class="field" style="flex:1;">
-            <label>Due at (optional, GMT+8)</label>
+        </div>
+        <div class="row" style="gap:10px;">
+          <div class="field" style="flex:1;min-width:180px;">
+            <label>Closes</label>
+            <select id="editCloseMode">
+              <option value="scheduled">Automatically at the end time</option>
+              <option value="manual">Manually, when I close it</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:180px;" id="editDueWrap">
+            <label>Ends at (GMT+8)</label>
             <input type="datetime-local" id="editAssignmentDueAt">
           </div>
         </div>
         <div class="row" style="gap:10px;">
-          <div class="field" style="flex:1;">
-            <label>Exam duration (minutes)</label>
-            <input type="number" min="1" id="editAssignmentDuration">
-          </div>
           <div class="field" style="flex:1;">
             <label>Delivery mode</label>
             <select id="editAssignmentDeliveryMode">
@@ -1282,7 +1401,7 @@
 
     <div class="modal-backdrop hidden" id="deleteAssignmentModal">
       <div class="card" style="width:440px;max-width:92vw;">
-        <h2 style="margin:0 0 6px;" id="deleteAssignmentHeading">Delete assignment</h2>
+        <h2 style="margin:0 0 6px;" id="deleteAssignmentHeading">Delete exam</h2>
         <p class="sub" style="margin-top:0;" id="deleteAssignmentBody">This permanently deletes "<strong id="deleteAssignmentTitle"></strong>" and every pupil's submission, highlights and notes for it. This can't be undone.</p>
         <div class="field" style="margin-bottom:6px;">
           <label>Type your password to confirm</label>
@@ -1299,7 +1418,7 @@
     <div class="modal-backdrop hidden" id="accommodationModal">
       <div class="card" style="width:380px;max-width:92vw;">
         <h2 style="margin:0 0 6px;" id="accommodationTitle">Extra time &amp; early access</h2>
-        <p class="sub" style="margin-top:0;">Extra time and/or early access for this pupil, on top of the assignment's own schedule.</p>
+        <p class="sub" style="margin-top:0;">Extra time and/or early access for this pupil, on top of the exam's own schedule.</p>
         <div class="field">
           <label>Extra time (minutes)</label>
           <input type="number" min="0" id="accommodationExtraMinutes" value="0">
@@ -1312,6 +1431,21 @@
         <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
           <button type="button" class="btn outline small" id="cancelAccommodationBtn">Cancel</button>
           <button type="button" class="btn small" id="saveAccommodationBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="gradeSummaryBackdrop">
+      <div class="card" style="width:640px;max-width:96vw;">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div style="min-width:0;"><h2 id="gradeSummaryTitle" style="margin-bottom:2px;">Your grade</h2><p class="sub" id="gradeSummaryMeta" style="margin:0;"></p></div>
+          <div class="gs-total" id="gradeSummaryTotal"></div>
+        </div>
+        <div id="gradeSummaryOverall"></div>
+        <div id="gradeSummaryItems" style="margin-top:14px;"></div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;">
+          <button class="btn outline" id="gradeSummaryOpenWork" type="button">View my submission</button>
+          <button class="btn" id="gradeSummaryClose" type="button">Close</button>
         </div>
       </div>
     </div>
@@ -1419,8 +1553,10 @@ function confirmDialog({title='Are you sure?', message='', confirmLabel='OK', ca
     document.addEventListener('keydown', onKey);
   });
 }
+const SCHOOL_PREFIX = "{{ request.school_url_prefix|default:'' }}";
 async function request(url, options={}){
-  const response = await fetch(url, {...options, headers:{'X-CSRFToken':csrfToken(), ...(options.headers||{})}});
+  const finalUrl = (url.startsWith('/') && !url.startsWith(SCHOOL_PREFIX) && SCHOOL_PREFIX) ? SCHOOL_PREFIX + url : url;
+  const response = await fetch(finalUrl, {...options, headers:{'X-CSRFToken':csrfToken(), ...(options.headers||{})}});
   if(!response.ok) throw new Error(await response.text() || 'Something went wrong.');
   return response.json();
 }
@@ -1432,12 +1568,12 @@ function apiErrorMessage(error){
 function apiAssignment(a){
   const submissions={};
   a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, email:r.email, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responses:r.responses||{}, outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, startedAt:r.startedAt||null,
-    extraMinutes:r.extraMinutes||0, opensOverride:r.opensOverride||null,
+    extraMinutes:r.extraMinutes||0, opensOverride:r.opensOverride||null, closesAt:r.closesAt||null,
     itemScores:r.itemScores||{}, totalScore:r.totalScore ?? null, maxScore:r.maxScore ?? null,
     gradedAt:r.gradedAt||null, published:!!r.published,
     locked:!!r.locked, lockReason:r.lockReason||'', lockCount:r.lockCount||0, resumeCode:r.resumeCode||null,
     hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher}; });
-  return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt,durationMinutes:a.durationMinutes||60,items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
+  return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt, isHidden:!!a.isHidden, closedAt:a.closedAt||null, state:a.state||'live', items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'',
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
     allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator};
@@ -1488,13 +1624,13 @@ function renderAssignmentTable(){
     tr.innerHTML = `
       <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
       <td><button type="button" class="title-link" data-action="view" data-id="${a.id}">${escapeHtml(a.title)}</button>${unreadDot}</td>
-      <td>${a.due || '—'}</td>
+      <td>${examStateHtml(a)}</td>
       <td>${a.assignedTo.length} pupil${a.assignedTo.length === 1 ? '' : 's'}</td>
       <td>${submittedCount} of ${a.assignedTo.length}</td>
       <td>
         <div class="row-actions">
           <button class="btn small" data-action="view" data-id="${a.id}">Open</button>
-          <button class="btn small outline" data-action="edit" data-id="${a.id}" title="Change title, schedule, duration or delivery mode">Settings</button>
+          <button class="btn small outline" data-action="edit" data-id="${a.id}" title="Change title, visibility, closing time or delivery mode">Settings</button>
           <button class="btn small outline danger" data-action="delete" data-id="${a.id}">Delete</button>
         </div>
       </td>
@@ -1511,11 +1647,57 @@ function renderAssignmentTable(){
   updateBulkToolbar();
 }
 
+// ---------------- exam state: hidden / scheduled / live / closed ----------------
+const EXAM_STATE_LABELS = {hidden:'Hidden', scheduled:'Scheduled', live:'Live', closed:'Closed'};
+function examStateWhen(a){
+  if(a.state === 'hidden') return 'Pupils can’t see it yet';
+  if(a.state === 'scheduled') return `Visible from ${formatManila(a.opensAt)}`;
+  if(a.state === 'closed') return a.closedAt ? `Closed ${formatManila(a.closedAt)}` : `Ended ${formatManila(a.dueAt)}`;
+  return a.dueAt ? `Ends ${formatManila(a.dueAt)}` : 'Open until you close it';
+}
+function examStateHtml(a){
+  return `<span class="exam-state st-${a.state}">${EXAM_STATE_LABELS[a.state] || a.state}</span><div class="exam-when">${escapeHtml(examStateWhen(a))}</div>`;
+}
+function renderExamBar(a){
+  const bar = document.getElementById('examStateBar');
+  const btns = [];
+  if(a.state === 'hidden' || a.state === 'scheduled') btns.push(`<button class="btn small" data-exam-action="show">Make visible now</button>`);
+  if(a.state === 'live') btns.push(`<button class="btn small outline" data-exam-action="hide" title="Take it off pupils' task lists again">Hide</button>`);
+  if(a.state !== 'closed') btns.push(`<button class="btn small danger" data-exam-action="close">Close exam now</button>`);
+  else btns.push(`<button class="btn small outline" data-exam-action="reopen">Reopen</button>`);
+  bar.innerHTML = `<div>${examStateHtml(a)}</div><div class="row">${btns.join('')}</div>`;
+  bar.querySelectorAll('[data-exam-action]').forEach(b=>b.addEventListener('click', ()=>changeExamState(a.id, b.dataset.examAction)));
+}
+async function changeExamState(id, action){
+  const a = state.assignments.find(x=>x.id===id);
+  if(!a) return;
+  if(action === 'close'){
+    const working = Object.values(a.submissions).filter(s=>s.status === 'progress').length;
+    const ok = await confirmDialog({title: 'Close this exam now?', danger: true, confirmLabel: 'Close exam', cancelLabel: 'Keep it open',
+      message: (working ? `${working} pupil${working === 1 ? ' is' : 's are'} still working — their work will be handed in automatically within a minute. ` : '')
+        + "Pupils can't start or change anything after this. You can reopen it later if you need to."});
+    if(!ok) return;
+  }
+  if(action === 'reopen' && a.dueAt && new Date(a.dueAt).getTime() <= Date.now()){
+    const ok = await confirmDialog({title: 'Reopen this exam?', confirmLabel: 'Reopen',
+      message: 'Its end time has passed, so it will stay open until you close it manually. Work that was already handed in stays submitted.'});
+    if(!ok) return;
+  }
+  try {
+    await request(`/api/assignments/${id}/state/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action})});
+    await loadAssignments();
+    const fresh = state.assignments.find(x=>x.id===id);
+    if(fresh){ renderExamBar(fresh); renderDeliverSummary(fresh); renderMonitorPanel(fresh); }
+    renderAssignmentTable();
+    showToast({show:'Pupils can see this exam now.', hide:'Hidden from pupils.', close:'Exam closed.', reopen:'Exam reopened.'}[action], 'success');
+  } catch(error){ showToast(apiErrorMessage(error) || "Couldn't change the exam.", 'error'); }
+}
+
 function updateBulkToolbar(){
   const count = state.selectedAssignmentIds.size;
   const toolbar = document.getElementById('bulkToolbar');
   toolbar.classList.toggle('hidden', count === 0);
-  document.getElementById('bulkSelectedCount').textContent = count === 1 ? '1 assignment selected' : `${count} assignments selected`;
+  document.getElementById('bulkSelectedCount').textContent = count === 1 ? '1 exam selected' : `${count} exams selected`;
   const selectAll = document.getElementById('bulkSelectAll');
   const total = state.assignments.length;
   selectAll.checked = total > 0 && count === total;
@@ -1560,7 +1742,6 @@ function buildAssignmentUpdatePayload(a, overrides){
     instructions: a.prompt || '',
     opensAt: toDatetimeLocalValue(a.opensAt) || a.opensAt || null,
     dueAt: toDatetimeLocalValue(a.dueAt) || null,
-    durationMinutes: a.durationMinutes || 60,
     deliveryMode: a.deliveryMode || 'browser',
     requireJoinCode: !!a.requireJoinCode,
     allowCalculator: !!a.allowCalculator,
@@ -1577,7 +1758,9 @@ function openEditAssignmentModal(id){
   document.getElementById('editAssignmentInstructions').value = a.prompt || '';
   document.getElementById('editAssignmentOpensAt').value = toDatetimeLocalValue(a.opensAt);
   document.getElementById('editAssignmentDueAt').value = toDatetimeLocalValue(a.dueAt);
-  document.getElementById('editAssignmentDuration').value = a.durationMinutes || 60;
+  document.getElementById('editVisibility').value = a.isHidden ? 'hidden' : (a.state === 'scheduled' ? 'scheduled' : 'now');
+  document.getElementById('editCloseMode').value = a.dueAt ? 'scheduled' : 'manual';
+  syncEditScheduleFields();
   document.getElementById('editAssignmentDeliveryMode').value = a.deliveryMode || 'browser';
   document.getElementById('editAssignmentJoinCode').checked = !!a.requireJoinCode;
   document.getElementById('editAssignmentCalculator').checked = !!a.allowCalculator;
@@ -1586,6 +1769,12 @@ function openEditAssignmentModal(id){
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   document.getElementById('editAssignmentModal').classList.remove('hidden');
 }
+function syncEditScheduleFields(){
+  document.getElementById('editOpensWrap').style.visibility = document.getElementById('editVisibility').value === 'scheduled' ? 'visible' : 'hidden';
+  document.getElementById('editDueWrap').style.visibility = document.getElementById('editCloseMode').value === 'scheduled' ? 'visible' : 'hidden';
+}
+document.getElementById('editVisibility').addEventListener('change', syncEditScheduleFields);
+document.getElementById('editCloseMode').addEventListener('change', syncEditScheduleFields);
 function closeEditAssignmentModal(){
   document.getElementById('editAssignmentModal').classList.add('hidden');
   editingAssignmentId = null;
@@ -1597,15 +1786,19 @@ document.getElementById('saveEditAssignmentBtn').addEventListener('click', async
   const errorEl = document.getElementById('editAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   const title = document.getElementById('editAssignmentTitle').value.trim();
-  if(!title){ errorEl.textContent = 'Give the assignment a title.'; errorEl.classList.remove('hidden'); return; }
-  const durationMinutes = parseInt(document.getElementById('editAssignmentDuration').value, 10);
-  if(!durationMinutes || durationMinutes < 1){ errorEl.textContent = 'Exam duration must be a whole number of minutes.'; errorEl.classList.remove('hidden'); return; }
+  if(!title){ errorEl.textContent = 'Give the exam a title.'; errorEl.classList.remove('hidden'); return; }
+  const visibility = document.getElementById('editVisibility').value;
+  const closeMode = document.getElementById('editCloseMode').value;
+  const opensAt = document.getElementById('editAssignmentOpensAt').value || null;
+  const dueAt = closeMode === 'scheduled' ? (document.getElementById('editAssignmentDueAt').value || null) : null;
+  if(visibility === 'scheduled' && !opensAt){ errorEl.textContent = 'Choose when the exam becomes visible.'; errorEl.classList.remove('hidden'); return; }
+  if(closeMode === 'scheduled' && !dueAt){ errorEl.textContent = 'Choose the end time, or switch to closing it manually.'; errorEl.classList.remove('hidden'); return; }
   const payload = {
     title,
     instructions: document.getElementById('editAssignmentInstructions').value.trim(),
-    opensAt: document.getElementById('editAssignmentOpensAt').value || null,
-    dueAt: document.getElementById('editAssignmentDueAt').value || null,
-    durationMinutes,
+    visibility,
+    opensAt: visibility === 'scheduled' ? opensAt : null,
+    dueAt,
     deliveryMode: document.getElementById('editAssignmentDeliveryMode').value,
     requireJoinCode: document.getElementById('editAssignmentJoinCode').checked,
     allowCalculator: document.getElementById('editAssignmentCalculator').checked,
@@ -1639,11 +1832,11 @@ function openDeleteAssignmentModal(idOrIds){
   if(ids.length === 1){
     const a = state.assignments.find(x=>x.id===ids[0]);
     if(!a) return;
-    heading.textContent = 'Delete assignment';
+    heading.textContent = 'Delete exam';
     body.innerHTML = `This permanently deletes "<strong>${(a.title||'').replace(/</g,'&lt;')}</strong>" and every pupil's submission, highlights and notes for it. This can't be undone.`;
   } else {
-    heading.textContent = `Delete ${ids.length} assignments`;
-    body.innerHTML = `This permanently deletes <strong>${ids.length} assignments</strong> and every pupil's submission, highlights and notes for each. This can't be undone.`;
+    heading.textContent = `Delete ${ids.length} exams`;
+    body.innerHTML = `This permanently deletes <strong>${ids.length} exams</strong> and every pupil's submission, highlights and notes for each. This can't be undone.`;
   }
   document.getElementById('deleteAssignmentPassword').value = '';
   const errorEl = document.getElementById('deleteAssignmentError');
@@ -1677,7 +1870,7 @@ document.getElementById('confirmDeleteAssignmentBtn').addEventListener('click', 
     await loadAssignments();
     if(failures.length){
       const names = failures.map(f=>{ const a = state.assignments.find(x=>x.id===f.id); return (a ? a.title : f.id) + ': ' + f.message; });
-      errorEl.textContent = `Some assignments couldn't be deleted — ${names.join('; ')}`;
+      errorEl.textContent = `Some exams couldn't be deleted — ${names.join('; ')}`;
       errorEl.classList.remove('hidden');
       document.getElementById('deleteAssignmentPassword').value = '';
       document.getElementById('deleteAssignmentPassword').focus();
@@ -1736,7 +1929,7 @@ document.getElementById('confirmBulkScheduleBtn').addEventListener('click', asyn
       const a = state.assignments.find(x=>x.id===id);
       if(!a) continue;
       const overrides = {};
-      if(setOpens) overrides.opensAt = opensVal;
+      if(setOpens){ overrides.opensAt = opensVal; overrides.visibility = 'scheduled'; }
       if(setDue) overrides.dueAt = dueVal || null;
       const payload = buildAssignmentUpdatePayload(a, overrides);
       try {
@@ -1749,7 +1942,7 @@ document.getElementById('confirmBulkScheduleBtn').addEventListener('click', asyn
     renderAssignmentTable();
     if(failures.length){
       const names = failures.map(f=>{ const a2 = state.assignments.find(x=>x.id===f.id); return (a2 ? a2.title : f.id) + ': ' + f.message; });
-      errorEl.textContent = `Some assignments couldn't be updated — ${names.join('; ')}`;
+      errorEl.textContent = `Some exams couldn't be updated — ${names.join('; ')}`;
       errorEl.classList.remove('hidden');
     } else {
       document.getElementById('bulkScheduleModal').classList.add('hidden');
@@ -1794,7 +1987,7 @@ document.getElementById('confirmBulkDeliveryBtn').addEventListener('click', asyn
     renderAssignmentTable();
     if(failures.length){
       const names = failures.map(f=>{ const a2 = state.assignments.find(x=>x.id===f.id); return (a2 ? a2.title : f.id) + ': ' + f.message; });
-      errorEl.textContent = `Some assignments couldn't be updated — ${names.join('; ')}`;
+      errorEl.textContent = `Some exams couldn't be updated — ${names.join('; ')}`;
       errorEl.classList.remove('hidden');
     } else {
       document.getElementById('bulkDeliveryModal').classList.add('hidden');
@@ -1875,10 +2068,10 @@ function refreshBuilderSectionCounts(){
 }
 async function removeBuilderSection(sec){
   const sections = builderSections();
-  if(sections.length <= 1){ showToast('An assignment needs at least one section.', 'error'); return; }
+  if(sections.length <= 1){ showToast('An exam needs at least one section.', 'error'); return; }
   const n = sec.querySelectorAll('.item-row').length;
   if(n > 0 && allBuilderItemRows().length - n < 1){
-    showToast("This section holds the assignment's only item. Add an item to another section first, then remove this one.", 'error');
+    showToast("This section holds the exam's only item. Add an item to another section first, then remove this one.", 'error');
     return;
   }
   const name = sec.querySelector('.builder-section-name').value.trim() || 'this section';
@@ -2052,7 +2245,7 @@ const DELIVERY_MODE_NOTES = {
   browser: 'No extra restrictions — pupils can use any browser normally.',
   browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click and copying. Enforced by ExamHub, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
   lockdown: 'Pupils must open this in Safe Exam Browser (SEB) — ExamHub verifies this server-side and blocks starting/saving/submitting otherwise. Download the shared lockdown config from the dashboard and see Django admin \u2192 Allowed Browser Exam Keys for one-time setup.',
-  paper: 'For a paper-based sitting. The assignment is recorded but pupils won\'t open it in ExamHub.',
+  paper: 'For a paper-based sitting. The exam is recorded but pupils won\'t open it in ExamHub.',
 };
 function wirePillPicker(containerId, dataAttr, onChange){
   const container = document.getElementById(containerId);
@@ -2102,7 +2295,8 @@ if(document.body.dataset.role === 'pupil'){
   menu.addEventListener('click', (e)=>e.stopPropagation());
   document.addEventListener('click', ()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); });
 })();
-document.getElementById('btnChangePassword').addEventListener('click', ()=>{
+let skipCurrentPassword = {{ can_skip_current_password|yesno:"true,false" }};
+function openChangePassword(){
   document.getElementById('accountMenu').classList.add('hidden');
   document.getElementById('currentPasswordInput').value = '';
   document.getElementById('newPasswordInput').value = '';
@@ -2110,7 +2304,12 @@ document.getElementById('btnChangePassword').addEventListener('click', ()=>{
   document.getElementById('changePasswordError').classList.add('hidden');
   document.getElementById('changePasswordSuccess').classList.add('hidden');
   document.getElementById('changePasswordBackdrop').classList.remove('hidden');
-});
+}
+document.getElementById('btnChangePassword').addEventListener('click', openChangePassword);
+if(new URLSearchParams(location.search).get('set_password') === '1'){
+  history.replaceState(null, '', location.pathname);  // don't reopen on refresh
+  openChangePassword();
+}
 document.getElementById('cancelChangePasswordBtn').addEventListener('click', ()=>{
   document.getElementById('changePasswordBackdrop').classList.add('hidden');
 });
@@ -2121,13 +2320,18 @@ document.getElementById('confirmChangePasswordBtn').addEventListener('click', as
   const current = document.getElementById('currentPasswordInput').value;
   const next = document.getElementById('newPasswordInput').value;
   const confirm = document.getElementById('confirmPasswordInput').value;
-  if(!current || !next){ errorEl.textContent = 'Enter your current password and choose a new one.'; errorEl.classList.remove('hidden'); return; }
+  if((!current && !skipCurrentPassword) || !next){ errorEl.textContent = 'Enter your current password and choose a new one.'; errorEl.classList.remove('hidden'); return; }
   if(next !== confirm){ errorEl.textContent = "New passwords don't match."; errorEl.classList.remove('hidden'); return; }
   const btn = document.getElementById('confirmChangePasswordBtn');
   btn.disabled = true;
   try {
     await request('/api/account/change-password/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({currentPassword: current, newPassword: next})});
     successEl.textContent = 'Password changed.';
+    if(skipCurrentPassword){  // one use: next time the old password is needed again
+      skipCurrentPassword = false;
+      document.getElementById('currentPasswordField').style.display = '';
+      const note = document.getElementById('otpPasswordNote'); if(note) note.remove();
+    }
     successEl.classList.remove('hidden');
     document.getElementById('currentPasswordInput').value = '';
     document.getElementById('newPasswordInput').value = '';
@@ -2140,40 +2344,42 @@ document.getElementById('confirmChangePasswordBtn').addEventListener('click', as
   }
 });
 
-// ---------------- notification bell (unread messages, teacher and pupil) ----------------
-document.getElementById('notifBellBtn').addEventListener('click', (e)=>{
-  e.stopPropagation();
-  renderNotifDropdown();
-  document.getElementById('notifDropdown').classList.toggle('hidden');
-});
-document.getElementById('notifDropdown').addEventListener('click', (e)=>e.stopPropagation());
-document.addEventListener('click', ()=>document.getElementById('notifDropdown').classList.add('hidden'));
-
-// Collects every (assignment, recipient) pair with an unread message relevant to the current
-// viewer: for a teacher/superuser, every recipient with an unread pupil message; for a real
-// pupil, their own recipient row on each assignment where the teacher has sent something
-// unread. Reused by both the bell dropdown and the per-row/per-pupil dots elsewhere.
-function collectUnreadNotifications(){
-  const isPupilView = document.body.dataset.role === 'pupil';
-  const items = [];
-  state.assignments.forEach(a=>{
-    Object.keys(a.submissions || {}).forEach(name=>{
-      const sub = a.submissions[name];
-      if(isPupilView){
-        if(sub.email && state.currentPupilEmail && sub.email.toLowerCase() === state.currentPupilEmail.toLowerCase() && sub.hasUnreadFromTeacher){
-          items.push({assignmentId: a.id, recipientId: sub.recipientId, title: a.title, name: 'Your teacher', forRole: 'pupil'});
-        }
-      } else if(sub.hasUnreadFromPupil){
-        items.push({assignmentId: a.id, recipientId: sub.recipientId, title: a.title, name: name, forRole: 'teacher'});
-      }
-    });
-  });
-  return items;
-}
-function updateNotifBell(){
-  const count = collectUnreadNotifications().length;
-  document.getElementById('notifBellDot').classList.toggle('hidden', count === 0);
-}
+// ---------------- notifications: bell + pop-ups live in _notifications.html ----------------
+// This page only tells it how to act on an alert without leaving the dashboard.
+window.ExamHubNotifActions = {
+  openMonitor(it){
+    if(document.body.dataset.role === 'pupil') return;
+    if(document.getElementById('teacherView').classList.contains('hidden')) switchRole('teacher');
+    if(!state.assignments.some(x=>x.id===it.assignmentId)) return;
+    showAssignmentDetail(it.assignmentId);
+    switchDetailTab('monitor');
+  },
+  openChat(it){
+    if(document.body.dataset.role === 'pupil'){
+      const a = state.assignments.find(x=>x.id===it.assignmentId);
+      openChatModal(it.recipientId, `Message ${(a && a.teacherName) || 'your teacher'}`, true);
+      return;
+    }
+    this.openMonitor(it);
+    openChatModal(it.recipientId, `${it.pupilName} — ${it.assignmentTitle}`, false);
+  },
+  openGrade(it){ openGradeSummary(it.assignmentId); },
+  // A pupil mid-attempt is never interrupted by a pop-up; reading back submitted work is fine.
+  pupilBusy(){
+    if(document.getElementById('studentTask').classList.contains('hidden')) return false;
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    const sub = a && a.submissions[state.currentPupil];
+    return !!sub && sub.status !== 'submitted';
+  },
+  async refresh(){
+    try {
+      await loadAssignments(document.body.dataset.role === 'pupil' ? state.currentPupilEmail : '');
+      const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+      if(a && !document.getElementById('teacherAssignmentDetail').classList.contains('hidden')) renderMonitorPanel(a);
+    } catch(_) {}
+  },
+};
+function updateNotifBell(){ /* the shared bell (_notifications.html) polls /api/notifications/ itself */ }
 // Background refresh so the bell/dots pick up new messages without the pupil/teacher having
 // to navigate anywhere. Deliberately skipped while a pupil is actively inside an exam
 // (#studentTask visible): that view mutates the live submission object in state.assignments
@@ -2191,50 +2397,32 @@ function startNotifPolling(){
       } else {
         await loadAssignments();
       }
-      if(!document.getElementById('notifDropdown').classList.contains('hidden')) renderNotifDropdown();
     } catch(_) { /* best-effort background refresh; the next tick tries again */ }
   }, 20000);
-}
-function renderNotifDropdown(){
-  const items = collectUnreadNotifications();
-  const list = document.getElementById('notifList');
-  document.getElementById('notifEmpty').classList.toggle('hidden', items.length > 0);
-  list.innerHTML = items.map(item=>`
-    <button type="button" class="notif-item" data-assignment-id="${item.assignmentId}" data-recipient-id="${item.recipientId}" data-for-role="${item.forRole}"
-      style="text-align:left;border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:#fff;cursor:pointer;">
-      <div style="font-weight:700;font-size:12.5px;">${escapeHtml(item.title)}</div>
-      <div class="sub" style="font-size:11.5px;margin-top:2px;">New message from ${escapeHtml(item.name)}</div>
-    </button>`).join('');
-  list.querySelectorAll('.notif-item').forEach((btn, i)=>{
-    btn.addEventListener('click', ()=>{
-      document.getElementById('notifDropdown').classList.add('hidden');
-      const assignmentId = Number(btn.dataset.assignmentId);
-      const recipientId = Number(btn.dataset.recipientId);
-      const item = items[i];
-      const a = state.assignments.find(x=>x.id===assignmentId);
-      if(btn.dataset.forRole === 'pupil'){
-        openChatModal(recipientId, `Message ${(a && a.teacherName) || 'your teacher'}`, true);
-      } else {
-        showAssignmentDetail(assignmentId);
-        switchDetailTab('monitor');
-        openChatModal(recipientId, `${item.name} — ${item.title}`, false);
-      }
-    });
-  });
 }
 wirePillPicker('deliveryModePicker', 'mode', (mode)=>{
   document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES[mode] || '';
 });
-wirePillPicker('startConditionPicker', 'cond', (cond)=>{
-  const input = document.getElementById('aOpen');
-  input.disabled = cond !== 'scheduled';
-  if(cond !== 'scheduled') input.value = '';
-});
-wirePillPicker('closeConditionPicker', 'cond', (cond)=>{
-  const input = document.getElementById('aDue');
-  input.disabled = cond !== 'scheduled';
-  if(cond !== 'scheduled') input.value = '';
-});
+const VISIBILITY_NOTES = {
+  now: 'Pupils see it on their task list as soon as you create it.',
+  scheduled: "Saved now, but pupils won't see it until this time. You can still open it early from the exam page.",
+  hidden: "Saved for later — pupils can't see it at all until you press \u201cMake visible now\u201d on the exam page.",
+};
+const CLOSE_NOTES = {
+  scheduled: "Pupils' timers count down to this time and their work is handed in automatically when it arrives. You can still close it early by hand.",
+  manual: 'No countdown — it stays open until you press \u201cClose exam now\u201d. Unfinished work is then handed in automatically.',
+};
+function applyVisibilityPicker(cond){
+  document.getElementById('aOpenWrap').style.display = cond === 'scheduled' ? '' : 'none';
+  document.getElementById('visibilityNote').textContent = VISIBILITY_NOTES[cond] || '';
+}
+function applyClosePicker(cond){
+  document.getElementById('aDueWrap').style.display = cond === 'scheduled' ? '' : 'none';
+  document.getElementById('closeNote').textContent = CLOSE_NOTES[cond] || '';
+}
+wirePillPicker('startConditionPicker', 'cond', applyVisibilityPicker);
+wirePillPicker('closeConditionPicker', 'cond', applyClosePicker);
+applyVisibilityPicker('now'); applyClosePicker('scheduled');
 async function loadPupils(){
   try {
     const result = await request('/api/pupils/');
@@ -2478,9 +2666,8 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
     `Creating as ${document.body.dataset.fullname} (${document.body.dataset.email || 'no email on file — ask your admin to add one'})`;
   document.getElementById('aTitle').value='';
   document.getElementById('aPrompt').value='';
-  document.getElementById('aOpen').value=''; document.getElementById('aOpen').disabled = true;
-  document.getElementById('aDue').value=''; document.getElementById('aDue').disabled = true;
-  document.getElementById('aDuration').value='60';
+  document.getElementById('aOpen').value='';
+  document.getElementById('aDue').value='';
   document.getElementById('aRequireJoinCode').checked = false;
   document.getElementById('aAllowCalculator').checked = false;
   document.getElementById('aAllowGraphingCalculator').checked = false;
@@ -2489,6 +2676,7 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
     const c = document.getElementById(id);
     c.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', i===0));
   });
+  applyVisibilityPicker('now'); applyClosePicker('scheduled');
   document.getElementById('builderSections').innerHTML = '';
   const firstSection = addBuilderSection('Section 1');
   addItemRow('pdf', 'Text 1', firstSection);
@@ -2501,11 +2689,10 @@ document.getElementById('backFromCreate').addEventListener('click', showTeacherD
 document.getElementById('btnCreateAssignment').addEventListener('click', async ()=>{
   const title = document.getElementById('aTitle').value.trim();
   const prompt = document.getElementById('aPrompt').value.trim();
-  const startCondition = activePillValue('startConditionPicker', 'cond');
+  const startCondition = activePillValue('startConditionPicker', 'cond') || 'now';
   const closeCondition = activePillValue('closeConditionPicker', 'cond');
   const opensAt = startCondition === 'scheduled' ? document.getElementById('aOpen').value : '';
   const due = closeCondition === 'scheduled' ? document.getElementById('aDue').value : '';
-  const duration = document.getElementById('aDuration').value.trim() || '60';
   const assignedTo = Array.from(document.querySelectorAll('#pupilChecklist input:checked')).map(c=>c.value);
 
   const {items, pdfFiles, imageFiles, videoFiles} = collectItemsForSubmit();
@@ -2514,21 +2701,29 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   imageFiles.forEach(f=>form.append('images', f));
   videoFiles.forEach(f=>form.append('videos', f));
 
-  if(closeCondition === 'scheduled' && !due){
-    showToast('Choose a closing date and time, or set "Close condition" to Manual.', 'error');
+  if(startCondition === 'scheduled' && !opensAt){
+    switchCreateStep('delivery');
+    showToast('Choose when the exam becomes visible, or pick "Visible now".', 'error');
     return;
   }
-  if(startCondition === 'scheduled' && !opensAt){
-    showToast('Choose an opening date and time, or set "Start condition" to Any time.', 'error');
+  if(closeCondition === 'scheduled' && !due){
+    switchCreateStep('delivery');
+    showToast('Choose the end time, or pick "I\'ll close it manually".', 'error');
+    return;
+  }
+  if(closeCondition === 'scheduled' && due && due <= (opensAt || toDatetimeLocalValue(new Date(Date.now() + 8*3600000).toISOString()))){
+    switchCreateStep('delivery');
+    showToast('The end time must be after the exam becomes visible.', 'error');
     return;
   }
   if(!title || items.length===0 || assignedTo.length===0){
-    showToast('To create the assignment, add a title, at least one item (a text or question), and at least one pupil.', 'error');
+    showToast('To create the exam, add a title, at least one item (a text or question), and at least one pupil.', 'error');
     return;
   }
   try {
     form.append('title', title); form.append('instructions', prompt);
-    form.append('opens_at', opensAt); form.append('due_at', due); form.append('duration_minutes', duration);
+    form.append('visibility', startCondition || 'now');
+    form.append('opens_at', opensAt); form.append('due_at', due);
     form.append('delivery_mode', activePillValue('deliveryModePicker', 'mode') || 'browser');
     form.append('require_join_code', document.getElementById('aRequireJoinCode').checked ? 'true' : 'false');
     form.append('allow_calculator', document.getElementById('aAllowCalculator').checked ? 'true' : 'false');
@@ -2550,9 +2745,8 @@ function deliverRow(label, value){
 function renderDeliverSummary(a){
   const rows = [
     deliverRow('Delivery mode', DELIVERY_MODE_LABELS[a.deliveryMode] || a.deliveryMode),
-    deliverRow('Start condition', a.opensAt ? `Scheduled — ${formatManila(a.opensAt)}` : 'Any time'),
-    deliverRow('Close condition', a.dueAt ? `Scheduled — ${formatManila(a.dueAt)}` : 'Manual (no close date)'),
-    deliverRow('Exam duration', `${a.durationMinutes} minutes`),
+    deliverRow('Visible to pupils', a.isHidden ? 'Hidden until you make it visible' : (a.opensAt ? `From ${formatManila(a.opensAt)}` : 'Now')),
+    deliverRow('Closes', a.closedAt ? `Closed by a teacher — ${formatManila(a.closedAt)}` : (a.dueAt ? `Automatically at ${formatManila(a.dueAt)}` : 'Manually, when you close it')),
     deliverRow('Join code', a.requireJoinCode ? `Required — <span style="font-family:monospace;letter-spacing:.05em;">${a.joinCode || '(hidden)'}</span>` : 'Not required'),
     deliverRow('On-screen calculator', a.allowCalculator ? 'Allowed' : 'Not allowed'),
     deliverRow('Graphing calculator', a.allowGraphingCalculator ? 'Allowed (not yet available to pupils)' : 'Not allowed'),
@@ -2615,7 +2809,7 @@ function renderGradeBody(a, pupil){
   if(!pupil){ body.innerHTML = '<div class="empty">No pupils assigned yet.</div>'; return; }
   const sub = a.submissions[pupil];
   if(!sub || sub.status !== 'submitted'){
-    body.innerHTML = `<div class="phase-placeholder"><strong>Not submitted yet</strong>${escapeHtml(pupil)} hasn't submitted this assignment.</div>`;
+    body.innerHTML = `<div class="phase-placeholder"><strong>Not submitted yet</strong>${escapeHtml(pupil)} hasn't submitted this exam.</div>`;
     return;
   }
   const scores = sub.itemScores || {};
@@ -2631,9 +2825,9 @@ function renderGradeBody(a, pupil){
     // so the two stay easy to cross-reference against the resources sidebar.
     const heading = item.prompt ? escapeHtml(item.prompt) : escapeHtml(item.label);
     const caption = item.prompt ? `<div class="sub" style="font-size:11px;margin-top:2px;">${escapeHtml(item.label)}</div>` : '';
-    const reviewBtn = isMedia
-      ? `<button type="button" class="link-btn review-item-btn" data-item-id="${item.id}" style="display:block;margin-top:6px;font-size:11.5px;color:var(--blue);">${item.type==='pdf' ? 'Review PDF & annotations' : 'Review media'} →</button>`
-      : '';
+    const annCount = (sub.annotations || []).filter(an=>an.textId===item.id).length;
+    const reviewBtn = `<button type="button" class="link-btn review-item-btn" data-item-id="${item.id}" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:var(--blue);">${
+      item.type==='pdf' ? `Review PDF & annotations${annCount ? ` (${annCount})` : ''}` : (isMedia ? 'Review media' : 'Review this answer')} →</button>`;
     return `<div class="card grade-item-card" data-item-id="${item.id}">
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="flex:1;min-width:0;">
@@ -2650,7 +2844,8 @@ function renderGradeBody(a, pupil){
   const totalLine = sub.gradedAt
     ? `<p class="sub">Total: <strong>${sub.totalScore}</strong> / ${sub.maxScore} · Graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? 'Visible to the pupil' : 'Not yet visible to the pupil'}</p>`
     : '<p class="sub">Not graded yet — enter scores and feedback below, then save. The pupil only sees their grade once you release it.</p>';
-  body.innerHTML = `${totalLine}${rows}
+  body.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">${totalLine}
+      <button type="button" class="btn small outline" id="reviewWholeBtn">Review full submission →</button></div>${rows}
     <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
       <button class="btn outline" id="saveGradeBtn">Save grades</button>
       <button class="btn" id="togglePublishBtn">${sub.published ? 'Hide grade from pupil' : 'Release grade to pupil'}</button>
@@ -2667,9 +2862,13 @@ function renderGradeBody(a, pupil){
   });
   body.querySelectorAll('.review-item-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      state.reviewReturnTab = 'grade';
+      state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil;
       showReview(a.id, pupil, Number(btn.dataset.itemId));
     });
+  });
+  document.getElementById('reviewWholeBtn').addEventListener('click', ()=>{
+    state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil;
+    showReview(a.id, pupil);
   });
   document.getElementById('saveGradeBtn').addEventListener('click', ()=>saveGrade(a.id, pupil));
   document.getElementById('togglePublishBtn').addEventListener('click', ()=>togglePublish(a.id, pupil));
@@ -2755,14 +2954,14 @@ function renderContentTab(a){
   card.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
       <div>
-        <h2 style="margin-bottom:4px;">What's in this assignment</h2>
+        <h2 style="margin-bottom:4px;">What's in this exam</h2>
         <p class="sub" style="margin:0;">${a.items.length} item${a.items.length === 1 ? '' : 's'} · ${totalPoints} point${totalPoints === 1 ? '' : 's'} in total</p>
       </div>
       <button class="btn outline small" type="button" id="contentPreviewBtn">Preview as a pupil</button>
     </div>
     ${a.prompt ? `<div class="submit-summary" style="margin:14px 0 6px;"><strong>Instructions for pupils:</strong> ${escapeHtml(a.prompt)}</div>` : ''}
-    ${rows || '<p class="sub">This assignment has no items.</p>'}
-    <p class="sub" style="margin:16px 0 0;font-size:13px;">To change the title, instructions, schedule or delivery mode, use <strong>Settings</strong> on the dashboard. Items and questions can't be changed once an assignment is created — if they need changing, create a new assignment.</p>`;
+    ${rows || '<p class="sub">This exam has no items.</p>'}
+    <p class="sub" style="margin:16px 0 0;font-size:13px;">To change the title, instructions, schedule or delivery mode, use <strong>Settings</strong> on the dashboard. Items and questions can't be changed once an exam is created — if they need changing, create a new assignment.</p>`;
   document.getElementById('contentPreviewBtn').addEventListener('click', ()=>{
     const pupil = a.assignedTo[0];
     if(!pupil){ showToast('Assign at least one pupil to preview this assignment.', 'info'); return; }
@@ -3012,12 +3211,8 @@ document.getElementById('closeActivityLogBtn').addEventListener('click', ()=>{
 // extra minutes), but never later than the assignment's due date, since the server hard-closes
 // saves/submits at that point regardless of how much personal time is left.
 function pupilExamEndsAt(a, sub){
-  if(sub.status !== 'progress' || !sub.startedAt) return null;
-  let end = new Date(sub.startedAt).getTime() + ((a.durationMinutes || 0) + (sub.extraMinutes || 0)) * 60000;
-  if(a.dueAt){
-    const due = new Date(a.dueAt).getTime();
-    if(!isNaN(due)) end = Math.min(end, due);
-  }
+  if(sub.status !== 'progress' || !sub.closesAt) return null;
+  const end = new Date(sub.closesAt).getTime();
   return isNaN(end) ? null : end;
 }
 function formatRemaining(ms){
@@ -3028,11 +3223,11 @@ function formatRemaining(ms){
 }
 function monitorTimeCellHtml(a, sub){
   if(sub.status === 'submitted') return '<span class="monitor-time muted">—</span>';
-  if(sub.status !== 'progress' || !sub.startedAt){
-    const total = (a.durationMinutes || 0) + (sub.extraMinutes || 0);
-    return `<span class="monitor-time muted">${total} min${sub.extraMinutes ? ` (incl. +${sub.extraMinutes})` : ''}</span>`;
-  }
   const endsAt = pupilExamEndsAt(a, sub);
+  if(endsAt == null){
+    if(!a.dueAt && !a.closedAt) return `<span class="monitor-time muted">Until you close it</span>`;
+    return `<span class="monitor-time muted">${a.state === 'closed' ? 'Closed' : '—'}${sub.extraMinutes ? ` (+${sub.extraMinutes} min)` : ''}</span>`;
+  }
   const remaining = endsAt - Date.now();
   return `<span class="monitor-time${remaining < 5 * 60000 ? ' warn' : ''}" data-ends-at="${endsAt}">${formatRemaining(remaining)}</span>`;
 }
@@ -3102,7 +3297,7 @@ function renderMonitorPanel(a){
         <button class="btn small outline" data-row-action="message">Message${sub.hasUnreadFromPupil ? ' •' : ''}</button>
       </td>
     `;
-    tr.querySelector('[data-row-action="review"]')?.addEventListener('click', ()=>showReview(a.id, p));
+    tr.querySelector('[data-row-action="review"]')?.addEventListener('click', ()=>{ state.reviewReturnTab = null; showReview(a.id, p); });
     tr.querySelector('[data-row-action="unlock"]')?.addEventListener('click', async (e)=>{
       e.target.disabled = true;
       try {
@@ -3140,9 +3335,15 @@ async function pollMonitorOnce(assignmentId){
     sub.startedAt = r.startedAt;
     sub.submittedAt = r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null;
     if(r.extraMinutes != null) sub.extraMinutes = r.extraMinutes;
+    sub.closesAt = r.closesAt || null;
     if(r.hasUnreadFromPupil != null) sub.hasUnreadFromPupil = !!r.hasUnreadFromPupil;
     if(r.locked != null){ sub.locked = !!r.locked; sub.lockReason = r.lockReason || ''; sub.lockCount = r.lockCount || 0; sub.resumeCode = r.resumeCode || null; }
   });
+  // The exam itself can change state while you watch (its time arrives, it ends, another teacher closes it).
+  const prevState = a.state;
+  Object.assign(a, {state: result.state || a.state, closedAt: result.closedAt || null, dueAt: result.dueAt || null,
+    opensAt: result.opensAt || a.opensAt, isHidden: !!result.isHidden});
+  if(a.state !== prevState){ renderExamBar(a); renderDeliverSummary(a); }
   updateNotifBell();
   const monitorVisible = !document.getElementById('detailPanel-monitor').classList.contains('hidden');
   if(monitorVisible) renderMonitorPanel(a);
@@ -3162,6 +3363,7 @@ function showAssignmentDetail(id){
   document.getElementById('detailTitle').textContent = a.title;
   document.getElementById('detailPrompt').textContent = a.prompt;
   switchDetailTab('monitor');
+  renderExamBar(a);
   renderDeliverSummary(a);
   renderMonitorPanel(a);
   startMonitorPolling(id);
@@ -3195,108 +3397,301 @@ function readableAnswer(item, value){
 }
 function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ---------------- teacher review: annotated source viewer + collapsible per-item answers ----------------
+// Pupils annotate a page rendered at PDF scale 1.2 (see renderPdfPage), and every highlight /
+// note is stored in those pixel coordinates. Here the page can be drawn at any zoom, so each
+// coordinate is multiplied by (zoom / ANNOTATION_SCALE) — that's what keeps annotations sitting
+// exactly on the text they belong to at any size. Canvases render at devicePixelRatio so text
+// stays sharp on high-DPI screens.
+const ANNOTATION_SCALE = 1.2;
+const reviewState = {doc:null, page:1, zoom:null, itemId:null, a:null, sub:null, pupil:null, renderGen:0};
+const MEDIA_TYPES = ['pdf','image','video'];
+const ANSWER_TYPE_NAMES = {long_answer:'Written answer', mcq_single:'Multiple choice', mcq_multiple:'Multiple choice (several)',
+  true_false:'True / false', fill_text:'Fill in the blank', table:'Table', pdf:'PDF', image:'Image', video:'Video'};
+
+function responseOf(sub, item){ const r = sub.responses || {}; return r[item.id] ?? r[String(item.id)]; }
+function isBlankHtml(html){ return !html || !String(html).replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim(); }
+function correctAnswerText(item){
+  const ca = item.correctAnswer || {};
+  if(item.type==='mcq_single' && ca.optionId != null){ const o=(item.options||[]).find(x=>x.id===ca.optionId); return o ? o.text : null; }
+  if(item.type==='mcq_multiple' && (ca.optionIds||[]).length){ return ca.optionIds.map(id=>((item.options||[]).find(x=>x.id===id)||{}).text || id).join(', '); }
+  if(item.type==='true_false' && ca.value != null) return ca.value ? 'True' : 'False';
+  if(item.type==='fill_text' && (ca.accepted||[]).length) return ca.accepted.join(' / ');
+  return null;
+}
+function annotationsFor(sub, itemId){ return (sub.annotations||[]).filter(an=>an.textId===itemId); }
+
 async function showReview(assignmentId, pupil, focusItemId){
+  stopMonitorPolling();
+  document.getElementById('backFromReview').innerHTML = state.reviewReturnTab === 'grade' ? '&larr; Back to grading' : '&larr; Back to exam';
   hideAll('#teacherView > div');
   document.getElementById('teacherReview').classList.remove('hidden');
+  state.currentAssignmentId = assignmentId;
   const a = state.assignments.find(x=>x.id===assignmentId);
   const sub = a.submissions[pupil];
-  document.getElementById('reviewHeading').textContent = `${a.title} — ${pupil}`;
-  document.getElementById('reviewMeta').textContent = `Submitted ${sub.submittedAt}`;
-  const responseSections = a.items.map(item=>{
-    const raw = (sub.responses || {})[item.id] ?? (sub.responses || {})[String(item.id)];
-    const isContentOnly = item.type === 'pdf' || item.type === 'image' || item.type === 'video';
-    const body = (isContentOnly || item.type === 'long_answer')
-      ? (raw || '<em>No response written.</em>')
-      : readableAnswer(item, raw);
-    return `<h3 style="font-size:14px">${isContentOnly ? 'Response' : 'Answer'} — ${item.label}</h3>${body}`;
-  }).join('<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0">');
-  document.getElementById('reviewResponse').innerHTML = `<h3 style="font-size:14px">Notepad (outline)</h3>${sub.outlineHtml || '<em>No notepad content.</em>'}<hr style="border:0;border-top:1px solid #d7dbe0;margin:18px 0">${responseSections}`;
+  Object.assign(reviewState, {a, sub, pupil, doc:null, page:1, itemId:null});
+  document.getElementById('reviewHeading').textContent = `${pupil} — ${a.title}`;
+  document.getElementById('reviewMeta').textContent = sub.status === 'submitted'
+    ? `Submitted ${sub.submittedAt || ''}` : 'Not submitted yet — showing their work so far.';
+  const chip = document.getElementById('reviewScoreChip');
+  chip.classList.toggle('hidden', sub.totalScore == null);
+  chip.textContent = sub.totalScore != null ? `${sub.totalScore} / ${sub.maxScore}${sub.published ? '' : ' · not released'}` : '';
+  document.getElementById('reviewToGradeBtn').onclick = ()=>{
+    showAssignmentDetail(a.id); switchDetailTab('grade');
+    const sel = document.getElementById('gradePupilSelect'); sel.value = pupil; renderGradeBody(a, pupil);
+  };
 
-  const refItems = a.items.filter(item=>['pdf','image','video'].includes(item.type));
-  const reviewPdfPane = document.getElementById('reviewPdfPane');
-  reviewPdfPane.classList.toggle('hidden', refItems.length === 0);
-  if(refItems.length === 0) return;
+  renderReviewSections(a, sub);
 
+  const refItems = a.items.filter(item=>MEDIA_TYPES.includes(item.type));
+  const layout = document.getElementById('reviewLayout');
+  layout.classList.toggle('no-viewer', refItems.length === 0);
+  document.getElementById('reviewPdfPane').classList.toggle('hidden', refItems.length === 0);
   const sel = document.getElementById('reviewTextSelect');
-  sel.innerHTML = refItems.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
-  sel.value = String(focusItemId && refItems.some(t=>t.id===focusItemId) ? focusItemId : refItems[0].id);
+  sel.innerHTML = refItems.map(t=>`<option value="${t.id}">${escapeHtml(t.label)}${annotationsFor(sub, t.id).length ? ` · ${annotationsFor(sub, t.id).length} annotation${annotationsFor(sub, t.id).length === 1 ? '' : 's'}` : ''}</option>`).join('');
+  sel.onchange = ()=>loadReviewSource(Number(sel.value));
 
-  let reviewTextId = Number(sel.value);
-  let reviewDoc = null, page = 1;
+  const focusItem = a.items.find(i=>i.id===focusItemId);
+  if(refItems.length){
+    const firstSource = focusItem && MEDIA_TYPES.includes(focusItem.type) ? focusItem.id : refItems[0].id;
+    await loadReviewSource(firstSource);
+  }
+  if(focusItem) focusReviewSection(focusItem.id);
+  else {
+    // Nothing specific asked for: open the first item so the page doesn't start as a wall of headers.
+    const first = document.querySelector('#reviewResponse .rv-sec[data-item-id]');
+    if(first) first.open = true;
+  }
+}
 
-  async function loadReviewDoc(){
-    const text = refItems.find(t=>t.id===reviewTextId);
-    if(text.type !== 'pdf'){
-      reviewDoc = null;
+function renderReviewSections(a, sub){
+  const scores = sub.itemScores || {};
+  let n = 0;
+  const sections = a.items.map(item=>{
+    n++;
+    const raw = responseOf(sub, item);
+    const isMedia = MEDIA_TYPES.includes(item.type);
+    const isHtml = isMedia || item.type === 'long_answer';
+    const blank = isHtml ? isBlankHtml(raw) : (raw == null || raw === '' || (typeof raw === 'object' && !Object.keys(raw).length));
+    const answerHtml = isHtml ? (blank ? '<em>No response written.</em>' : raw) : readableAnswer(item, raw);
+    const score = scores[String(item.id)] || {};
+    const anns = annotationsFor(sub, item.id);
+    const correct = correctAnswerText(item);
+    let chips = '';
+    if(score.score != null){
+      const full = Number(score.score) >= Number(item.points);
+      chips += `<span class="rv-chip ${full ? 'ok' : (Number(score.score) > 0 ? 'pts' : 'no')}">${score.score} / ${item.points}</span>`;
+    } else if(!(item.type === 'image' || item.type === 'video')) {
+      chips += `<span class="rv-chip ${blank ? 'blank' : 'pts'}">${blank ? 'No answer' : `${item.points} pt${item.points == 1 ? '' : 's'}`}</span>`;
+    }
+    if(anns.length) chips += `<span class="rv-chip notes">${anns.length} annotation${anns.length === 1 ? '' : 's'}</span>`;
+    const title = item.prompt ? item.prompt : item.label;
+    const annList = anns.length ? `<div class="rv-label">Annotations</div><div class="rv-ann-list">${anns.map((an, i)=>{
+        const isNote = an.type === 'image-note';
+        const text = isNote ? (an.text || '(empty note)') : (an.note || 'Highlight');
+        return `<button type="button" class="rv-ann" data-item="${item.id}" data-ann="${(sub.annotations||[]).indexOf(an)}">
+          <span class="sw ${isNote ? 'sw-note' : (an.color || 'y')}"></span><span>${escapeHtml(text)}</span><span class="pg">p. ${an.page}</span></button>`;
+      }).join('')}</div>` : '';
+    return `<details class="rv-sec" data-item-id="${item.id}">
+      <summary><span class="rv-num">${n}</span><span class="rv-sum-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>${chips}</summary>
+      <div class="rv-body">
+        ${item.prompt ? `<div class="rv-label">${escapeHtml(item.label)} · ${ANSWER_TYPE_NAMES[item.type] || ''}</div><div style="white-space:pre-wrap;">${escapeHtml(item.prompt)}</div>` : ''}
+        <div class="rv-label">${isMedia ? "Pupil's written response" : "Pupil's answer"}</div>
+        <div class="rv-answer">${answerHtml}</div>
+        ${correct ? `<div class="rv-label">Correct answer</div><div>${escapeHtml(correct)}</div>` : ''}
+        ${score.feedback ? `<div class="rv-label">Your feedback</div><div class="rv-feedback">${escapeHtml(score.feedback)}</div>` : ''}
+        ${annList}
+        ${isMedia ? `<button type="button" class="btn small outline rv-show-btn" data-show-item="${item.id}">Show this ${item.type === 'pdf' ? 'PDF' : item.type} in the viewer</button>` : ''}
+      </div>
+    </details>`;
+  }).join('');
+  const notepad = `<details class="rv-sec" data-notepad="1">
+      <summary><span class="rv-num">✎</span><span class="rv-sum-title">Notepad (outline)</span>${isBlankHtml(sub.outlineHtml) ? '<span class="rv-chip blank">Empty</span>' : ''}</summary>
+      <div class="rv-body"><div class="rv-answer">${isBlankHtml(sub.outlineHtml) ? '<em>No notepad content.</em>' : sub.outlineHtml}</div></div>
+    </details>`;
+  const box = document.getElementById('reviewResponse');
+  box.innerHTML = sections + notepad;
+  box.querySelectorAll('.rv-sec[data-item-id]').forEach(sec=>{
+    sec.addEventListener('toggle', ()=>{
+      const item = a.items.find(i=>String(i.id)===sec.dataset.itemId);
+      if(sec.open && item && MEDIA_TYPES.includes(item.type) && reviewState.itemId !== item.id) loadReviewSource(item.id);
+    });
+  });
+  box.querySelectorAll('[data-show-item]').forEach(b=>b.addEventListener('click', ()=>loadReviewSource(Number(b.dataset.showItem))));
+  box.querySelectorAll('.rv-ann').forEach(b=>b.addEventListener('click', async ()=>{
+    const an = (sub.annotations||[])[Number(b.dataset.ann)];
+    if(!an) return;
+    await loadReviewSource(Number(b.dataset.item), an.page);
+    document.getElementById('reviewShowAnnotations').checked = true;
+    document.getElementById('reviewStage').classList.remove('no-annotations');
+    flashAnnotation(an);
+  }));
+}
+
+function focusReviewSection(itemId){
+  document.querySelectorAll('#reviewResponse .rv-sec').forEach(sec=>sec.classList.remove('focus'));
+  const sec = document.querySelector(`#reviewResponse .rv-sec[data-item-id="${itemId}"]`);
+  if(!sec) return;
+  sec.open = true;
+  sec.classList.add('focus');
+  setTimeout(()=>sec.scrollIntoView({behavior:'smooth', block:'start'}), 60);
+}
+
+async function loadReviewSource(itemId, page){
+  const a = reviewState.a; if(!a) return;
+  const item = a.items.find(i=>i.id===itemId);
+  if(!item) return;
+  const sel = document.getElementById('reviewTextSelect');
+  sel.value = String(itemId);
+  const stage = document.getElementById('reviewStage');
+  if(reviewState.itemId !== itemId){
+    reviewState.itemId = itemId;
+    reviewState.doc = null;
+    reviewState.page = page || 1;
+    if(item.type !== 'pdf'){
       document.getElementById('reviewPageLabel').textContent = '';
-      const stage = document.getElementById('reviewStage');
       stage.style.width = ''; stage.style.height = '';
-      if(text.type === 'image'){
-        stage.innerHTML = `<img src="${text.imageUrl}" style="max-width:100%;max-height:70vh;border-radius:10px;">`;
-      } else {
-        stage.innerHTML = `<video src="${text.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;"></video>`;
-      }
+      stage.innerHTML = item.type === 'image'
+        ? `<img src="${SCHOOL_PREFIX}${item.imageUrl}" style="display:block;max-width:100%;border-radius:8px;" alt="${escapeHtml(item.label)}">`
+        : `<video src="${SCHOOL_PREFIX}${item.videoUrl}" controls style="display:block;max-width:100%;border-radius:8px;"></video>`;
       return;
     }
-    reviewDoc = await pdfjsLib.getDocument(text.pdfUrl).promise;
-    page = 1;
-    renderReviewPage();
+    stage.innerHTML = '<div class="sub" style="padding:30px 40px;">Loading PDF…</div>';
+    stage.style.width = ''; stage.style.height = '';
+    try { reviewState.doc = await pdfjsLib.getDocument(SCHOOL_PREFIX + item.pdfUrl).promise; }
+    catch(e){
+      // Ask the server why — most often the file isn't on this server (uploaded on another copy of the app).
+      let why = "This PDF couldn't be opened.";
+      try {
+        const r = await fetch(SCHOOL_PREFIX + item.pdfUrl, {credentials:'same-origin'});
+        if(!r.ok){ const j = await r.json().catch(()=>null); if(j && j.detail) why = j.detail; }
+      } catch(_) {}
+      stage.style.width = '420px'; stage.style.height = '';
+      stage.innerHTML = `<div style="padding:30px 32px;"><div style="font-weight:700;color:var(--danger);margin-bottom:6px;">PDF unavailable</div>
+        <div class="sub" style="line-height:1.5;">${escapeHtml(why)}</div>
+        <div class="sub" style="line-height:1.5;margin-top:8px;">The pupil's annotations are still listed under this item on the right.</div></div>`;
+      return;
+    }
+    if(reviewState.itemId !== itemId) return;
+  } else if(page) {
+    reviewState.page = page;
   }
-  async function renderReviewPage(){
-    document.getElementById('reviewPageLabel').textContent = `Page ${page} of ${reviewDoc.numPages}`;
-    const stage = document.getElementById('reviewStage');
-    stage.innerHTML = '';
-    const pg = await reviewDoc.getPage(page);
-    const viewport = pg.getViewport({scale:1.2});
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    stage.style.width = viewport.width+'px'; stage.style.height = viewport.height+'px';
-    await pg.render({canvasContext:canvas.getContext('2d'), viewport}).promise;
-    stage.appendChild(canvas);
-    const overlay = document.createElement('div');
-    overlay.className='note-layer'; overlay.style.width=viewport.width+'px'; overlay.style.height=viewport.height+'px';
-    stage.appendChild(overlay);
-    sub.annotations.filter(an=>an.textId===reviewTextId && an.page===page).forEach(an=>{
-      if(an.type==='highlight'){
-        (an.rects||[]).forEach(r=>{
-          const box = document.createElement('div');
-          box.className = `hl-box ${an.color}`;
-          box.style.left=r.x+'px'; box.style.top=r.y+'px'; box.style.width=r.w+'px'; box.style.height=r.h+'px';
-          overlay.appendChild(box);
-        });
-        if(an.note){
-          const lastRect = (an.rects || [])[an.rects.length-1] || {x:0,y:0,w:0,h:0};
-          const tag = document.createElement('div');
-          tag.className = 'hl-note-pop readonly-note';
-          tag.style.left = lastRect.x+'px'; tag.style.top = (lastRect.y+lastRect.h+4)+'px';
-          tag.innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Note on highlight</div><div style="font-size:12px;">${an.note.replace(/</g,'&lt;')}</div>`;
-          overlay.appendChild(tag);
-        }
-      } else if(an.type==='image-note'){
-        if(an.scope==='full'){
-          const box = document.createElement('div');
-          box.className = `hl-box ${an.color || 'y'}`;
-          box.style.left=an.imgX+'px'; box.style.top=an.imgY+'px'; box.style.width=an.imgW+'px'; box.style.height=an.imgH+'px';
-          overlay.appendChild(box);
-        }
-        const note = document.createElement('div');
-        note.className='note readonly-note'; if(an.minimized) note.classList.add('minimized');
-        note.style.left=an.x+'px'; note.style.top=an.y+'px';
-        note.innerHTML = `<div class="note-head"></div><div style="padding:6px;font-size:12.5px;">${(an.text||'').replace(/</g,'&lt;')}</div>`;
-        overlay.appendChild(note);
-      }
-    });
-  }
-  document.getElementById('reviewPrevPage').onclick = ()=>{ if(reviewDoc && page>1){page--; renderReviewPage();} };
-  document.getElementById('reviewNextPage').onclick = ()=>{ if(reviewDoc && page<reviewDoc.numPages){page++; renderReviewPage();} };
-  sel.onchange = ()=>{ reviewTextId = Number(sel.value); loadReviewDoc(); };
-  loadReviewDoc();
+  await renderReviewPage();
 }
+
+async function fitWidthZoom(pg){
+  const scroll = document.getElementById('reviewScroll');
+  const base = pg.getViewport({scale:1});
+  return Math.max(0.5, Math.min(3, (scroll.clientWidth - 40) / base.width));
+}
+
+async function renderReviewPage(){
+  const doc = reviewState.doc; if(!doc) return;
+  const gen = ++reviewState.renderGen;
+  const sub = reviewState.sub;
+  reviewState.page = Math.min(Math.max(1, reviewState.page), doc.numPages);
+  document.getElementById('reviewPageLabel').textContent = `Page ${reviewState.page} of ${doc.numPages}`;
+  const pg = await doc.getPage(reviewState.page);
+  if(gen !== reviewState.renderGen) return;
+  if(reviewState.zoom == null) reviewState.zoom = await fitWidthZoom(pg);
+  const zoom = reviewState.zoom;
+  document.getElementById('reviewZoomLabel').textContent = Math.round(zoom / ANNOTATION_SCALE * 100) + '%';
+  const viewport = pg.getViewport({scale: zoom});
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width * dpr); canvas.height = Math.floor(viewport.height * dpr);
+  canvas.style.width = viewport.width + 'px'; canvas.style.height = viewport.height + 'px';
+  const ctx = canvas.getContext('2d');
+  await pg.render({canvasContext: ctx, viewport, transform: dpr !== 1 ? [dpr,0,0,dpr,0,0] : null}).promise;
+  if(gen !== reviewState.renderGen) return;
+  const stage = document.getElementById('reviewStage');
+  stage.innerHTML = '';
+  stage.classList.toggle('no-annotations', !document.getElementById('reviewShowAnnotations').checked);
+  stage.style.width = viewport.width + 'px'; stage.style.height = viewport.height + 'px';
+  stage.appendChild(canvas);
+  const f = zoom / ANNOTATION_SCALE;
+  const hl = document.createElement('div'); hl.className = 'hl-layer'; hl.style.width = viewport.width+'px'; hl.style.height = viewport.height+'px';
+  const overlay = document.createElement('div'); overlay.className = 'note-layer'; overlay.style.width = viewport.width+'px'; overlay.style.height = viewport.height+'px';
+  stage.appendChild(hl); stage.appendChild(overlay);
+  const px = v => (Number(v) || 0) * f + 'px';
+  (sub.annotations||[]).forEach((an, idx)=>{
+    if(an.textId !== reviewState.itemId || an.page !== reviewState.page) return;
+    if(an.type === 'highlight'){
+      (an.rects||[]).forEach(r=>{
+        const box = document.createElement('div');
+        box.className = `hl-box ${an.color || 'y'}`; box.dataset.ann = idx;
+        box.style.left = px(r.x); box.style.top = px(r.y); box.style.width = px(r.w); box.style.height = px(r.h);
+        hl.appendChild(box);
+      });
+      if(an.note){
+        const last = (an.rects||[])[an.rects.length-1] || {x:0,y:0,w:0,h:0};
+        const tag = document.createElement('div');
+        tag.className = 'rv-hl-note'; tag.dataset.ann = idx;
+        tag.style.left = px(last.x); tag.style.top = `calc(${px(last.y + last.h)} + 4px)`;
+        tag.innerHTML = `<div class="k">Note</div>${escapeHtml(an.note)}`;
+        overlay.appendChild(tag);
+      }
+    } else if(an.type === 'image-note'){
+      if(an.scope === 'full'){
+        const box = document.createElement('div');
+        box.className = `hl-box ${an.color || 'y'}`; box.dataset.ann = idx;
+        box.style.left = px(an.imgX); box.style.top = px(an.imgY); box.style.width = px(an.imgW); box.style.height = px(an.imgH);
+        hl.appendChild(box);
+      }
+      // Sticky notes keep a readable fixed size; only their position follows the zoom.
+      const note = document.createElement('div');
+      note.className = 'note readonly-note'; note.dataset.ann = idx;
+      note.style.left = px(an.x); note.style.top = px(an.y); note.style.minHeight = '0';
+      note.innerHTML = `<div class="note-head"></div><div class="note-body">${escapeHtml(an.text || '(empty note)')}</div>`;
+      overlay.appendChild(note);
+    }
+  });
+}
+
+function flashAnnotation(an){
+  const idx = (reviewState.sub.annotations||[]).indexOf(an);
+  const els = document.querySelectorAll(`#reviewStage [data-ann="${idx}"]`);
+  if(!els.length) return;
+  els[0].scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+  els.forEach(el=>{ el.classList.remove('rv-flash'); void el.offsetWidth; el.classList.add('rv-flash'); });
+}
+
+document.getElementById('reviewPrevPage').addEventListener('click', ()=>{ if(reviewState.doc && reviewState.page > 1){ reviewState.page--; renderReviewPage(); document.getElementById('reviewScroll').scrollTop = 0; } });
+document.getElementById('reviewNextPage').addEventListener('click', ()=>{ if(reviewState.doc && reviewState.page < reviewState.doc.numPages){ reviewState.page++; renderReviewPage(); document.getElementById('reviewScroll').scrollTop = 0; } });
+document.getElementById('reviewZoomIn').addEventListener('click', ()=>{ reviewState.zoom = Math.min(4, (reviewState.zoom || ANNOTATION_SCALE) * 1.2); renderReviewPage(); });
+document.getElementById('reviewZoomOut').addEventListener('click', ()=>{ reviewState.zoom = Math.max(0.4, (reviewState.zoom || ANNOTATION_SCALE) / 1.2); renderReviewPage(); });
+document.getElementById('reviewZoomFit').addEventListener('click', ()=>{ reviewState.zoom = null; renderReviewPage(); });
+document.getElementById('reviewShowAnnotations').addEventListener('change', (e)=>{
+  document.getElementById('reviewStage').classList.toggle('no-annotations', !e.target.checked);
+});
+document.getElementById('reviewExpandViewer').addEventListener('click', ()=>{
+  const layout = document.getElementById('reviewLayout');
+  layout.classList.toggle('wide');
+  document.getElementById('reviewExpandViewer').innerHTML = layout.classList.contains('wide') ? '&#x2921;' : '&#x2922;';
+  reviewState.zoom = null; setTimeout(renderReviewPage, 30);
+});
+document.getElementById('reviewExpandAll').addEventListener('click', ()=>document.querySelectorAll('#reviewResponse .rv-sec').forEach(d=>d.open = true));
+document.getElementById('reviewCollapseAll').addEventListener('click', ()=>document.querySelectorAll('#reviewResponse .rv-sec').forEach(d=>d.open = false));
+document.getElementById('reviewScroll').addEventListener('keydown', (e)=>{
+  if(e.key === 'ArrowRight') document.getElementById('reviewNextPage').click();
+  if(e.key === 'ArrowLeft') document.getElementById('reviewPrevPage').click();
+});
+let reviewResizeTimer = null;
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('teacherReview').classList.contains('hidden')) return;
+  clearTimeout(reviewResizeTimer);
+  reviewResizeTimer = setTimeout(()=>{ reviewState.zoom = null; renderReviewPage(); }, 200);
+});
 document.getElementById('backFromReview').addEventListener('click', ()=>{
-  const returnTab = state.reviewReturnTab;
-  state.reviewReturnTab = null;
+  const returnTab = state.reviewReturnTab, returnPupil = state.reviewReturnPupil;
+  state.reviewReturnTab = null; state.reviewReturnPupil = null;
   showAssignmentDetail(state.currentAssignmentId);
   if(returnTab) switchDetailTab(returnTab);
+  if(returnTab === 'grade' && returnPupil){
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    const sel = document.getElementById('gradePupilSelect');
+    if(a && a.assignedTo.includes(returnPupil)){ sel.value = returnPupil; renderGradeBody(a, returnPupil); }
+  }
 });
 
 // ================= STUDENT SIDE =================
@@ -3343,7 +3738,7 @@ function showStudentTaskList(){
     const sub = a.submissions[state.currentPupil];
     const scheduledOpens = a.opensAt ? new Date(a.opensAt).getTime() : 0;
     const overrideOpens = sub.opensOverride ? new Date(sub.opensOverride).getTime() : null;
-    const now = Date.now(), opens = overrideOpens != null ? Math.min(scheduledOpens, overrideOpens) : scheduledOpens, closes = a.due ? new Date(a.due).getTime() : Infinity;
+    const now = Date.now(), opens = overrideOpens != null ? Math.min(scheduledOpens, overrideOpens) : scheduledOpens, closes = sub.closesAt ? new Date(sub.closesAt).getTime() : Infinity;
     const locked = now < opens || now > closes;
     const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
     const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
@@ -3352,11 +3747,13 @@ function showStudentTaskList(){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${a.title}${unreadDot}</td>
-      <td>${a.due || '—'}</td>
+      <td>${sub.closesAt ? formatManila(sub.closesAt) : 'When your teacher closes it'}</td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
-      <td>${locked ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small${sub.status==='submitted' ? ' outline' : ''}">${sub.status==='submitted' ? 'View submission' : (sub.status==='progress' ? 'Continue' : 'Start')}</button>`}</td>
+      <td style="white-space:nowrap;">${(locked && sub.status !== 'submitted') ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small${sub.status==='submitted' ? ' outline' : ''}" data-open-task>${sub.status==='submitted' ? 'View submission' : (sub.status==='progress' ? 'Continue' : 'Start')}</button>`}
+        ${sub.published && sub.totalScore != null ? `<button class="btn small" data-view-grade style="margin-left:6px;">View grade · ${sub.totalScore}/${sub.maxScore}</button>` : ''}</td>
     `;
-    tr.querySelector('button')?.addEventListener('click', ()=>openStudentTask(a.id));
+    tr.querySelector('[data-open-task]')?.addEventListener('click', ()=>openStudentTask(a.id));
+    tr.querySelector('[data-view-grade]')?.addEventListener('click', ()=>openGradeSummary(a.id));
     tbody.appendChild(tr);
   });
 }
@@ -3470,7 +3867,7 @@ function gateWithSeb(a){
       const again = await checkSebWithServer();
       if((again && again.ok) || (!again && sebDetected())){ cleanup(); resolve(true); }
       else if(again && again.sebHeaders){ msgEl.textContent = "Safe Exam Browser is running, but with different settings from this site's lockdown config. Quit SEB and reopen using a freshly downloaded lockdown file from this site."; }
-      else { msgEl.textContent = "This browser tab still doesn't look like Safe Exam Browser. If a separate Safe Exam Browser window just opened, switch to it and open the assignment from there instead — this tab isn't it. Otherwise, install SEB or use the manual download above, then try again."; }
+      else { msgEl.textContent = "This browser tab still doesn't look like Safe Exam Browser. If a separate Safe Exam Browser window just opened, switch to it and open the exam from there instead — this tab isn't it. Otherwise, install SEB or use the manual download above, then try again."; }
     }
     function onCancel(){ cleanup(); resolve(false); }
     const retryBtn = document.getElementById('sebGateRetryBtn');
@@ -3506,6 +3903,7 @@ async function ensureSubmissionStarted(a, sub){
     try { code = JSON.parse(error.message).code; } catch(_) { /* not JSON */ }
     if(code === 'seb_required') return {ok:false, sebRequired:true, detail: apiErrorMessage(error)};
     if(code === 'assignment_closed') return {ok:false, closed:true};
+    if(code === 'exam_not_open') return {ok:false, closed:true, notOpen:true};
     return {ok:true}; // Timer just won't be persisted if this fails for any other reason; exam still usable.
   }
 }
@@ -3517,8 +3915,14 @@ function setupExamTimer(a, sub, readOnly){
   const timerEl = document.getElementById('examTimer');
   if(sub.status === 'submitted'){ timerEl.textContent = 'Submitted'; timerEl.classList.remove('warn'); return; }
   if(readOnly){ timerEl.textContent = 'Preview'; timerEl.classList.remove('warn'); return; }
-  if(!sub.startedAt || !a.durationMinutes){ timerEl.textContent = '--:--'; timerEl.classList.remove('warn'); return; }
-  const endTime = new Date(sub.startedAt).getTime() + (a.durationMinutes + (sub.extraMinutes||0))*60000;
+  // No duration any more: the countdown runs to the exam's end time (plus this pupil's extra
+  // time). With no end time set, the exam stays open until the teacher closes it.
+  const endTime = sub.closesAt ? new Date(sub.closesAt).getTime() : null;
+  if(!endTime || isNaN(endTime)){
+    timerEl.textContent = 'No time limit'; timerEl.title = 'Your teacher will close this exam'; timerEl.classList.remove('warn');
+    return;
+  }
+  timerEl.title = 'Time left until this exam closes';
   function tick(){
     const remaining = endTime - Date.now();
     if(remaining <= 0){
@@ -3536,22 +3940,88 @@ function setupExamTimer(a, sub, readOnly){
   tick();
   state.examTimerInterval = setInterval(tick, 1000);
 }
-async function handleExamExpired(a, sub){
+
+// ---------------- autosave (replaces "Save draft" — these are live exams) ----------------
+// Every few seconds, if anything changed, the current answers/annotations/notepad are saved
+// quietly. If the teacher closes the exam or time runs out, the last autosave is what gets
+// handed in even if this page never manages to send its final submit.
+function setAutosaveStatus(text, kind){
+  const el = document.getElementById('autosaveStatus');
+  if(!el) return;
+  el.textContent = text; el.className = 'autosave-status' + (kind ? ' ' + kind : '');
+}
+function autosaveApplies(){
+  if(document.body.dataset.role !== 'pupil' || state.examReadOnly || state.examExpiredHandled || state.examLocked) return false;
+  if(document.getElementById('studentTask').classList.contains('hidden')) return false;
+  const sub = currentExamSub();
+  return !!sub && sub.status !== 'submitted';
+}
+async function autosaveNow(){
+  if(!autosaveApplies() || state.autosaving) return;
+  const {sub, payload} = currentSubmissionPayload();
+  const body = JSON.stringify(payload);
+  if(body === state.lastSavedPayload) return;
+  state.autosaving = true;
+  try {
+    await request(`/api/submissions/${sub.recipientId}/save/`, {method:'POST', headers:{'Content-Type':'application/json'}, body});
+    state.lastSavedPayload = body;
+    state.autosaveFailures = 0;
+    setAutosaveStatus('Saved ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}), 'ok');
+  } catch(error) {
+    let code = null; try { code = JSON.parse(error.message).code; } catch(_) {}
+    if(code === 'assignment_closed'){ checkExamStatus(); }
+    else {
+      state.autosaveFailures = (state.autosaveFailures || 0) + 1;
+      if(state.autosaveFailures >= 2) setAutosaveStatus("Couldn't save — check your connection. Retrying…", 'error');
+    }
+  } finally { state.autosaving = false; }
+}
+setInterval(autosaveNow, 8000);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) autosaveNow(); });
+
+// While a pupil is in a live exam, ask the server every 10 seconds whether it's still open —
+// that's how a teacher's "Close exam now" (or a change to the end time) reaches the pupil.
+async function checkExamStatus(){
+  if(document.body.dataset.role !== 'pupil' || state.examReadOnly) return;
+  if(document.getElementById('studentTask').classList.contains('hidden')) return;
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a && a.submissions[state.currentPupil];
+  if(!sub || sub.status === 'submitted' || state.examExpiredHandled) return;
+  let r;
+  try { r = await request(`/api/submissions/${sub.recipientId}/lock-status/`); } catch(_) { return; }
+  if(r.status === 'submitted'){ sub.status = 'submitted'; openStudentTask(a.id); return; }
+  if(r.closed){ handleExamExpired(a, sub, r.closedByTeacher ? 'teacher' : 'time'); return; }
+  if((r.closesAt || null) !== (sub.closesAt || null)){
+    sub.closesAt = r.closesAt || null;
+    setupExamTimer(a, sub, false);
+    showToast(sub.closesAt ? `The end time for this exam is now ${formatManila(sub.closesAt)}.` : 'This exam no longer has an end time — your teacher will close it.', 'info', 6000);
+  }
+}
+setInterval(checkExamStatus, 10000);
+async function handleExamExpired(a, sub, why){
   if(state.examExpiredHandled || sub.status==='submitted') return;
   state.examExpiredHandled = true;
+  clearExamTimer();
+  const timerEl = document.getElementById('examTimer');
+  timerEl.textContent = why === 'teacher' ? 'Closed' : "Time's up"; timerEl.classList.add('warn');
+  if(state.examLocked){ hideExamLock(); state.examExpiredHandled = true; }
   document.querySelectorAll('#responseEditables .editable').forEach(ed=>{ ed.contentEditable = false; });
   const notepadEl = document.getElementById('notepadEditable');
   if(notepadEl) notepadEl.contentEditable = false;
-  showToast("Time's up! Your work is being submitted automatically.", 'info', 6000);
+  showToast(why === 'teacher' ? 'Your teacher has closed this exam. Your work is being handed in automatically.'
+    : "Time's up! Your work is being handed in automatically.", 'info', 6000);
   try {
     const {payload} = currentSubmissionPayload();
     const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
-    document.getElementById('btnSaveDraft').style.display = 'none';
     document.getElementById('btnSubmit').textContent = 'Submitted ✓';
     document.getElementById('btnSubmit').disabled = true;
+    setAutosaveStatus('Handed in', 'ok');
+    if(document.fullscreenElement && document.exitFullscreen){ state.examWasFullscreen = false; try { await document.exitFullscreen(); } catch(_) {} }
   } catch(error) {
-    showToast("Time's up, but your work couldn't be submitted automatically: " + apiErrorMessage(error) + " Please click Submit.", 'error', 12000);
+    // Past the grace period the server hands in the last autosave itself — nothing for the pupil to do.
+    document.getElementById('btnSubmit').disabled = true;
+    setAutosaveStatus('Exam closed — your last saved work was handed in.', '');
   }
 }
 
@@ -3732,15 +4202,50 @@ function switchResponseTab(textId){
 function renderTaskGradeBanner(sub){
   const banner = document.getElementById('taskGradeBanner');
   if(!sub.published || sub.totalScore == null){ banner.classList.add('hidden'); banner.innerHTML = ''; return; }
-  const itemScores = sub.itemScores || {};
-  const feedbackRows = Object.entries(itemScores)
-    .filter(([, v])=>v && v.feedback)
-    .map(([, v])=>`<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(v.feedback)}</div>`).join('');
-  banner.innerHTML = `<div class="score">${sub.totalScore} / ${sub.maxScore}</div>
-    <div class="sub" style="margin:2px 0 0;">Your grade for this assignment${sub.gradedAt ? ' · graded ' + new Date(sub.gradedAt).toLocaleString() : ''}</div>
-    ${feedbackRows}`;
+  banner.innerHTML = `<div><div class="score">${sub.totalScore} / ${sub.maxScore}</div>
+    <div class="sub" style="margin:2px 0 0;">Your grade for this exam${sub.gradedAt ? ' · graded ' + new Date(sub.gradedAt).toLocaleString() : ''}</div></div>
+    <button type="button" class="btn small" id="bannerViewGradeBtn">View grade &amp; feedback</button>`;
   banner.classList.remove('hidden');
+  document.getElementById('bannerViewGradeBtn').onclick = ()=>openGradeSummary(state.currentAssignmentId);
 }
+
+// ---------------- pupil: "View grade" — total plus score and feedback item by item ----------------
+function openGradeSummary(assignmentId){
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a && a.submissions[state.currentPupil];
+  if(!a || !sub || !sub.published || sub.totalScore == null){
+    showToast("This grade hasn't been released yet.", 'info'); return;
+  }
+  const scores = sub.itemScores || {};
+  const pct = sub.maxScore ? Math.round(sub.totalScore / sub.maxScore * 100) : null;
+  document.getElementById('gradeSummaryTitle').textContent = a.title;
+  document.getElementById('gradeSummaryMeta').textContent = `Graded${sub.gradedAt ? ' ' + new Date(sub.gradedAt).toLocaleString() : ''}${a.teacherName ? ' by ' + a.teacherName : ''}`;
+  document.getElementById('gradeSummaryTotal').innerHTML = `<div class="n">${sub.totalScore} / ${sub.maxScore}</div>${pct != null ? `<div class="p">${pct}%</div>` : ''}`;
+  let n = 0;
+  const graded = a.items.filter(item=>scores[String(item.id)] && (scores[String(item.id)].score != null || scores[String(item.id)].feedback));
+  const withFeedback = graded.filter(item=>scores[String(item.id)].feedback).length;
+  document.getElementById('gradeSummaryOverall').innerHTML = `<div class="gs-overall">${graded.length} item${graded.length === 1 ? '' : 's'} marked · ${withFeedback ? `${withFeedback} with feedback from your teacher` : 'no written feedback this time'}.</div>`;
+  document.getElementById('gradeSummaryItems').innerHTML = a.items.map(item=>{
+    const sc = scores[String(item.id)];
+    if(!sc || (sc.score == null && !sc.feedback)) return '';
+    n++;
+    const max = sc.maxScore ?? item.points;
+    const cls = sc.score == null ? '' : (Number(sc.score) >= Number(max) ? 'full' : (Number(sc.score) === 0 ? 'zero' : ''));
+    const title = item.prompt || item.label;
+    return `<div class="gs-item"><div class="gs-item-head"><span class="rv-num">${n}</span><span class="t">${escapeHtml(title)}</span>
+      ${sc.score != null ? `<span class="s ${cls}">${sc.score} / ${max}</span>` : ''}</div>
+      <div class="gs-fb${sc.feedback ? '' : ' none'}">${sc.feedback ? escapeHtml(sc.feedback) : 'No feedback for this item.'}</div></div>`;
+  }).join('') || '<p class="sub">Your teacher released your total without item-by-item marks.</p>';
+  document.getElementById('gradeSummaryBackdrop').classList.remove('hidden');
+  document.getElementById('gradeSummaryOpenWork').classList.toggle('hidden',
+    !document.getElementById('studentTask').classList.contains('hidden') && state.currentAssignmentId === assignmentId);
+  document.getElementById('gradeSummaryOpenWork').onclick = ()=>{ document.getElementById('gradeSummaryBackdrop').classList.add('hidden'); openStudentTask(assignmentId); };
+  if(document.body.dataset.role === 'pupil'){
+    request(`/api/submissions/${sub.recipientId}/grade-seen/`, {method:'POST'})
+      .then(()=>window.ExamHubNotify && window.ExamHubNotify.refresh()).catch(()=>{});
+  }
+}
+document.getElementById('gradeSummaryClose').addEventListener('click', ()=>document.getElementById('gradeSummaryBackdrop').classList.add('hidden'));
 document.getElementById('openChatFromTaskBtn').addEventListener('click', ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   const sub = a && a.submissions[state.currentPupil];
@@ -3767,8 +4272,15 @@ async function openStudentTask(assignmentId){
     const ok = await gateWithJoinCode(gateAssignment, gateSub);
     if(!ok) return; // pupil cancelled, or never entered a correct code — stay on the task list
   }
-  if(document.body.dataset.role==='pupil' && document.documentElement.requestFullscreen && !document.fullscreenElement){
+  // Only a live attempt follows the delivery mode. Once submitted, the pupil is just reading
+  // their own work back — normal browser, no fullscreen, no exit lock, no copy guard.
+  const viewingSubmitted = gateSub.status === 'submitted';
+  if(isRealPupilView && !viewingSubmitted && document.documentElement.requestFullscreen && !document.fullscreenElement){
     try { await document.documentElement.requestFullscreen(); } catch(_) { /* A browser may require a separate click. */ }
+  }
+  if(viewingSubmitted && document.fullscreenElement && document.exitFullscreen){
+    state.examWasFullscreen = false;
+    try { await document.exitFullscreen(); } catch(_) {}
   }
   state.currentAssignmentId = assignmentId;
   state.examExpiredHandled = false;
@@ -3790,13 +4302,16 @@ async function openStudentTask(assignmentId){
   document.getElementById('openChatFromTaskDot').classList.toggle('hidden', !sub.hasUnreadFromTeacher);
   document.getElementById('openCalculatorBtn').classList.toggle('hidden', !a.allowCalculator);
   renderTaskGradeBanner(sub);
+  document.getElementById('submittedNotice').classList.toggle('hidden', !(document.body.dataset.role === 'pupil' && sub.status === 'submitted'));
   document.getElementById('previewNotice').classList.toggle('hidden',
     !(document.body.dataset.role !== 'pupil' && sub.status !== 'submitted'));
   document.getElementById('calculatorModal').classList.add('hidden');
   buildResponseTabs(a, sub);
 
   const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
-  document.getElementById('btnSaveDraft').style.display = readOnly ? 'none' : 'inline-block';
+  state.examReadOnly = readOnly;
+  state.lastSavedPayload = null;
+  setAutosaveStatus(readOnly ? '' : 'Your work saves automatically as you go.', '');
   document.getElementById('btnSubmit').textContent = sub.status === 'submitted' ? 'Submitted ✓'
     : (readOnly ? 'Submit (disabled in preview)' : 'Submit');
   document.getElementById('btnSubmit').disabled = readOnly;
@@ -3821,6 +4336,7 @@ async function openStudentTask(assignmentId){
   }
   if(!startResult.ok && startResult.closed){
     showStudentTaskList();
+    if(startResult.notOpen){ showToast("This exam isn't open yet.", 'info'); return; }
     showAssignmentClosedNotice();
     return;
   }
@@ -3877,7 +4393,7 @@ async function buildResourcesPanel(a, sub){
       group.innerHTML = `<summary class="resource-group-label">${item.label}</summary>`;
       if(item.type === 'pdf'){
         try {
-          const doc = await pdfjsLib.getDocument(item.pdfUrl).promise;
+          const doc = await pdfjsLib.getDocument(SCHOOL_PREFIX + item.pdfUrl).promise;
           state.textDocs[item.id] = doc;
           for(let p=1; p<=doc.numPages; p++){
             const thumb = document.createElement('div');
@@ -3965,9 +4481,9 @@ function renderMediaItem(item){
   if(!item){ body.innerHTML = ''; return; }
   const safeLabel = (item.label || '').replace(/"/g,'&quot;');
   if(item.type === 'image'){
-    body.innerHTML = `<img src="${item.imageUrl}" alt="${safeLabel}" style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;">`;
+    body.innerHTML = `<img src="${SCHOOL_PREFIX}${item.imageUrl}" alt="${safeLabel}" style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;">`;
   } else if(item.type === 'video'){
-    body.innerHTML = `<video src="${item.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;"></video>`;
+    body.innerHTML = `<video src="${SCHOOL_PREFIX}${item.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;"></video>`;
   }
 }
 
@@ -4333,6 +4849,8 @@ function tryCreateHighlightFromSelection(textLayerDiv, sub){
   const container = document.getElementById('studentTask');
   function securityActive(){
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    const sub = a && a.submissions[state.currentPupil];
+    if(sub && sub.status === 'submitted') return false;  // reviewing submitted work: no copy guard
     return !!a && (a.deliveryMode==='browser_secure' || a.deliveryMode==='lockdown');
   }
   container.addEventListener('contextmenu', (e)=>{ if(securityActive()) e.preventDefault(); });
@@ -4612,12 +5130,6 @@ wireRichToolbar(document.getElementById('responseToolbar'), ()=>{
 });
 wireRichToolbar(document.getElementById('notepadToolbar'), ()=>document.getElementById('notepadEditable'));
 
-document.getElementById('btnSaveDraft').addEventListener('click', async ()=>{
-  const {sub,payload} = currentSubmissionPayload();
-  try { await request(`/api/submissions/${sub.recipientId}/save/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-    showToast('Draft saved. You can come back and keep working any time before you submit.', 'success'); showStudentTaskList();
-  } catch(error) { showToast(apiErrorMessage(error), 'error'); }
-});
 // Which items still have no answer — shown in the submit confirmation so pupils don't hand in
 // by accident with questions left blank. Image/video items are reference material with nothing
 // to answer, so they're not counted.
@@ -4656,7 +5168,9 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
       showToast('Submitted! Your teacher has been notified. Safe Exam Browser will close in a moment.', 'success', 3000);
       setTimeout(()=>{ location.href = '/?sebquit=1'; }, 2200);
     } else {
-      showToast('Submitted! Your teacher has been notified.', 'success'); showStudentTaskList();
+      showToast('Submitted! Your teacher has been notified.', 'success');
+      if(document.fullscreenElement && document.exitFullscreen){ state.examWasFullscreen = false; try { await document.exitFullscreen(); } catch(_) {} }
+      showStudentTaskList();
     }
   } catch(error) { showToast(apiErrorMessage(error), 'error'); }
 });
@@ -4670,15 +5184,31 @@ if(new URLSearchParams(location.search).get('sebquit') === '1'){
 } else {
 // Arriving in SEB via a one-time launch link lands on /?open=<assignmentId> already signed
 // in — remember which paper to open straight away, and tidy the URL.
-const openParam = Number(new URLSearchParams(location.search).get('open'));
-if(openParam){
+const initParams = new URLSearchParams(location.search);
+const openParam = Number(initParams.get('open'));
+const openTabParam = initParams.get('tab');
+const openChatParam = Number(initParams.get('chat'));
+const openGradeParam = Number(initParams.get('grade'));
+if(openParam && document.body.dataset.role === 'pupil'){
   state.pendingOpenAssignmentId = openParam;
-  history.replaceState(null, '', location.pathname);
 }
+if(openParam || openGradeParam) history.replaceState(null, '', location.pathname);
 loadAssignments().then(()=>{
   startNotifPolling();
   if(document.body.dataset.role==='pupil'){
     switchRole('student');
+    if(openGradeParam) setTimeout(()=>openGradeSummary(openGradeParam), 400);
+    return;
+  }
+  // Coming from a notification on the Classes/Activity/Roles pages: ?open=<id>&tab=monitor&chat=<recipient>
+  if(openParam && state.assignments.some(a=>a.id===openParam)){
+    showAssignmentDetail(openParam);
+    if(openTabParam) switchDetailTab(openTabParam);
+    if(openChatParam){
+      const a = state.assignments.find(x=>x.id===openParam);
+      const pupil = Object.keys(a.submissions).find(n=>a.submissions[n].recipientId===openChatParam);
+      openChatModal(openChatParam, `${pupil || 'Pupil'} — ${a.title}`, false);
+    }
     return;
   }
   const reviewRecipientId = Number(new URLSearchParams(location.search).get('review'));
@@ -4693,9 +5223,17 @@ loadAssignments().then(()=>{
     }
   }
   showTeacherDashboard();
-}).catch(()=>showTeacherDashboard());
+}).catch(()=>{
+  if(document.body.dataset.role === 'pupil'){
+    const el = document.getElementById('pupilLoading');
+    if(el) el.textContent = "Couldn't load your exams — check your connection and refresh the page.";
+    return;
+  }
+  showTeacherDashboard();
+});
 }
 </script>
 {% include "_tour.html" %}
+{% include "_notifications.html" %}
 </body>
 </html>

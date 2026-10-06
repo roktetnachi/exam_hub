@@ -1,0 +1,243 @@
+{% comment %} Shared bell + pop-up alerts for every signed-in page (examhub.html and teacher_base.html).
+   Teachers: a pupil locked out of an exam, or a new pupil message — pops up on whichever tab
+   they're on. Pupils: a released grade (pops up when they're not mid-exam) and teacher
+   messages (bell only). Data comes from /api/notifications/; each event pops up once. {% endcomment %}
+<style>
+  .nx-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.42);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .nx-backdrop.nx-hidden,.nx-hidden{display:none !important;}
+  .nx-card{width:min(440px,100%);background:#fff;border-radius:18px;box-shadow:0 24px 60px -20px rgba(17,24,39,.45);padding:22px 22px 18px;font-family:inherit;color:#232733;animation:nxIn .16s ease-out;}
+  @keyframes nxIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+  .nx-head{display:flex;gap:12px;align-items:flex-start;}
+  .nx-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;}
+  .nx-icon.lock{background:#fbeae9;color:#d9231a;} .nx-icon.message{background:#e8f1fb;color:#1f5f99;} .nx-icon.graded{background:#e4f3e4;color:#1f7a35;}
+  .nx-title{font-weight:800;font-size:16.5px;margin:1px 0 3px;line-height:1.3;}
+  .nx-sub{color:#6b7280;font-size:13px;line-height:1.45;}
+  .nx-quote{margin:14px 0 0;padding:10px 12px;background:#f5f7fb;border-radius:10px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto;}
+  .nx-code{margin-top:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:#6b7280;}
+  .nx-code strong{font-size:20px;letter-spacing:.06em;color:#28186f;background:#eef1f9;padding:4px 12px;border-radius:9px;}
+  .nx-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
+  .nx-btn{border:0;border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--blue,#4b91c5);color:#fff;}
+  .nx-btn.outline{background:#fff;color:#28186f;border:1px solid #d3dae6;}
+  .nx-btn.danger{background:#d9231a;}
+  .nx-btn:disabled{opacity:.6;cursor:default;}
+  .nx-more{font-size:12px;color:#6b7280;margin-top:10px;text-align:right;}
+  .nx-bell-wrap{position:relative;}
+  .nx-count{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#d9231a;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;border:2px solid #fff;}
+  #notifDropdown .nx-item{display:flex;gap:10px;text-align:left;border:1px solid #e3e8f2;border-radius:11px;padding:9px 10px;background:#fff;cursor:pointer;width:100%;font-family:inherit;}
+  #notifDropdown .nx-item:hover{border-color:var(--blue,#4b91c5);background:#fafcff;}
+  .nx-item .nx-icon{width:30px;height:30px;font-size:14px;border-radius:9px;}
+  .nx-item-title{font-weight:700;font-size:12.5px;color:#232733;}
+  .nx-item-sub{font-size:11.5px;color:#6b7280;margin-top:2px;line-height:1.4;}
+</style>
+
+<div class="nx-backdrop nx-hidden" id="nxBackdrop" role="dialog" aria-modal="true" aria-labelledby="nxTitle">
+  <div class="nx-card">
+    <div class="nx-head">
+      <div class="nx-icon" id="nxIcon"></div>
+      <div style="min-width:0;flex:1;"><div class="nx-title" id="nxTitle"></div><div class="nx-sub" id="nxSub"></div></div>
+    </div>
+    <div id="nxBody"></div>
+    <div class="nx-actions" id="nxActions"></div>
+    <div class="nx-more nx-hidden" id="nxMore"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const PREFIX = "{{ request.school_url_prefix|default:'' }}";
+  const ROLE = "{% if request.user.role == 'pupil' and not request.user.is_superuser %}pupil{% else %}teacher{% endif %}";
+  const POPPED_KEY = 'examhub-notif-popped-{{ request.user.pk }}';
+  const ICONS = {lock:'🔒', message:'💬', graded:'🏅'};
+  let items = [], queue = [], showing = null, polling = null;
+
+  function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function token(){ return document.querySelector('meta[name="csrf-token"]')?.content || ''; }
+  async function api(path, opts={}){
+    const res = await fetch(PREFIX + path, Object.assign({credentials:'same-origin'}, opts,
+      {headers: Object.assign({'X-CSRFToken': token()}, opts.headers || {})}));
+    if(!res.ok) throw new Error(await res.text() || 'Request failed');
+    return res.json();
+  }
+  function popped(){ try { return JSON.parse(localStorage.getItem(POPPED_KEY) || '[]'); } catch(e){ return []; } }
+  function remember(key){
+    try { const list = popped().filter(k=>k!==key); list.push(key); localStorage.setItem(POPPED_KEY, JSON.stringify(list.slice(-300))); } catch(e){}
+  }
+  // A pupil working on an unsubmitted paper is never interrupted (and the exam's own
+  // exit-lock would treat a pop-up stealing focus badly).
+  function pupilInExam(){
+    if(ROLE !== 'pupil') return false;
+    const h = window.ExamHubNotifActions;
+    if(h && h.pupilBusy) return h.pupilBusy();
+    const task = document.getElementById('studentTask');
+    return !!task && !task.classList.contains('hidden');
+  }
+  function whenText(iso){ try { return new Date(iso).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}); } catch(e){ return ''; } }
+
+  // ---- what each event says and does ----
+  function describe(it){
+    if(it.kind === 'lock') return {
+      title: `${it.pupilName} was locked out`, sub: `${it.assignmentTitle} · ${it.reason || 'Left the exam window'}`,
+      body: it.resumeCode ? `<div class="nx-code">Read out this resume code, or unlock them here: <strong>${esc(it.resumeCode)}</strong></div>` : '',
+      bell: `${it.pupilName} locked out — ${it.assignmentTitle}`,
+      actions: [{label:'Unlock now', kind:'danger', run: unlock}, {label:'Open monitor', kind:'outline', run: openMonitor}]};
+    if(it.kind === 'message') return {
+      title: ROLE === 'pupil' ? `New message from ${it.from}` : `New message from ${it.pupilName}`, sub: it.assignmentTitle,
+      body: it.text ? `<div class="nx-quote">${esc(it.text)}</div>` : '',
+      bell: `${ROLE === 'pupil' ? it.from : it.pupilName}: ${it.text || 'New message'}`,
+      actions: [{label:'Reply', kind:'', run: openChat}]};
+    return {
+      title: 'Your work has been graded', sub: it.assignmentTitle,
+      body: it.totalScore != null ? `<div class="nx-quote" style="text-align:center;font-size:22px;font-weight:800;color:#1f7a35;">${it.totalScore} / ${it.maxScore}</div>` : '',
+      bell: `Graded: ${it.assignmentTitle}${it.totalScore != null ? ` (${it.totalScore} / ${it.maxScore})` : ''}`,
+      actions: [{label:'View grade', kind:'', run: openGrade}]};
+  }
+
+  // ---- actions: use the dashboard's own functions when we're on it, otherwise go there ----
+  function hooks(){ return window.ExamHubNotifActions || null; }
+  function go(params){ location.href = `${PREFIX}/?${new URLSearchParams(params)}`; }
+  async function unlock(it){
+    await api(`/api/submissions/${it.recipientId}/unlock/`, {method:'POST'});
+    items = items.filter(x=>x.key !== it.key); render();
+    hooks()?.refresh?.();
+  }
+  function openMonitor(it){ const h = hooks(); if(h && h.openMonitor) h.openMonitor(it); else go({open: it.assignmentId, tab: 'monitor'}); }
+  function openChat(it){ const h = hooks(); if(h && h.openChat) h.openChat(it); else go({open: it.assignmentId, tab: 'monitor', chat: it.recipientId}); }
+  function openGrade(it){ const h = hooks(); if(h && h.openGrade) h.openGrade(it); else go({grade: it.assignmentId}); }
+
+  // ---- pop-up modal (one at a time, queued) ----
+  function showNext(){
+    if(showing || !queue.length) return;
+    if(pupilInExam()) return;
+    showing = queue.shift();
+    remember(showing.key);
+    const d = describe(showing);
+    document.getElementById('nxIcon').className = 'nx-icon ' + showing.kind;
+    document.getElementById('nxIcon').textContent = ICONS[showing.kind] || '🔔';
+    document.getElementById('nxTitle').textContent = d.title;
+    document.getElementById('nxSub').textContent = d.sub;
+    document.getElementById('nxBody').innerHTML = d.body;
+    const actions = document.getElementById('nxActions');
+    actions.innerHTML = '';
+    const later = document.createElement('button');
+    later.className = 'nx-btn outline'; later.type = 'button'; later.textContent = showing.kind === 'lock' ? 'Dismiss' : 'Later';
+    later.onclick = close;
+    actions.appendChild(later);
+    d.actions.forEach(a=>{
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'nx-btn ' + (a.kind || ''); b.textContent = a.label;
+      b.onclick = async ()=>{
+        const it = showing; b.disabled = true;
+        try { close(); await a.run(it); } catch(e){ alertError(e); }
+      };
+      actions.appendChild(b);
+    });
+    const more = document.getElementById('nxMore');
+    more.textContent = queue.length ? `${queue.length} more alert${queue.length === 1 ? '' : 's'} waiting` : '';
+    more.classList.toggle('nx-hidden', !queue.length);
+    document.getElementById('nxBackdrop').classList.remove('nx-hidden');
+    setTimeout(()=>actions.lastChild?.focus(), 30);
+  }
+  function close(){
+    document.getElementById('nxBackdrop').classList.add('nx-hidden');
+    showing = null;
+    setTimeout(showNext, 150);
+  }
+  function alertError(e){
+    if(typeof window.showToast === 'function') window.showToast("Couldn't do that just now — try again.", 'error');
+    console.error(e);
+  }
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && showing) close(); });
+
+  // ---- bell ----
+  function ensureBell(){
+    let btn = document.getElementById('notifBellBtn');
+    if(btn) return btn;
+    // Pages without a bell of their own (Classes / Activity / Roles) get one next to the name.
+    const host = document.querySelector('.brandbar .who') || document.querySelector('.brandbar');
+    if(!host) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'nx-bell-wrap';
+    wrap.innerHTML = `<button type="button" id="notifBellBtn" title="Notifications" aria-label="Notifications"
+        style="border:1px solid #d3dae6;border-radius:10px;padding:7px 9px;background:#fff;cursor:pointer;display:flex;align-items:center;position:relative;color:#3c4552;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="hidden nx-hidden" id="notifBellDot"></span></button>
+      <div class="nx-hidden" id="notifDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:330px;max-height:440px;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:0 18px 44px -18px rgba(30,41,59,.35);padding:14px;z-index:60;text-align:left;">
+        <strong style="font-size:13px;">Notifications</strong>
+        <div id="notifList" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
+        <p id="notifEmpty" style="margin:6px 0 0;color:#6b7280;font-size:13px;">You're all caught up.</p>
+      </div>`;
+    host.insertBefore(wrap, host.firstChild);
+    return wrap.querySelector('#notifBellBtn');
+  }
+  function toggleDropdown(force){
+    const dd = document.getElementById('notifDropdown');
+    const hide = force === undefined ? !(dd.classList.contains('hidden') || dd.classList.contains('nx-hidden')) : !force;
+    dd.classList.toggle('hidden', hide); dd.classList.toggle('nx-hidden', hide);
+  }
+  function render(){
+    const btn = ensureBell();
+    if(!btn) return;
+    btn.title = 'Notifications';
+    let badge = btn.querySelector('.nx-count');
+    if(!badge){ badge = document.createElement('span'); badge.className = 'nx-count'; btn.appendChild(badge); }
+    badge.textContent = items.length > 9 ? '9+' : String(items.length);
+    badge.style.display = items.length ? '' : 'none';
+    const oldDot = document.getElementById('notifBellDot'); if(oldDot) oldDot.style.display = 'none';
+    const head = document.querySelector('#notifDropdown strong'); if(head) head.textContent = 'Notifications';
+    const list = document.getElementById('notifList');
+    const empty = document.getElementById('notifEmpty');
+    if(empty){ empty.textContent = "You're all caught up."; empty.classList.toggle('hidden', items.length > 0); empty.classList.toggle('nx-hidden', items.length > 0); }
+    list.innerHTML = items.map((it, i)=>{
+      const d = describe(it);
+      return `<button type="button" class="nx-item" data-i="${i}"><span class="nx-icon ${it.kind}">${ICONS[it.kind] || '🔔'}</span>
+        <span style="min-width:0;"><span class="nx-item-title">${esc(d.bell)}</span>
+        <span class="nx-item-sub" style="display:block;">${esc(it.kind === 'message' ? it.assignmentTitle + ' · ' : '')}${esc(whenText(it.at))}</span></span></button>`;
+    }).join('');
+    list.querySelectorAll('.nx-item').forEach(b=>b.addEventListener('click', ()=>{
+      const it = items[Number(b.dataset.i)];
+      toggleDropdown(false);
+      queue = queue.filter(q=>q.key !== it.key);
+      if(it.kind === 'lock'){ queue.unshift(it); if(!showing) showNext(); }
+      else describe(it).actions[0].run(it);
+    }));
+  }
+  function wireBell(){
+    const btn = ensureBell();
+    if(!btn || btn.dataset.nxWired) return;
+    btn.dataset.nxWired = '1';
+    // Replace any older click handler with ours (the dashboard used to own a messages-only bell).
+    const fresh = btn.cloneNode(true);
+    btn.parentNode.replaceChild(fresh, btn);
+    fresh.addEventListener('click', (e)=>{ e.stopPropagation(); render(); toggleDropdown(); });
+    document.getElementById('notifDropdown').addEventListener('click', (e)=>e.stopPropagation());
+    document.addEventListener('click', ()=>toggleDropdown(false));
+  }
+
+  async function poll(){
+    try {
+      const data = await api('/api/notifications/');
+      items = data.items || [];
+      const seen = popped();
+      items.forEach(it=>{
+        const popsUp = ROLE === 'teacher' ? (it.kind === 'lock' || it.kind === 'message') : it.kind === 'graded';
+        if(popsUp && !seen.includes(it.key) && !queue.some(q=>q.key===it.key) && showing?.key !== it.key) queue.push(it);
+      });
+      // Drop queued alerts that resolved themselves meanwhile (unlocked, read elsewhere…).
+      queue = queue.filter(q=>items.some(it=>it.key===q.key));
+      // A locked-out pupil is waiting to carry on, so lockouts always come first.
+      const rank = it => it.kind === 'lock' ? 0 : 1;
+      queue.sort((x, y)=>rank(x) - rank(y));
+      items.sort((x, y)=>rank(x) - rank(y));
+      render();
+      showNext();
+    } catch(e){ /* offline or signed out — try again next tick */ }
+  }
+
+  window.ExamHubNotify = {refresh: poll};
+  wireBell();
+  render();
+  poll();
+  polling = setInterval(poll, 10000);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) poll(); });
+})();
+</script>

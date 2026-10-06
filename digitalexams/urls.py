@@ -1,9 +1,14 @@
 from django.urls import path
-from . import views
+from . import accounts, bulk_import, views
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('welcome/password/', accounts.set_first_password_view, name='first-password'),
+    path('api/accounts/invite/', accounts.invite_api, name='invite-accounts'),
+    path('api/accounts/pupils/', accounts.pupils_admin_api, name='pupils-admin'),
+    path('api/accounts/<int:user_id>/update/', accounts.update_person_api, name='update-person'),
+    path('api/accounts/pupils/delete/', accounts.delete_pupils_api, name='delete-pupils'),
     path('api/account/change-password/', views.change_password_api, name='change-password'),
     path('', views.home, name='home'),
     path('classes/', views.classes_page, name='classes-page'),
@@ -22,12 +27,15 @@ urlpatterns = [
     path('api/classes/create/', views.create_class_api, name='create-class'),
     path('api/classes/<int:class_id>/update/', views.update_class_api, name='update-class'),
     path('api/classes/<int:class_id>/delete/', views.delete_class_api, name='delete-class'),
+    path('api/bulk/<str:kind>/template/', bulk_import.bulk_template, name='bulk-template'),
+    path('api/bulk/<str:kind>/import/', bulk_import.bulk_import_api, name='bulk-import'),
     path('api/items/<int:item_id>/pdf/', views.item_pdf, name='item-pdf'),
     path('api/items/<int:item_id>/image/', views.item_image, name='item-image'),
     path('api/items/<int:item_id>/video/', views.item_video, name='item-video'),
     path('api/assignments/create/', views.create_assignment, name='create-assignment'),
     path('api/assignments/<int:assignment_id>/update/', views.update_assignment_api, name='update-assignment'),
     path('api/assignments/<int:assignment_id>/delete/', views.delete_assignment_api, name='delete-assignment'),
+    path('api/assignments/<int:assignment_id>/state/', views.exam_state_api, name='exam-state'),
     path('api/submissions/<int:recipient_id>/start/', views.start_submission, name='start-submission'),
     path('api/submissions/<int:recipient_id>/save/', views.save_submission, name='save-submission'),
     path('api/submissions/<int:recipient_id>/submit/', views.submit_submission, name='submit-submission'),
@@ -40,6 +48,8 @@ urlpatterns = [
     path('api/recipients/<int:recipient_id>/messages/send/', views.send_message_api, name='send-message'),
     path('api/assignments/<int:assignment_id>/broadcast-message/', views.broadcast_message_api, name='broadcast-message'),
     path('api/activity-log/', views.activity_log_api, name='activity-log'),
+    path('api/notifications/', views.notifications_api, name='notifications'),
+    path('api/submissions/<int:recipient_id>/grade-seen/', views.grade_seen_api, name='grade-seen'),
     path('api/submissions/<int:recipient_id>/grade/', views.grade_submission_api, name='grade-submission'),
     path('api/submissions/<int:recipient_id>/publish/', views.publish_submission_api, name='publish-submission'),
     path('api/assignments/<int:assignment_id>/publish-grades/', views.publish_assignment_grades_api, name='publish-assignment-grades'),
@@ -48,4 +58,11 @@ urlpatterns = [
     path('api/seb/launch/', views.seb_launch_api, name='seb-launch'),
     path('seb/launch/<str:token>/config.seb', views.seb_launch_config, name='seb-launch-config'),
     path('seb/enter/<str:token>/', views.seb_enter, name='seb-enter'),
+    # Platform Super Admin
+    path('superadmin/', views.superadmin_dashboard, name='superadmin-dashboard'),
+    path('superadmin/api/schools/create/', views.superadmin_create_school_api, name='superadmin-create-school'),
+    path('superadmin/api/schools/<int:school_id>/update/', views.superadmin_update_school_api, name='superadmin-update-school'),
+    path('superadmin/api/schools/<int:school_id>/toggle-active/', views.superadmin_toggle_school_api, name='superadmin-toggle-school'),
+    path('superadmin/api/schools/<int:school_id>/admins/', views.superadmin_school_admins_api, name='superadmin-school-admins'),
+    path('superadmin/api/schools/<int:school_id>/create-admin/', views.superadmin_create_school_admin_api, name='superadmin-create-school-admin'),
 ]

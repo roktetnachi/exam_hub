@@ -83,7 +83,21 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Multi-tenancy: resolves /s/<slug>/ prefix → request.school.
+    # Must be AFTER AuthenticationMiddleware so request.user is available.
+    'digitalexams.middleware.SchoolTenantMiddleware',
+    # Sends anyone still on a temporary password to "Choose your password" first.
+    'digitalexams.accounts.ForcePasswordChangeMiddleware',
 ]
+
+# Paths that bypass school-slug resolution (no /s/<slug>/ prefix required).
+# Add any platform-wide paths here that shouldn't be scoped to a tenant.
+TENANT_EXEMPT_PATHS = (
+    '/login/',
+    '/logout/',
+    '/password-reset/',
+    '/seb/',
+)
 
 ROOT_URLCONF = 'examhub.urls'
 
@@ -153,7 +167,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Uploads are kept on disk AND in the database so every copy of the app (local + Railway)
+    # can serve them and they survive Railway redeploys. See digitalexams/storage.py.
+    "default": {"BACKEND": "digitalexams.storage.DatabaseBackedStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
@@ -170,7 +186,20 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # During development, submission emails are printed in the run-server window.
 # Set EMAIL_BACKEND and the provider settings in production to deliver them.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'ExamHub <no-reply@examhub.local>'
+# Sign-in codes and other mail go out through SMTP when EMAIL_HOST_USER is set in .env
+# (e.g. a Google Workspace / Gmail account + App Password); otherwise they print to the console.
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('1', 'true', 'yes')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_TIMEOUT = 15
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND') or (
+    'django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST_USER
+    else 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or (
+    f'ExamHub <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'ExamHub <no-reply@examhub.local>')
+LOGIN_CODE_LIFETIME_MINUTES = 10
+LOGIN_CODE_RESEND_SECONDS = 60
 
 AUTH_USER_MODEL = 'digitalexams.User'

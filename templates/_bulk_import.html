@@ -1,0 +1,224 @@
+{% comment %}
+Shared "bulk add from Excel / Google Sheets" dialog. Pages open it with openBulk('classes' |
+'teachers' | 'pupils') and define window.onBulkImported(kind) to refresh themselves.
+Needs teacher_base.html's request(), escapeHtml(), showToast(), SCHOOL_PREFIX.
+{% endcomment %}
+<style>
+  .modal-back{position:fixed;inset:0;background:rgba(20,24,40,.45);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;}
+  .modal{background:#fff;border-radius:var(--card-radius);box-shadow:var(--card-shadow);width:100%;max-width:960px;padding:22px 24px;}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+  .bi-tabs{display:flex;gap:4px;background:var(--page-bg);border-radius:999px;padding:4px;width:max-content;max-width:100%;margin-bottom:16px;}
+  .bi-tabs button{border:none;background:none;padding:8px 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);}
+  .bi-tabs button.active{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.14);}
+  .bi-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+  .bi-step{border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45;}
+  .bi-step b{display:block;font-size:13.5px;margin-bottom:4px;color:var(--blue-dark);}
+  .bi-drop{border:2px dashed var(--border);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fbfcfe;}
+  .bi-drop.drag{border-color:var(--blue);background:var(--blue-tint);}
+  .bi-drop .fname{font-size:13px;color:var(--muted);flex:1;min-width:160px;}
+  .bi-summary{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px;}
+  .pill{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;display:inline-block;white-space:nowrap;}
+  .pill.create{background:#e5f6ea;color:#11793a;}
+  .pill.update{background:#e6f0fb;color:#1f5f99;}
+  .pill.unchanged{background:#eef0f4;color:#5b6474;}
+  .pill.error{background:var(--danger-bg);color:var(--danger-dark);}
+  .bi-table-wrap{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px;}
+  .bi-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .bi-table th{position:sticky;top:0;background:#f5f7fb;text-align:left;padding:8px;font-size:12px;color:var(--muted);}
+  .bi-table td{padding:7px 8px;border-top:1px solid var(--border);vertical-align:top;}
+  .bi-table tr.error td{background:#fff7f6;}
+  .bi-table .msg{color:var(--danger-dark);}
+  .bi-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+  .bi-filter{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center;}
+  @media (max-width:760px){ .bi-steps{grid-template-columns:1fr;} }
+  .bi-invite{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:4px 0 0;padding:10px 12px;background:#f5f8fc;border-radius:10px;}
+  .bi-invite input{margin-top:3px;}
+  .callout{background:#fff8e6;border:1px solid #f3dfa6;color:#7a5a00;border-radius:12px;padding:10px 14px;font-size:13px;margin-top:12px;}
+</style>
+
+<div class="modal-back hidden" id="bulkModal" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="bulkTitle"></h2>
+        <p class="sub" id="bulkSub"></p>
+      </div>
+      <button type="button" class="icon-x" id="bulkClose" aria-label="Close" style="font-size:22px;width:32px;height:32px;">&times;</button>
+    </div>
+    <div id="bulkBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const BULK_TEXT = {
+  classes: {
+    title: 'Bulk import classes',
+    sub: 'Create or update many classes at once and set who teaches each one. Teachers and pupils are added on the Roles page.',
+    steps: [
+      ['Download the template', 'Your current classes are already listed — edit a row to update it, add a row to create a class. Tab 2 is the guide.'],
+      ['Fill in teachers', 'Put the teacher email(s) per class (separate several with ";"). Blank keeps current teachers; NONE removes them.'],
+      ['Upload &amp; check', 'Upload the .xlsx (or a CSV / Google Sheets download). Nothing is saved until you confirm the preview.'],
+    ],
+    item: 'Class', noun: 'class', template: 'classes',
+  },
+  teachers: {
+    title: 'Bulk add teachers',
+    sub: 'Create many teacher and admin accounts at once, and put them straight into the classes they teach.',
+    steps: [
+      ['Download the template', 'Role and Classes have dropdowns — only classes that already exist are listed. Tab 2 is the guide.'],
+      ['Fill in your staff', 'First name, last name, email, Teacher/Admin and (optional) classes, separated by ";".'],
+      ['Upload &amp; check', 'Existing staff are updated (role, extra classes). New accounts get a temporary password.'],
+    ],
+    item: 'Teacher', noun: 'person', template: 'teachers',
+  },
+  pupils: {
+    title: 'Bulk add pupils',
+    sub: 'Create many pupil accounts at once and, if you like, put them into existing classes.',
+    steps: [
+      ['Download the template', 'Pick each pupil\'s class from the dropdown — only existing classes are listed. Class can be left blank.'],
+      ['Paste your pupils', 'First name, last name, email, class. Copy from your old sheet with Paste special → Values only.'],
+      ['Upload &amp; check', 'Rows naming a class that doesn\'t exist are flagged. New pupils get a temporary password.'],
+    ],
+    item: 'Pupil', noun: 'pupil row', template: 'pupils',
+  },
+};
+const bulk = { kind: 'classes', file: null, preview: null, onlyErrors: false, invite: true };
+
+window.openBulk = function(kind){
+  bulk.kind = kind || bulk.kind; bulk.file = null; bulk.preview = null; bulk.onlyErrors = false; bulk.invite = true;
+  const t = BULK_TEXT[bulk.kind];
+  document.getElementById('bulkTitle').textContent = t.title;
+  document.getElementById('bulkSub').textContent = t.sub;
+  document.getElementById('bulkModal').classList.remove('hidden');
+  renderBulk();
+};
+function closeBulk(){ document.getElementById('bulkModal').classList.add('hidden'); }
+
+function renderBulk(){
+  const t = BULK_TEXT[bulk.kind];
+  const people = bulk.kind !== 'classes';
+  document.getElementById('bulkBody').innerHTML = `
+    <div class="bi-steps">${t.steps.map((s,i)=>`<div class="bi-step"><b>${i+1}. ${s[0]}</b>${s[1]}</div>`).join('')}</div>
+    <div class="bi-drop" id="biDrop">
+      <a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/">Download ${t.template} template (.xlsx)</a>
+      <label class="btn small" style="margin:0;">Choose file…<input type="file" id="biFile" accept=".xlsx,.xlsm,.csv" hidden></label>
+      <span class="fname" id="biFileName">${bulk.file ? escapeHtml(bulk.file.name) : 'or drop an .xlsx / .csv file here'}</span>
+      <button class="btn small" id="biCheck" type="button" ${bulk.file ? '' : 'disabled'}>Check file</button>
+    </div>
+    ${people ? `<label class="bi-invite"><input type="checkbox" id="biInvite" ${bulk.invite ? 'checked' : ''}>
+      <span><strong>Email invites to new accounts when I import</strong><br><span class="sub" style="font-size:12.5px;">Each new person gets their username, a temporary password and the sign-in link. They choose their own password the first time they sign in.</span></span></label>` : ''}
+    <p class="err hidden" id="biError"></p>
+    <div id="biResult"></div>`;
+  const input = document.getElementById('biFile');
+  input.addEventListener('change', ()=>{ if(input.files[0]) setBulkFile(input.files[0]); });
+  const drop = document.getElementById('biDrop');
+  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', ()=>drop.classList.remove('drag'));
+  drop.addEventListener('drop', e=>{ e.preventDefault(); drop.classList.remove('drag'); if(e.dataTransfer.files[0]) setBulkFile(e.dataTransfer.files[0]); });
+  document.getElementById('biCheck').addEventListener('click', ()=>sendBulk(false));
+  const inv = document.getElementById('biInvite');
+  if(inv) inv.addEventListener('change', ()=>{ bulk.invite = inv.checked; });
+  if(bulk.preview) renderBulkResult();
+}
+
+function setBulkFile(file){
+  bulk.file = file; bulk.preview = null;
+  renderBulk();
+  sendBulk(false);
+}
+
+async function sendBulk(commit, skipErrors){
+  const err = document.getElementById('biError');
+  err.classList.add('hidden');
+  if(!bulk.file) return;
+  const fd = new FormData();
+  fd.append('file', bulk.file);
+  fd.append('commit', commit ? '1' : '0');
+  if(skipErrors) fd.append('skipErrors', '1');
+  if(commit && bulk.kind !== 'classes' && bulk.invite) fd.append('invite', '1');
+  const btns = document.querySelectorAll('#bulkBody button');
+  btns.forEach(b=>b.disabled = true);
+  try {
+    const res = await request(`/api/bulk/${bulk.kind}/import/`, {method:'POST', body: fd});
+    bulk.preview = res;
+    if(res.committed){
+      if(typeof window.onBulkImported === 'function') await window.onBulkImported(bulk.kind);
+      showToast(`${BULK_TEXT[bulk.kind].title.replace('Bulk ', '').replace(/^./, c=>c.toUpperCase())} — done.`);
+    }
+    renderBulkResult();
+  } catch(error){
+    err.textContent = error.message || 'Could not read that file.';
+    err.classList.remove('hidden');
+  } finally {
+    btns.forEach(b=>b.disabled = false);
+    const check = document.getElementById('biCheck'); if(check) check.disabled = !bulk.file;
+  }
+}
+
+const STATUS_LABEL = { create: 'New', update: 'Update', unchanged: 'No change', error: 'Error' };
+
+function renderBulkResult(){
+  const box = document.getElementById('biResult');
+  const res = bulk.preview;
+  if(!box || !res) return;
+  const s = res.summary;
+  const valid = s.create + s.update;
+  const rows = bulk.onlyErrors ? res.rows.filter(r=>r.status === 'error') : res.rows;
+  const noun = BULK_TEXT[bulk.kind].noun;
+  let actions = '';
+  if(res.committed){
+    actions = `<div class="callout" style="background:#e5f6ea;border-color:#bfe5c9;color:#11793a;">Done — ${s.create} new and ${s.update} updated ${(s.create + s.update)===1 ? noun : (noun === 'person' ? 'people' : noun + 's')} saved${s.error ? `, ${s.error} skipped with errors` : ''}.${
+      res.invited ? ` Invite emails sent to ${res.invited.sent}${res.invited.failed ? ` (${res.invited.failed} couldn't be emailed — use the logins file)` : ''}.` : ''}</div>`;
+    if(res.credentials && res.credentials.length){
+      actions += `<div class="bi-actions"><button class="btn small" id="biCreds" type="button">Download logins for ${res.credentials.length} new account${res.credentials.length===1?'':'s'} (.csv)</button>
+        <span class="sub" style="font-size:12.5px;">Temporary passwords are shown only now. ${res.invited ? 'They were also emailed.' : 'Hand them out, or invite people later from the list.'}</span></div>`;
+    }
+  } else if(valid === 0){
+    actions = `<div class="bi-actions"><span class="sub">${s.error ? 'Fix the errors in your sheet and upload it again.' : 'Everything in this file is already up to date — nothing to import.'}</span></div>`;
+  } else {
+    actions = `<div class="bi-actions">
+      <button class="btn" id="biImport" type="button">${s.error ? `Import ${valid} valid row${valid===1?'':'s'}, skip ${s.error} with errors` : `Import ${valid} row${valid===1?'':'s'}`}</button>
+      ${s.error ? '<span class="sub" style="font-size:12.5px;">Or fix the red rows in your sheet and upload it again.</span>' : ''}</div>`;
+  }
+  box.innerHTML = `
+    <div class="bi-summary">
+      <span class="pill create">${s.create} new</span><span class="pill update">${s.update} update</span>
+      <span class="pill unchanged">${s.unchanged} no change</span><span class="pill error">${s.error} error${s.error===1?'':'s'}</span>
+      ${s.error ? `<label class="bi-filter"><input type="checkbox" id="biOnlyErr" ${bulk.onlyErrors?'checked':''}> Show errors only</label>` : ''}
+    </div>
+    <div class="bi-table-wrap"><table class="bi-table">
+      <thead><tr><th style="width:56px;">Row</th><th style="width:96px;">Status</th><th>${BULK_TEXT[bulk.kind].item}</th><th>Details</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr class="${r.status}"><td>${r.row}</td><td><span class="pill ${r.status}">${STATUS_LABEL[r.status]}</span></td>
+        <td>${escapeHtml(r.item)}</td><td>${escapeHtml(r.detail)}${r.message ? `<div class="${r.status==='error'?'msg':'sub'}">${escapeHtml(r.message)}</div>` : ''}</td></tr>`).join('')
+        || '<tr><td colspan="4" class="empty">No rows to show.</td></tr>'}</tbody>
+    </table></div>
+    ${actions}`;
+  const only = document.getElementById('biOnlyErr');
+  if(only) only.addEventListener('change', ()=>{ bulk.onlyErrors = only.checked; renderBulkResult(); });
+  const imp = document.getElementById('biImport');
+  if(imp) imp.addEventListener('click', ()=>{
+    if(s.error && !confirm(`${s.error} row(s) have errors and will be skipped. Import the other ${valid}?`)) return;
+    sendBulk(true, s.error > 0);
+  });
+  const creds = document.getElementById('biCreds');
+  if(creds) creds.addEventListener('click', ()=>downloadCredentials(res.credentials, bulk.kind));
+}
+
+window.downloadCredentials = function(list, label){
+  const cell = v=>`"${String(v ?? '').replace(/"/g,'""')}"`;
+  const lines = [['Name','Email','Username','Temporary password','Role','Classes','Sign-in link'].map(cell).join(',')]
+    .concat(list.map(c=>[c.name, c.email, c.username, c.tempPassword, c.role || (label === 'pupils' ? 'Pupil' : ''), c.classes || '', c.loginUrl || location.origin + SCHOOL_PREFIX + '/login/'].map(cell).join(',')));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `examhub-${label || 'new'}-logins-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+};
+
+document.getElementById('bulkClose').addEventListener('click', closeBulk);
+document.getElementById('bulkModal').addEventListener('click', e=>{ if(e.target.id === 'bulkModal') closeBulk(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !document.getElementById('bulkModal').classList.contains('hidden')) closeBulk(); });
+})();
+</script>

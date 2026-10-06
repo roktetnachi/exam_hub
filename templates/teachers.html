@@ -1,0 +1,437 @@
+{% extends "teacher_base.html" %}
+{% block title %}Roles{% endblock %}
+{% block nav_roles %}class="active" aria-current="page"{% endblock %}
+
+{% block style %}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start;}
+  .ptabs{display:inline-flex;gap:4px;background:#fff;border-radius:999px;padding:5px;box-shadow:var(--card-shadow);margin-bottom:16px;}
+  .ptabs button{border:none;background:none;border-radius:999px;padding:9px 20px;font-size:14px;font-weight:700;color:var(--muted);}
+  .ptabs button.on{background:var(--blue);color:#fff;}
+  .ptabs .n{font-weight:600;opacity:.75;margin-left:4px;}
+  .explain{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .explain .card{padding:14px 18px;}
+  .explain ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.6;}
+  .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;}
+  .toolbar .left{display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1;min-width:240px;}
+  .toolbar input[type=search]{max-width:260px;}
+  .toolbar select{max-width:170px;}
+  .toolbar .right{display:flex;gap:8px;flex-wrap:wrap;}
+  .counts{color:var(--muted);font-size:13px;}
+  .selbar{display:flex;gap:10px;align-items:center;background:var(--blue-tint);border-radius:12px;padding:8px 12px;margin-bottom:10px;font-size:13.5px;}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:0 10px 10px;border-bottom:1px solid var(--border);}
+  td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  td.ck,th.ck{width:30px;padding-right:0;}
+  .who-cell .nm{font-weight:700;}
+  .who-cell .em{color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .classes-cell{color:var(--muted);font-size:13px;max-width:220px;}
+  .badge{display:inline-block;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .badge.main{background:var(--blue-dark);color:#fff;}
+  .badge.admin{background:#e6f0fa;color:var(--blue-dark);}
+  .badge.teacher{background:var(--page-bg);color:var(--muted);}
+  .badge.off{background:var(--danger-bg);color:var(--danger-dark);margin-left:6px;}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+  .st::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .st.active{background:#e4f3e4;color:#1f7a35;} .st.invited{background:#fff4d6;color:#8a6200;} .st.not_invited{background:#f1f3f6;color:#5b6472;}
+  .st-when{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .status-cell{white-space:nowrap;}
+  .link{background:none;border:none;color:var(--blue);font-weight:700;font-size:12.5px;padding:0;margin-top:4px;display:block;}
+  .link:hover{text-decoration:underline;}
+  .seg{display:inline-flex;background:var(--page-bg);border-radius:999px;padding:3px;gap:2px;}
+  .seg button{border:none;background:none;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--muted);min-width:68px;}
+  .seg button.on{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.16);}
+  .seg button.on.admin{background:var(--blue);color:#fff;}
+  .seg button:disabled{cursor:wait;}
+  .add-card h2{margin-bottom:4px;}
+  .add-card .field{margin-bottom:12px;}
+  .add-card .seg{display:flex;}
+  .add-card .seg button{flex:1;}
+  .role-hint{font-size:12.5px;color:var(--muted);margin:6px 0 0;line-height:1.45;}
+  .class-picks{max-height:160px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:4px 10px;}
+  .class-picks label{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:13.5px;}
+  .inv{display:flex;gap:8px;align-items:flex-start;font-size:13px;background:#f5f8fc;border-radius:10px;padding:9px 11px;margin:4px 0 12px;line-height:1.4;}
+  .inv input{margin-top:2px;}
+  .new-account{background:#eef8ee;border:1px solid #cfe8cf;border-radius:12px;padding:12px 14px;font-size:13px;margin-top:12px;line-height:1.6;}
+  .new-account code{background:#fff;border-radius:6px;padding:1px 6px;font-size:13px;}
+  .result-bar{background:#eef8ee;border:1px solid #cfe8cf;color:#1f5d2c;border-radius:12px;padding:10px 14px;font-size:13.5px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;}
+  .result-bar.warn{background:#fff8e6;border-color:#f3dfa6;color:#7a5a00;}
+  .row-acts{display:flex;gap:10px;margin-top:4px;}
+  .row-acts .link{display:inline;margin:0;font-size:12px;}
+  .link.danger{color:var(--danger);}
+  .mback{position:fixed;inset:0;background:rgba(20,24,40,.45);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .mcard{background:#fff;border-radius:18px;box-shadow:0 24px 60px -20px rgba(17,24,39,.45);width:min(440px,100%);padding:22px 24px;}
+  .mcard h2{margin:0 0 4px;}
+  .mcard .field{margin-bottom:12px;}
+  .mcard .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .del-list{max-height:150px;overflow:auto;background:#fbf6f6;border:1px solid #f1d6d4;border-radius:10px;padding:8px 12px;font-size:13px;margin:10px 0;line-height:1.6;}
+  .btn.solid-danger{background:var(--danger);color:#fff;border:none;}
+  .btn.solid-danger:hover{background:var(--danger-dark);}
+  @media (max-width:1060px){ .grid{grid-template-columns:1fr;} }
+  @media (max-width:700px){
+    .explain{grid-template-columns:1fr;}
+    thead{display:none;}
+    tr{display:block;padding:10px 0;border-bottom:1px solid var(--border);}
+    td{display:block;border:none;padding:4px 0;}
+  }
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>People &amp; roles</h1>
+    <p class="sub">Add staff and pupils, invite them to activate their accounts, and choose each staff member's role.</p>
+  </div>
+</div>
+
+<div class="ptabs" role="tablist">
+  <button type="button" role="tab" data-tab="staff" class="on">Staff<span class="n" id="nStaff"></span></button>
+  <button type="button" role="tab" data-tab="pupils">Pupils<span class="n" id="nPupils"></span></button>
+</div>
+
+<div class="explain" id="staffExplain">
+  <div class="card">
+    <span class="badge admin">Admin</span>
+    <ul><li>Create, rename and delete classes</li><li>Add teachers and pupils · send invites</li><li>Assign work to any pupil</li></ul>
+  </div>
+  <div class="card">
+    <span class="badge teacher">Teacher</span>
+    <ul><li>Sees only the classes they're assigned to</li><li>Assigns work to pupils in those classes</li><li>Can't create or edit classes</li></ul>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="toolbar">
+      <div class="left">
+        <input type="search" id="search" placeholder="Search people…" aria-label="Search people">
+        <select id="statusFilter" aria-label="Filter by status">
+          <option value="">All statuses</option>
+          <option value="not_invited">Not invited</option>
+          <option value="invited">Invited</option>
+          <option value="active">Active</option>
+        </select>
+        <span class="counts" id="counts"></span>
+      </div>
+      <div class="right">
+        <button class="btn small outline" id="inviteAllBtn" type="button">Invite everyone not yet invited</button>
+        <button class="btn small" id="bulkAddBtn" type="button">Bulk add (Excel)</button>
+      </div>
+    </div>
+    <div id="resultBar"></div>
+    <div class="selbar hidden" id="selbar">
+      <strong id="selCount"></strong>
+      <button class="btn small" id="inviteSelBtn" type="button">Send invite</button>
+      <button class="btn small danger" id="deleteSelBtn" type="button">Delete selected</button>
+      <button class="btn small outline" id="clearSelBtn" type="button">Clear</button>
+    </div>
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="rows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <aside class="card add-card" id="addCard"></aside>
+</div>
+<p class="sub" style="margin-top:14px;font-size:12.5px;">Main admins are set in Django admin ("Superuser") and always have full access.
+Sending an invite sets a new temporary password and emails it with the sign-in link; the person chooses their own password the first time they sign in.</p>
+{% include "_bulk_import.html" %}
+
+<div class="mback hidden" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="mcard">
+    <h2 id="editTitle">Edit details</h2>
+    <p class="sub" style="font-size:13px;margin:0 0 14px;" id="editSub"></p>
+    <div class="field"><label class="lbl" for="edFirst">First name</label><input type="text" id="edFirst" autocomplete="off"></div>
+    <div class="field"><label class="lbl" for="edLast">Last name <span style="font-weight:400;">(optional)</span></label><input type="text" id="edLast" autocomplete="off"></div>
+    <div class="field"><label class="lbl" for="edEmail">Email</label><input type="email" id="edEmail" autocomplete="off"></div>
+    <p class="sub" style="font-size:12.5px;margin:0;" id="edNote"></p>
+    <p class="err hidden" id="edError"></p>
+    <div class="acts"><button class="btn outline small" id="edCancel" type="button">Cancel</button><button class="btn small" id="edSave" type="button">Save changes</button></div>
+  </div>
+</div>
+
+<div class="mback hidden" id="delModal" role="alertdialog" aria-modal="true" aria-labelledby="delTitle">
+  <div class="mcard">
+    <h2 id="delTitle"></h2>
+    <p class="sub" style="font-size:13.5px;margin:6px 0 0;line-height:1.5;">This permanently deletes the account: they can no longer sign in and are removed from their classes. Work they already handed in stays on the exams they took. <strong>This can't be undone.</strong></p>
+    <div class="del-list" id="delList"></div>
+    <div class="field hidden" id="delTypeWrap"><label class="lbl" for="delType">Type <strong>DELETE</strong> to confirm</label><input type="text" id="delType" autocomplete="off"></div>
+    <p class="err hidden" id="delError"></p>
+    <div class="acts"><button class="btn outline small" id="delCancel" type="button">Cancel</button><button class="btn small solid-danger" id="delConfirm" type="button">Delete</button></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+const store = { staff: [], pupils: [], classes: [] };
+let tab = new URLSearchParams(location.search).get('tab') === 'pupils' ? 'pupils' : 'staff';
+let query = '', statusFilter = '', newRole = 'teacher';
+const selected = { staff: new Set(), pupils: new Set() };
+const STATUS = { active: 'Active', invited: 'Invited', not_invited: 'Not invited' };
+
+function list(){ return tab === 'staff' ? store.staff : store.pupils; }
+function fmtDate(iso){ return iso ? new Date(iso).toLocaleDateString([], {month:'short', day:'numeric'}) : ''; }
+
+function statusCell(p){
+  if(p.isMainAdmin) return '<span class="st active">Active</span>';
+  const when = p.status === 'invited' && p.invitedAt ? `<div class="st-when">Invited ${fmtDate(p.invitedAt)} · not signed in yet</div>`
+    : (p.status === 'active' && p.lastLogin ? `<div class="st-when">Last signed in ${fmtDate(p.lastLogin)}</div>` : '');
+  const action = p.status === 'not_invited' ? 'Send invite' : (p.status === 'invited' ? 'Resend invite' : 'Reset &amp; re-invite');
+  return `<span class="st ${p.status}">${STATUS[p.status]}</span>${when}<button type="button" class="link" data-invite="${p.id}">${action}</button>`;
+}
+function roleControl(t){
+  if(t.isMainAdmin) return '<span class="badge main">Main admin</span>';
+  return `<div class="seg" role="radiogroup" aria-label="Role for ${escapeHtml(t.name)}">
+    <button type="button" data-id="${t.id}" data-role="admin" class="${t.isAdmin?'on admin':''}" role="radio" aria-checked="${t.isAdmin}">Admin</button>
+    <button type="button" data-id="${t.id}" data-role="teacher" class="${t.isAdmin?'':'on'}" role="radio" aria-checked="${!t.isAdmin}">Teacher</button>
+  </div>`;
+}
+
+function render(){
+  document.querySelectorAll('.ptabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab === tab));
+  document.getElementById('nStaff').textContent = store.staff.length ? `(${store.staff.length})` : '';
+  document.getElementById('nPupils').textContent = store.pupils.length ? `(${store.pupils.length})` : '';
+  document.getElementById('staffExplain').classList.toggle('hidden', tab !== 'staff');
+  document.getElementById('bulkAddBtn').textContent = tab === 'staff' ? 'Bulk add teachers (Excel)' : 'Bulk add pupils (Excel)';
+  const people = list();
+  const notInvited = people.filter(p=>p.status === 'not_invited' && !p.isMainAdmin).length;
+  const inviteAll = document.getElementById('inviteAllBtn');
+  inviteAll.textContent = notInvited ? `Invite ${notInvited} not yet invited` : 'Everyone has been invited';
+  inviteAll.disabled = !notInvited;
+  const active = people.filter(p=>p.status === 'active' || p.isMainAdmin).length;
+  document.getElementById('counts').textContent = `${active} of ${people.length} active`;
+  const q = query.toLowerCase();
+  const shown = people.filter(p=>(!q || p.name.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q) || p.username.toLowerCase().includes(q))
+    && (!statusFilter || p.status === statusFilter));
+  const sel = selected[tab];
+  const allChecked = shown.length && shown.filter(p=>!p.isMainAdmin).every(p=>sel.has(p.id));
+  document.getElementById('thead').innerHTML = `<tr><th class="ck"><input type="checkbox" id="checkAll" ${allChecked ? 'checked' : ''} aria-label="Select all shown"></th>
+    <th>${tab === 'staff' ? 'Person' : 'Pupil'}</th><th>Classes</th>${tab === 'staff' ? '<th>Role</th>' : ''}<th>Account</th></tr>`;
+  const body = document.getElementById('rows');
+  const cols = tab === 'staff' ? 5 : 4;
+  if(!shown.length){
+    body.innerHTML = `<tr><td colspan="${cols}" class="empty">${people.length ? 'No one matches.' : (tab === 'staff' ? 'No staff accounts yet — add one on the right.' : 'No pupil accounts yet — add one on the right or bulk add from Excel.')}</td></tr>`;
+  } else {
+    body.innerHTML = shown.map(p=>`<tr>
+      <td class="ck">${p.isMainAdmin ? '' : `<input type="checkbox" data-sel="${p.id}" ${sel.has(p.id) ? 'checked' : ''} aria-label="Select ${escapeHtml(p.name)}">`}</td>
+      <td class="who-cell"><div class="nm">${escapeHtml(p.name)}${p.isActive === false ? '<span class="badge off">Deactivated</span>' : ''}</div><div class="em">${escapeHtml(p.email || p.username)}</div>
+        ${p.isMainAdmin ? '' : `<div class="row-acts"><button type="button" class="link" data-edit="${p.id}">Edit</button>${tab === 'pupils' ? `<button type="button" class="link danger" data-del="${p.id}">Delete</button>` : ''}</div>`}</td>
+      <td class="classes-cell">${p.classes && p.classes.length ? escapeHtml(p.classes.join(', ')) : '—'}</td>
+      ${tab === 'staff' ? `<td>${roleControl(p)}</td>` : ''}
+      <td class="status-cell">${statusCell(p)}</td>
+    </tr>`).join('');
+  }
+  body.querySelectorAll('.seg button[data-id]').forEach(b=>b.addEventListener('click', ()=>setRole(b)));
+  body.querySelectorAll('[data-sel]').forEach(c=>c.addEventListener('change', ()=>{ c.checked ? sel.add(Number(c.dataset.sel)) : sel.delete(Number(c.dataset.sel)); renderSelbar(); }));
+  body.querySelectorAll('[data-invite]').forEach(b=>b.addEventListener('click', ()=>invite([Number(b.dataset.invite)])));
+  body.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', ()=>openEdit(Number(b.dataset.edit))));
+  body.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', ()=>openDelete([Number(b.dataset.del)])));
+  document.getElementById('checkAll').addEventListener('change', (e)=>{
+    shown.filter(p=>!p.isMainAdmin).forEach(p=>e.target.checked ? sel.add(p.id) : sel.delete(p.id));
+    render();
+  });
+  renderSelbar();
+}
+function renderSelbar(){
+  const n = selected[tab].size;
+  document.getElementById('selbar').classList.toggle('hidden', !n);
+  document.getElementById('selCount').textContent = `${n} selected`;
+  document.getElementById('deleteSelBtn').classList.toggle('hidden', tab !== 'pupils');
+}
+
+async function setRole(button){
+  const t = store.staff.find(x=>x.id === Number(button.dataset.id));
+  const makeAdmin = button.dataset.role === 'admin';
+  if(makeAdmin === t.isAdmin) return;
+  const question = makeAdmin
+    ? `Make ${t.name} an Admin?\n\nThey'll be able to create and delete classes, add teachers and pupils, and send invites.`
+    : `Change ${t.name} to Teacher?\n\nThey'll only see and assign to the classes they're assigned to.`;
+  if(!confirm(question)) return;
+  button.closest('.seg').querySelectorAll('button').forEach(b=>b.disabled = true);
+  try {
+    Object.assign(t, await postJson(`/api/teachers/${t.id}/admin/`, {isAdmin: makeAdmin}));
+    render();
+    showToast(`${t.name} is now ${makeAdmin ? 'an Admin' : 'a Teacher'}.`);
+  } catch(error){ render(); showToast(error.message || 'Could not change that role.', 'error'); }
+}
+
+// ---------------- invites ----------------
+function showResult(res, n){
+  const bar = document.getElementById('resultBar');
+  const failed = res.failed ? res.failed.length : 0;
+  bar.innerHTML = `<div class="result-bar${failed ? ' warn' : ''}"><span>${res.sent ? `Invite emailed to <strong>${res.sent}</strong> ${res.sent === 1 ? 'person' : 'people'}.` : ''}
+    ${failed ? ` ${failed} couldn't be emailed (check the email settings) — download the logins and hand them out instead.` : ''}</span>
+    ${res.credentials && res.credentials.length ? '<button class="btn small outline" id="dlCreds" type="button">Download logins (.csv)</button>' : ''}</div>`;
+  const dl = document.getElementById('dlCreds');
+  if(dl) dl.addEventListener('click', ()=>downloadCredentials(res.credentials, tab === 'staff' ? 'staff' : 'pupils'));
+}
+async function invite(ids, all){
+  const people = list();
+  const targets = all ? people.filter(p=>p.status === 'not_invited' && !p.isMainAdmin) : people.filter(p=>ids.includes(p.id));
+  if(!targets.length) return;
+  const active = targets.filter(p=>p.status === 'active').length;
+  const who = targets.length === 1 ? targets[0].name : `${targets.length} ${tab === 'staff' ? 'people' : 'pupils'}`;
+  let msg = `Send an invite to ${who}?\n\nEach gets an email with their username, a new temporary password and the sign-in link. They'll choose their own password when they first sign in.`;
+  if(active) msg += `\n\n${active} of them already ${active === 1 ? 'has an active account' : 'have active accounts'} — their current password will stop working.`;
+  if(!confirm(msg)) return;
+  try {
+    const res = await postJson('/api/accounts/invite/', all ? {all: tab === 'staff' ? 'staff' : 'pupils', onlyNotInvited: true} : {userIds: targets.map(p=>p.id)});
+    showResult(res);
+    selected[tab].clear();
+    await load();
+  } catch(error){ showToast(error.message || 'Could not send invites.', 'error'); }
+}
+document.getElementById('inviteSelBtn').addEventListener('click', ()=>invite(Array.from(selected[tab])));
+document.getElementById('inviteAllBtn').addEventListener('click', ()=>invite([], true));
+document.getElementById('clearSelBtn').addEventListener('click', ()=>{ selected[tab].clear(); render(); });
+
+// ---------------- edit details ----------------
+let editingId = null;
+function openEdit(id){
+  const p = list().find(x=>x.id === id);
+  if(!p) return;
+  editingId = id;
+  document.getElementById('editTitle').textContent = `Edit ${p.name}`;
+  document.getElementById('editSub').textContent = `Username: ${p.username}`;
+  document.getElementById('edFirst').value = p.firstName || '';
+  document.getElementById('edLast').value = p.lastName || '';
+  document.getElementById('edEmail').value = p.email || '';
+  document.getElementById('edNote').textContent = tab === 'pupils'
+    ? 'Changing the email also updates it on every exam they\'re on, so their work stays linked.'
+    : 'Changing the email also updates it on the exams they created.';
+  document.getElementById('edError').classList.add('hidden');
+  document.getElementById('editModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('edFirst').focus(), 30);
+}
+function closeEdit(){ document.getElementById('editModal').classList.add('hidden'); editingId = null; }
+document.getElementById('edCancel').addEventListener('click', closeEdit);
+document.getElementById('edSave').addEventListener('click', async ()=>{
+  const err = document.getElementById('edError'); err.classList.add('hidden');
+  const firstName = document.getElementById('edFirst').value.trim();
+  const lastName = document.getElementById('edLast').value.trim();
+  const email = document.getElementById('edEmail').value.trim();
+  if(!firstName || !email){ err.textContent = 'First name and email are required.'; err.classList.remove('hidden'); return; }
+  const btn = document.getElementById('edSave'); btn.disabled = true;
+  try {
+    const updated = await postJson(`/api/accounts/${editingId}/update/`, {firstName, lastName, email});
+    closeEdit(); await load();
+    showToast(`Saved ${updated.name}'s details.`);
+  } catch(error){ err.textContent = error.message || 'Could not save those details.'; err.classList.remove('hidden'); }
+  finally { btn.disabled = false; }
+});
+
+// ---------------- delete pupils (one or many) ----------------
+let deletingIds = [];
+function openDelete(ids){
+  const people = store.pupils.filter(p=>ids.includes(p.id));
+  if(!people.length) return;
+  deletingIds = people.map(p=>p.id);
+  const many = people.length > 1;
+  document.getElementById('delTitle').textContent = many ? `Delete ${people.length} pupils?` : `Delete ${people[0].name}?`;
+  document.getElementById('delList').innerHTML = people.map(p=>`${escapeHtml(p.name)} <span style="color:var(--muted);">· ${escapeHtml(p.email || p.username)}</span>`).join('<br>');
+  document.getElementById('delTypeWrap').classList.toggle('hidden', !many);
+  document.getElementById('delType').value = '';
+  document.getElementById('delError').classList.add('hidden');
+  document.getElementById('delConfirm').textContent = many ? `Delete ${people.length} pupils` : 'Delete pupil';
+  document.getElementById('delModal').classList.remove('hidden');
+  setTimeout(()=>(many ? document.getElementById('delType') : document.getElementById('delCancel')).focus(), 30);
+}
+function closeDelete(){ document.getElementById('delModal').classList.add('hidden'); deletingIds = []; }
+document.getElementById('delCancel').addEventListener('click', closeDelete);
+document.getElementById('delConfirm').addEventListener('click', async ()=>{
+  const err = document.getElementById('delError'); err.classList.add('hidden');
+  if(deletingIds.length > 1 && document.getElementById('delType').value.trim().toUpperCase() !== 'DELETE'){
+    err.textContent = 'Type DELETE to confirm.'; err.classList.remove('hidden'); return;
+  }
+  const btn = document.getElementById('delConfirm'); btn.disabled = true;
+  try {
+    const res = await postJson('/api/accounts/pupils/delete/', {userIds: deletingIds});
+    deletingIds.forEach(id=>selected.pupils.delete(id));
+    closeDelete(); await load();
+    showToast(`Deleted ${res.deleted} pupil account${res.deleted === 1 ? '' : 's'}.`);
+  } catch(error){ err.textContent = error.message || 'Could not delete.'; err.classList.remove('hidden'); }
+  finally { btn.disabled = false; }
+});
+document.getElementById('deleteSelBtn').addEventListener('click', ()=>openDelete(Array.from(selected.pupils)));
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ closeEdit(); closeDelete(); } });
+['editModal','delModal'].forEach(id=>document.getElementById(id).addEventListener('click', (e)=>{ if(e.target.id === id){ id === 'editModal' ? closeEdit() : closeDelete(); } }));
+
+// ---------------- add one person ----------------
+function renderAddCard(){
+  const card = document.getElementById('addCard');
+  const classPicks = store.classes.length
+    ? `<div class="class-picks" id="newClasses">${store.classes.map(c=>`<label><input type="${tab === 'staff' ? 'checkbox' : 'radio'}" name="newCls" value="${c.id}"> ${escapeHtml(c.name)}</label>`).join('')}</div>`
+    : '<p class="sub" style="font-size:12.5px;margin:0;">No classes yet — create them on the Classes page.</p>';
+  card.innerHTML = `
+    <h2>${tab === 'staff' ? 'Add a staff member' : 'Add a pupil'}</h2>
+    <p class="sub" style="font-size:13px;margin-bottom:14px;">${tab === 'staff' ? 'Creates a teacher or admin account.' : 'Creates a pupil account.'} Several at once? Use <strong>Bulk add</strong>.</p>
+    <div class="field"><label class="lbl" for="newFirst">First name</label><input type="text" id="newFirst" autocomplete="off"></div>
+    <div class="field"><label class="lbl" for="newLast">Last name <span style="font-weight:400;">(optional)</span></label><input type="text" id="newLast" autocomplete="off"></div>
+    <div class="field"><label class="lbl" for="newEmail">Email</label><input type="email" id="newEmail" autocomplete="off" placeholder="name@school.edu"></div>
+    ${tab === 'staff' ? `<div class="field">
+      <label class="lbl">Role</label>
+      <div class="seg" id="newRole" role="radiogroup" aria-label="Role">
+        <button type="button" data-role="teacher" class="${newRole === 'teacher' ? 'on' : ''}" role="radio">Teacher</button>
+        <button type="button" data-role="admin" class="${newRole === 'admin' ? 'on admin' : ''}" role="radio">Admin</button>
+      </div>
+      <p class="role-hint" id="roleHint">${newRole === 'admin' ? 'Can set up classes, add people and send invites.' : 'Works only with the classes an admin assigns them to.'}</p>
+    </div>` : ''}
+    <div class="field"><label class="lbl">${tab === 'staff' ? 'Classes they teach' : 'Class'} <span style="font-weight:400;">(optional)</span></label>${classPicks}</div>
+    <label class="inv"><input type="checkbox" id="newInvite" checked><span><strong>Email them an invite now</strong><br><span class="sub" style="font-size:12px;">Username, temporary password and sign-in link.</span></span></label>
+    <button class="btn" id="addBtn" type="button" style="width:100%;">${tab === 'staff' ? 'Add staff member' : 'Add pupil'}</button>
+    <p class="err hidden" id="addError"></p>
+    <div class="new-account hidden" id="addResult"></div>`;
+  card.querySelectorAll('#newRole button').forEach(b=>b.addEventListener('click', ()=>{ newRole = b.dataset.role; renderAddCard(); }));
+  document.getElementById('addBtn').addEventListener('click', addPerson);
+}
+async function addPerson(){
+  const err = document.getElementById('addError'), result = document.getElementById('addResult');
+  err.classList.add('hidden'); result.classList.add('hidden');
+  const firstName = document.getElementById('newFirst').value.trim();
+  const lastName = document.getElementById('newLast').value.trim();
+  const email = document.getElementById('newEmail').value.trim();
+  const inviteNow = document.getElementById('newInvite').checked;
+  const classIds = Array.from(document.querySelectorAll('#newClasses input:checked')).map(i=>Number(i.value));
+  if(!firstName || !email){ err.textContent = 'First name and email are required.'; err.classList.remove('hidden'); return; }
+  const btn = document.getElementById('addBtn'); btn.disabled = true;
+  try {
+    const created = tab === 'staff'
+      ? await postJson('/api/teachers/create/', {firstName, lastName, email, role: newRole, classIds, invite: inviteNow})
+      : await postJson('/api/pupils/create/', {firstName, lastName, email, classId: classIds[0] || null, invite: inviteNow});
+    ['newFirst','newLast','newEmail'].forEach(id=>document.getElementById(id).value = '');
+    document.querySelectorAll('#newClasses input').forEach(i=>i.checked = false);
+    await load();
+    result.innerHTML = `<strong>${escapeHtml(created.name)}</strong> added${tab === 'staff' ? ` as ${created.isAdmin ? 'an Admin' : 'a Teacher'}` : ''}.<br>
+      ${created.emailed ? '✓ Invite emailed to ' + escapeHtml(created.email) + '.<br>' : (inviteNow ? "⚠ The invite email couldn't be sent — share these details yourself.<br>" : '')}
+      Username: <code>${escapeHtml(created.username)}</code><br>Temporary password: <code>${escapeHtml(created.tempPassword)}</code><br>
+      <span style="color:var(--muted);">Shown only once. They'll choose their own password when they first sign in.</span>`;
+    result.classList.remove('hidden');
+  } catch(error){
+    err.textContent = error.message || 'Could not add that person.'; err.classList.remove('hidden');
+  } finally { btn.disabled = false; }
+}
+
+// ---------------- tabs, search, bulk ----------------
+document.querySelectorAll('.ptabs button').forEach(b=>b.addEventListener('click', ()=>{
+  tab = b.dataset.tab;
+  const url = new URL(location.href); url.searchParams.set('tab', tab); history.replaceState(null, '', url);
+  document.getElementById('resultBar').innerHTML = '';
+  render(); renderAddCard();
+}));
+document.getElementById('search').addEventListener('input', (e)=>{ query = e.target.value; render(); });
+document.getElementById('statusFilter').addEventListener('change', (e)=>{ statusFilter = e.target.value; render(); });
+document.getElementById('bulkAddBtn').addEventListener('click', ()=>openBulk(tab === 'staff' ? 'teachers' : 'pupils'));
+window.onBulkImported = async ()=>{ await load(); };
+
+async function load(){
+  const [t, p, c] = await Promise.all([request('/api/teachers/'), request('/api/accounts/pupils/'), request('/api/classes/')]);
+  store.staff = t.teachers; store.pupils = p.pupils; store.classes = c.classes || [];
+  render();
+}
+(async ()=>{
+  try { await load(); renderAddCard(); }
+  catch(error){ document.getElementById('rows').innerHTML = `<tr><td colspan="5" class="err">${escapeHtml(error.message || 'Could not load people.')}</td></tr>`; }
+})();
+</script>
+{% endblock %}

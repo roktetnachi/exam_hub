@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in — ExamHub</title>
+<title>Sign in — {{ request.school.name|default:"ExamHub" }}</title>
 <style>
-  :root{--blue:#4b91c5;--blue-dark:#28186f;--danger:#d9231a;--danger-bg:#fbeae9;--text:#232733;--muted:#6b7280;--border:#d3dae6;--page-bg:#edf1f9;}
+  :root{--blue:{% if request.school and request.school.primary_color %}{{ request.school.primary_color }}{% else %}#4b91c5{% endif %};--blue-dark:#28186f;--danger:#d9231a;--danger-bg:#fbeae9;--text:#232733;--muted:#6b7280;--border:#d3dae6;--page-bg:#edf1f9;}
   *{box-sizing:border-box;}
   body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--page-bg);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;}
@@ -29,24 +29,110 @@
   .btn:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
   .errorlist{list-style:none;margin:0 0 18px;padding:12px 14px;border-radius:12px;background:var(--danger-bg);color:#a91c15;font-size:14.5px;line-height:1.45;}
   .help{color:var(--muted);font-size:13.5px;text-align:center;margin:20px 0 0;line-height:1.5;}
+  .tabs{display:flex;gap:18px;border-bottom:1px solid var(--border);margin:0 0 20px;}
+  .tabs button{background:none;border:0;padding:0 0 10px;font:inherit;font-size:14.5px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;}
+  .tabs button[aria-selected="true"]{color:var(--blue-dark);border-bottom-color:var(--blue);}
+  .notice{margin:0 0 18px;padding:12px 14px;border-radius:12px;background:#eaf3fa;color:#1f4f73;font-size:14.5px;line-height:1.45;}
+  .linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--blue);font-weight:700;cursor:pointer;text-decoration:underline;}
+  .code-input{letter-spacing:.4em;font-size:22px !important;text-align:center;font-variant-numeric:tabular-nums;}
+  .row-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:14px;}
+  [hidden]{display:none !important;}
 </style>
 </head>
 <body>
 <main class="card">
-  <div class="brand"><span class="dot"></span>ExamHub</div>
-  <h1>Welcome back</h1>
-  <p class="lead">Sign in to see your assignments.</p>
-  <form method="post">{% csrf_token %}
-    <div class="switch" role="radiogroup" aria-label="I am a">
-      <input type="radio" name="login_as" value="pupil" id="as_pupil"{% if login_as != "teacher" %} checked{% endif %}><label for="as_pupil">I'm a pupil</label>
-      <input type="radio" name="login_as" value="teacher" id="as_teacher"{% if login_as == "teacher" %} checked{% endif %}><label for="as_teacher">I'm a teacher</label>
-    </div>
+  <div class="brand">
+    {% if request.school and request.school.logo %}
+      <img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" style="height:36px;max-width:160px;object-fit:contain;border-radius:8px;">
+    {% else %}
+      <span class="dot"></span>
+    {% endif %}
+    <span>{{ request.school.name|default:"ExamHub" }}</span>
+  </div>
+  <h1>Welcome{% if request.school %} to {{ request.school.name }}{% else %} back{% endif %}</h1>
+  <p class="lead">Sign in to see your exams.</p>
+  <div class="switch" role="radiogroup" aria-label="I am a">
+    <input type="radio" name="login_as_switch" value="pupil" id="as_pupil"{% if login_as != "teacher" %} checked{% endif %}><label for="as_pupil">I'm a pupil</label>
+    <input type="radio" name="login_as_switch" value="teacher" id="as_teacher"{% if login_as == "teacher" %} checked{% endif %}><label for="as_teacher">I'm a teacher</label>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab_password" aria-selected="{% if method != 'code' %}true{% else %}false{% endif %}">Password</button>
+    <button type="button" role="tab" id="tab_code" aria-selected="{% if method == 'code' %}true{% else %}false{% endif %}">Email me a code</button>
+  </div>
+
+  {# Option 1: username + password #}
+  <form method="post" id="panel_password"{% if method == 'code' %} hidden{% endif %}>{% csrf_token %}
+    <input type="hidden" name="action" value="password">
+    <input type="hidden" name="login_as" value="{{ login_as }}">
+    <input type="hidden" name="next" value="{{ next }}">
     {{ form.non_field_errors }}
     <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
     <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
     <button class="btn" type="submit">Sign in</button>
+    <p class="help">Forgot your password? <button type="button" class="linkbtn" id="forgot_link">Sign in with an email code</button>, then set a new one.</p>
   </form>
-  <p class="help">Forgot your password? Ask your teacher or school admin to reset it. Once you're in, you can change it any time from your account menu.</p>
+
+  {# Option 2: one-time code emailed to the account #}
+  <div id="panel_code"{% if method != 'code' %} hidden{% endif %}>
+    {% if code_error %}<ul class="errorlist"><li>{{ code_error }}</li></ul>{% endif %}
+    {% if code_notice %}<p class="notice">{{ code_notice }}</p>{% endif %}
+    {% if reset %}<p class="notice">After you sign in, you'll be asked to choose a new password.</p>{% endif %}
+
+    {% if code_step == 'verify' %}
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="verify_code">
+      <input type="hidden" name="login_as" value="{{ login_as }}">
+      <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field"><label for="id_code">6-digit code</label>
+        <input id="id_code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required autofocus></div>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+    <form method="post" class="row-links">{% csrf_token %}
+      <input type="hidden" name="action" value="resend_code">
+      <input type="hidden" name="login_as" value="{{ login_as }}">
+      <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="linkbtn">Resend code</button>
+      <a class="linkbtn" href="?method=code&amp;as={{ login_as }}{% if reset %}&amp;reset=1{% endif %}">Use a different account</a>
+    </form>
+    {% else %}
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="send_code">
+      <input type="hidden" name="login_as" value="{{ login_as }}">
+      <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field"><label for="id_identifier">Username or school email</label>
+        <input id="id_identifier" name="identifier" value="{{ identifier }}" autocomplete="username" required></div>
+      <button class="btn" type="submit">Email me a code</button>
+    </form>
+    {% endif %}
+    <p class="help">No password needed — we'll email a one-time code to the address on your account.</p>
+  </div>
 </main>
+<script>
+(function(){
+  // The pupil/teacher switch sits outside the forms; copy it into whichever form is submitted.
+  function role(){ return document.querySelector('input[name="login_as_switch"]:checked').value; }
+  document.querySelectorAll('form').forEach(function(f){
+    f.addEventListener('submit', function(){ var h=f.querySelector('input[name="login_as"]'); if(h) h.value=role(); });
+  });
+  var tp=document.getElementById('tab_password'), tc=document.getElementById('tab_code');
+  var pp=document.getElementById('panel_password'), pc=document.getElementById('panel_code');
+  function show(code){
+    tp.setAttribute('aria-selected', code?'false':'true'); tc.setAttribute('aria-selected', code?'true':'false');
+    pp.hidden=code; pc.hidden=!code;
+    var focus=document.getElementById(code?(document.getElementById('id_code')?'id_code':'id_identifier'):'id_username');
+    if(focus) focus.focus();
+  }
+  tp.addEventListener('click', function(){ show(false); });
+  tc.addEventListener('click', function(){ show(true); });
+  document.getElementById('forgot_link').addEventListener('click', function(){
+    document.querySelectorAll('#panel_code input[name="reset"]').forEach(function(i){ i.value='1'; });
+    show(true);
+  });
+})();
+</script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from django.contrib.auth.forms import AdminUserCreationForm, UserChangeForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django import forms
-from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, SchoolClass, Submission, User
+from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, School, SchoolClass, Submission, User
 
 
 class RequireUniqueEmailMixin:
@@ -33,12 +33,26 @@ class RequireUniqueEmailMixin:
         return email
 
 
-class ExamHubUserCreationForm(RequireUniqueEmailMixin, AdminUserCreationForm):
+class ExamHubUserCreationForm(RequireUniqueEmailMixin, UserCreationForm):
     pass
 
 
 class ExamHubUserChangeForm(RequireUniqueEmailMixin, UserChangeForm):
     pass
+
+
+@admin.register(School)
+class SchoolAdmin(admin.ModelAdmin):
+    """Platform-level view of all tenant schools. Only accessible to super admins."""
+    list_display = ('name', 'slug', 'timezone', 'is_active', 'user_count', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+    readonly_fields = ('created_at',)
+    prepopulated_fields = {'slug': ('name',)}
+
+    def user_count(self, obj):
+        return obj.users.count()
+    user_count.short_description = 'Users'
 
 
 @admin.register(User)
@@ -48,21 +62,22 @@ class UserAdmin(DjangoUserAdmin):
     they create assignments, and pupils' email is what assignments are matched to — so both
     need to be filled in here for the rest of the app to work."""
     fieldsets = DjangoUserAdmin.fieldsets + (
-        ('ExamHub role', {'fields': ('role',)}),
+        ('ExamHub role', {'fields': ('role', 'school', 'is_school_admin')}),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
         ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
-        ('ExamHub role', {'fields': ('role',)}),
+        ('ExamHub role', {'fields': ('role', 'school', 'is_school_admin')}),
     )
     form = ExamHubUserChangeForm
     add_form = ExamHubUserCreationForm
-    list_display = ('username', 'first_name', 'last_name', 'email', 'role', 'is_staff', 'is_superuser')
-    list_filter = DjangoUserAdmin.list_filter + ('role',)
+    list_display = ('username', 'first_name', 'last_name', 'email', 'role', 'school', 'is_school_admin', 'is_superuser')
+    list_filter = DjangoUserAdmin.list_filter + ('role', 'school', 'is_school_admin')
 
 
 @admin.register(SchoolClass)
 class SchoolClassAdmin(admin.ModelAdmin):
-    list_display = ('name', 'teacher_list', 'pupil_count', 'created_at')
+    list_display = ('name', 'school', 'teacher_list', 'pupil_count', 'created_at')
+    list_filter = ('school',)
     filter_horizontal = ('teachers', 'pupils')
     search_fields = ('name',)
 
@@ -89,7 +104,8 @@ class AssignmentItemInline(admin.TabularInline):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'teacher_name', 'opens_at', 'due_at', 'duration_minutes')
+    list_display = ('title', 'school', 'teacher_name', 'is_hidden', 'opens_at', 'due_at', 'closed_at')
+    list_filter = ('school',)
     inlines = [AssignmentItemInline, RecipientInline]
 
 
@@ -115,6 +131,7 @@ class ActivityLogEntryAdmin(admin.ModelAdmin):
 
 @admin.register(AllowedBrowserExamKey)
 class AllowedBrowserExamKeyAdmin(admin.ModelAdmin):
-    list_display = ('label', 'key_hash', 'created_at')
+    list_display = ('label', 'school', 'key_hash', 'created_at')
+    list_filter = ('school',)
     readonly_fields = ('created_at',)
 

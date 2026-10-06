@@ -1,0 +1,172 @@
+{% extends "teacher_base.html" %}
+{% block title %}Activity{% endblock %}
+{% block nav_activity %}class="active" aria-current="page"{% endblock %}
+
+{% block style %}
+  .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+  .filters .f-class{width:260px;}
+  .filters .f-search{flex:1;min-width:200px;}
+  .pills{display:flex;gap:4px;background:#fff;border-radius:999px;padding:4px;box-shadow:var(--card-shadow);flex-wrap:wrap;}
+  .pills button{border:none;background:none;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted);}
+  .pills button.active{background:var(--blue);color:#fff;}
+  .pills button:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
+  .day{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:18px 0 6px;}
+  .day:first-child{margin-top:0;}
+  .entry{display:grid;grid-template-columns:12px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border);}
+  .entry:last-child{border-bottom:none;}
+  .dot{width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--muted);}
+  .dot.assignments{background:var(--blue);} .dot.submissions{background:var(--ok);}
+  .dot.grading{background:var(--violet);} .dot.classes{background:var(--warn);} .dot.roles{background:var(--danger);}
+  .entry .desc{font-size:14px;line-height:1.45;}
+  .entry .meta{color:var(--muted);font-size:12.5px;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tag{background:var(--page-bg);border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600;color:var(--text);text-decoration:none;}
+  a.tag:hover{background:var(--blue-tint);color:var(--blue-dark);}
+  .time{color:var(--muted);font-size:12.5px;white-space:nowrap;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend .dot{margin:0;}
+  .scope{background:var(--blue-tint);border-radius:12px;padding:10px 14px;font-size:13.5px;margin-bottom:14px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;}
+  @media (max-width:640px){ .filters .f-class{width:100%;} .entry{grid-template-columns:12px 1fr;} .entry .time{grid-column:2;} }
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Activity</h1>
+    <p class="sub">{% if can_manage_classes %}Everything teachers and pupils have done in ExamHub, newest first.{% else %}Your own actions, plus anything involving the classes you teach.{% endif %}</p>
+  </div>
+  <a class="btn outline small" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if can_manage_classes %}Manage classes{% else %}My classes{% endif %}</a>
+</div>
+
+<div class="filters">
+  <div class="f-class">
+    <label class="lbl" for="classFilter">Class</label>
+    <select id="classFilter"><option value="">All {% if not can_manage_classes %}my {% endif %}classes</option></select>
+  </div>
+  <div>
+    <label class="lbl">Type</label>
+    <div class="pills" id="categoryPills" role="group" aria-label="Activity type">
+      <button type="button" data-cat="" class="active">All</button>
+      <button type="button" data-cat="assignments">Exams</button>
+      <button type="button" data-cat="submissions">Submissions</button>
+      <button type="button" data-cat="grading">Grading</button>
+      <button type="button" data-cat="classes">Classes</button>
+      {% if can_manage_classes %}<button type="button" data-cat="roles">Roles</button>{% endif %}
+    </div>
+  </div>
+  <div class="f-search">
+    <label class="lbl" for="searchBox">Search</label>
+    <input type="search" id="searchBox" placeholder="Pupil, teacher, exam…">
+  </div>
+</div>
+
+<div class="card">
+  <div id="scope" class="scope hidden"></div>
+  <div id="feed"><p class="empty">Loading…</p></div>
+  <div style="text-align:center;margin-top:14px;"><button class="btn outline small hidden" id="loadMore" type="button">Load more</button></div>
+  <div class="legend">
+    <span><i class="dot assignments"></i>Exams</span><span><i class="dot submissions"></i>Submissions</span>
+    <span><i class="dot grading"></i>Grading</span><span><i class="dot classes"></i>Classes</span>{% if can_manage_classes %}<span><i class="dot roles"></i>Roles</span>{% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+const params = new URLSearchParams(location.search);
+const filters = { class: params.get('class') || '', category: params.get('category') || '', q: params.get('q') || '' };
+let nextOffset = 0, entries = [], classesLoaded = false, loadToken = 0;
+
+function syncUrl(){
+  const url = new URL(location.href);
+  ['class','category','q'].forEach(k=>{ if(filters[k]) url.searchParams.set(k, filters[k]); else url.searchParams.delete(k); });
+  history.replaceState(null, '', url);
+}
+
+function dayLabel(d){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const that = new Date(d); that.setHours(0,0,0,0);
+  const diff = Math.round((today - that) / 86400000);
+  if(diff === 0) return 'Today';
+  if(diff === 1) return 'Yesterday';
+  return d.toLocaleDateString(undefined, {weekday:'long', day:'numeric', month:'long', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric'});
+}
+
+function render(){
+  const feed = document.getElementById('feed');
+  if(!entries.length){
+    feed.innerHTML = `<p class="empty" style="text-align:center;padding:30px 0;">${filters.class || filters.category || filters.q ? 'No activity matches these filters.' : 'No activity recorded yet.'}</p>`;
+    return;
+  }
+  let html = '', lastDay = '';
+  entries.forEach(e=>{
+    const d = new Date(e.createdAt);
+    const day = dayLabel(d);
+    if(day !== lastDay){ html += `<div class="day">${escapeHtml(day)}</div>`; lastDay = day; }
+    const tags = [];
+    if(e.className && String(e.classId) !== filters.class) tags.push(`<a class="tag" href="?class=${e.classId}">${escapeHtml(e.className)}</a>`);
+    if(e.assignmentTitle) tags.push(`<span class="tag">${escapeHtml(e.assignmentTitle)}</span>`);
+    html += `<div class="entry">
+      <i class="dot ${escapeHtml(e.category)}" title="${escapeHtml(e.category)}"></i>
+      <div><div class="desc">${escapeHtml(e.description)}</div>
+        <div class="meta"><span>${escapeHtml(e.actorName || 'Someone')}</span>${tags.join('')}</div></div>
+      <div class="time" title="${escapeHtml(d.toLocaleString())}">${d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}</div>
+    </div>`;
+  });
+  feed.innerHTML = html;
+}
+
+async function load(reset){
+  const token = ++loadToken;
+  if(reset){ nextOffset = 0; entries = []; document.getElementById('feed').innerHTML = '<p class="empty">Loading…</p>'; }
+  const qs = new URLSearchParams({limit: 50, offset: nextOffset});
+  Object.entries(filters).forEach(([k,v])=>{ if(v) qs.set(k, v); });
+  const btn = document.getElementById('loadMore');
+  btn.disabled = true;
+  try {
+    const res = await request('/api/activity-log/?' + qs);
+    if(token !== loadToken) return;
+    if(!classesLoaded){
+      const sel = document.getElementById('classFilter');
+      res.classes.forEach(c=>{ const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sel.appendChild(o); });
+      sel.value = filters.class;
+      classesLoaded = true;
+    }
+    entries = entries.concat(res.entries);
+    nextOffset = res.nextOffset;
+    btn.classList.toggle('hidden', !res.hasMore);
+    const scope = document.getElementById('scope');
+    if(res.selectedClass){
+      scope.innerHTML = `<span>Showing activity for <strong>${escapeHtml(res.selectedClass.name)}</strong> — roster changes plus anything about exams set for its pupils.</span>
+        <span><a href="${SCHOOL_PREFIX}/classes/?class=${res.selectedClass.id}">Open class</a> · <a href="#" id="clearClass">Show all classes</a></span>`;
+      scope.classList.remove('hidden');
+      document.getElementById('clearClass').addEventListener('click', (ev)=>{ ev.preventDefault(); setFilter('class', ''); document.getElementById('classFilter').value = ''; });
+    } else {
+      scope.classList.add('hidden');
+    }
+    render();
+  } catch(error){
+    if(token !== loadToken) return;
+    document.getElementById('feed').innerHTML = `<p class="err">${escapeHtml(error.message || 'Could not load activity.')}</p>`;
+  } finally { btn.disabled = false; }
+}
+
+function setFilter(key, value){ filters[key] = value; syncUrl(); load(true); }
+
+document.getElementById('classFilter').addEventListener('change', (e)=>setFilter('class', e.target.value));
+document.querySelectorAll('#categoryPills button').forEach(b=>{
+  b.classList.toggle('active', b.dataset.cat === filters.category);
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#categoryPills button').forEach(x=>x.classList.toggle('active', x === b));
+    setFilter('category', b.dataset.cat);
+  });
+});
+const searchBox = document.getElementById('searchBox');
+searchBox.value = filters.q;
+let searchTimer;
+searchBox.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>setFilter('q', searchBox.value.trim()), 300); });
+document.getElementById('loadMore').addEventListener('click', ()=>load(false));
+
+load(true);
+</script>
+{% endblock %}

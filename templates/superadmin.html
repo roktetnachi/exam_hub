@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<title>Super Admin Dashboard — ExamHub Platform</title>
+<style>
+  :root{
+    --blue:#2563eb; --blue-dark:#1e40af; --blue-tint:#eff6ff; --border:#e2e8f0;
+    --page-bg:#f8fafc; --text:#0f172a; --muted:#64748b;
+    --ok:#16a34a; --ok-bg:#dcfce7; --warn:#d97706; --warn-bg:#fef3c7;
+    --danger:#dc2626; --danger-dark:#991b1b; --danger-bg:#fee2e2;
+    --card-radius:16px;
+    --card-shadow:0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:var(--page-bg);-webkit-font-smoothing:antialiased;}
+  button,input,select,textarea{font-family:inherit;}
+  button{cursor:pointer;}
+  a{color:var(--blue);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .hidden{display:none !important;}
+
+  /* Brandbar */
+  .brandbar{height:64px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:20px;padding:0 28px;position:sticky;top:0;z-index:40;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;color:var(--text);text-decoration:none;letter-spacing:-.01em;}
+  .brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);}
+  .brand .tag{background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em;}
+  .topnav{display:flex;gap:6px;}
+  .topnav a{padding:7px 14px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;transition:background .15s;}
+  .topnav a:hover{background:#f1f5f9;color:var(--text);text-decoration:none;}
+  .topnav a.active{background:var(--blue-tint);color:var(--blue);}
+  .who{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13.5px;color:var(--muted);}
+  .who form{margin:0;}
+  .who button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 12px;font-size:13px;color:var(--danger);font-weight:600;}
+  .who button:hover{background:var(--danger-bg);}
+
+  /* Page Layout */
+  .page{max-width:1280px;margin:0 auto;padding:32px 24px 64px;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px;}
+  h1{font-size:26px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em;}
+  .sub{color:var(--muted);font-size:14px;margin:0;}
+
+  /* Metrics Row */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:32px;}
+  .metric-card{background:#fff;border-radius:var(--card-radius);padding:20px 22px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,0.03);}
+  .metric-label{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .metric-value{font-size:28px;font-weight:800;color:var(--text);line-height:1;}
+  .metric-sub{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  /* Controls */
+  .controls-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+  .search-wrap{position:relative;flex:1;max-width:380px;}
+  .search-input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;background:var(--blue);color:#fff;min-height:38px;padding:8px 16px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;}
+  .btn:hover{background:var(--blue-dark);text-decoration:none;color:#fff;}
+  .btn.outline{background:#fff;color:var(--text);border:1px solid var(--border);}
+  .btn.outline:hover{background:#f8fafc;border-color:#cbd5e1;}
+  .btn.small{min-height:30px;padding:4px 10px;font-size:12px;border-radius:6px;}
+  .btn.danger{background:#fff;color:var(--danger);border:1px solid var(--border);}
+  .btn.danger:hover{background:var(--danger-bg);border-color:var(--danger);}
+
+  /* School Cards / Table */
+  .schools-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));gap:20px;}
+  .school-card{background:#fff;border-radius:var(--card-radius);border:1px solid var(--border);box-shadow:var(--card-shadow);padding:22px;display:flex;flex-direction:column;gap:16px;transition:box-shadow .2s;}
+  .school-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+  .school-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .school-info{display:flex;align-items:center;gap:14px;}
+  .school-avatar{width:46px;height:46px;border-radius:10px;background:#f1f5f9;display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff;flex-shrink:0;overflow:hidden;}
+  .school-avatar img{width:100%;height:100%;object-fit:cover;}
+  .school-titles h2{font-size:17px;font-weight:700;margin:0 0 3px;}
+  .school-slug{font-size:12.5px;color:var(--muted);font-family:ui-monospace,monospace;}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:700;}
+  .badge.active{background:var(--ok-bg);color:var(--ok);}
+  .badge.inactive{background:var(--danger-bg);color:var(--danger);}
+
+  .school-stats{display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;background:#f8fafc;border-radius:10px;padding:10px 12px;text-align:center;}
+  .stat-col .num{font-size:16px;font-weight:800;color:var(--text);}
+  .stat-col .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+
+  .school-meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
+  .school-actions{display:flex;gap:8px;padding-top:8px;border-top:1px solid #f1f5f9;flex-wrap:wrap;}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(2px);display:grid;place-items:center;z-index:100;padding:20px;}
+  .modal{background:#fff;border-radius:18px;max-width:540px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;}
+  .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-header h3{font-size:18px;font-weight:700;margin:0;}
+  .modal-close{border:none;background:transparent;font-size:20px;color:var(--muted);padding:4px;cursor:pointer;border-radius:6px;}
+  .modal-close:hover{background:#f1f5f9;color:var(--text);}
+  .modal-body{padding:24px;overflow-y:auto;}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--border);background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;}
+
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#334155;}
+  .form-group input,.form-group select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;}
+  .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.15);}
+  .form-help{font-size:12px;color:var(--muted);margin-top:4px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  .color-picker-row{display:flex;align-items:center;gap:10px;}
+  .color-preview{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);cursor:pointer;}
+
+  /* Admin List Item */
+  .admin-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8fafc;border-radius:8px;margin-bottom:8px;}
+  .admin-name{font-weight:600;font-size:13.5px;}
+  .admin-meta{font-size:12px;color:var(--muted);}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.2);z-index:200;}
+  .toast.error{background:var(--danger);}
+</style>
+</head>
+<body>
+
+<header class="brandbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <span>ExamHub</span>
+    <span class="tag">Platform Admin</span>
+  </div>
+  <nav class="topnav">
+    <a href="{% url 'superadmin-dashboard' %}" class="active">Schools</a>
+    <a href="/admin/" target="_blank">Django Admin ↗</a>
+  </nav>
+  <div class="who">
+    <span>Superuser: <strong>{{ request.user.username }}</strong></span>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit">Sign out</button>
+    </form>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-header">
+    <div>
+      <h1>Multi-Tenant School Management</h1>
+      <p class="sub">Manage isolated tenant schools, configure branding, and provision school administrators.</p>
+    </div>
+    <button class="btn" onclick="openCreateSchoolModal()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Add New School
+    </button>
+  </div>
+
+  <!-- Global Metrics -->
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="metric-label">Total Schools</div>
+      <div class="metric-value">{{ total_schools }}</div>
+      <div class="metric-sub">{{ active_schools }} active tenants</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Teachers</div>
+      <div class="metric-value">{{ total_teachers }}</div>
+      <div class="metric-sub">Across all schools</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Pupils</div>
+      <div class="metric-value">{{ total_pupils }}</div>
+      <div class="metric-sub">Enrolled students</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Assignments & Exams</div>
+      <div class="metric-value">{{ total_assignments }}</div>
+      <div class="metric-sub">Papers created</div>
+    </div>
+  </div>
+
+  <!-- Search and Controls -->
+  <div class="controls-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="search" id="schoolSearch" class="search-input" placeholder="Search schools by name or slug..." oninput="filterSchools()">
+    </div>
+  </div>
+
+  <!-- Schools Grid -->
+  <div class="schools-grid" id="schoolsGrid">
+    {% for s in schools %}
+    <div class="school-card" data-name="{{ s.name|lower }}" data-slug="{{ s.slug|lower }}">
+      <div class="school-head">
+        <div class="school-info">
+          <div class="school-avatar" style="background:{{ s.primary_color|default:'#2563eb' }}">
+            {% if s.logo %}
+              <img src="{{ s.logo.url }}" alt="{{ s.name }}">
+            {% else %}
+              {{ s.name|slice:":1"|upper }}
+            {% endif %}
+          </div>
+          <div class="school-titles">
+            <h2>{{ s.name }}</h2>
+            <div class="school-slug">/s/{{ s.slug }}/</div>
+          </div>
+        </div>
+        <span class="badge {% if s.is_active %}active{% else %}inactive{% endif %}" id="badge-{{ s.id }}">
+          {% if s.is_active %}Active{% else %}Inactive{% endif %}
+        </span>
+      </div>
+
+      <div class="school-stats">
+        <div class="stat-col">
+          <div class="num">{{ s.admin_count }}</div>
+          <div class="lbl">Admins</div>
+        </div>
+        <div class="stat-col">
+          <div class="num">{{ s.teacher_count }}</div>
+          <div class="lbl">Teachers</div>
+        </div>
+        <div class="stat-col">
+          <div class="num">{{ s.pupil_count }}</div>
+          <div class="lbl">Pupils</div>
+        </div>
+        <div class="stat-col">
+          <div class="num">{{ s.assignment_count }}</div>
+          <div class="lbl">Exams</div>
+        </div>
+      </div>
+
+      <div class="school-meta">
+        <span>Timezone: <strong>{{ s.timezone }}</strong></span>
+        <span>Brand Color: <strong style="color:{{ s.primary_color|default:'#2563eb' }}">● {{ s.primary_color|default:'#2563eb' }}</strong></span>
+      </div>
+
+      <div class="school-actions">
+        <a href="/s/{{ s.slug }}/" target="_blank" class="btn small outline">
+          Open Portal ↗
+        </a>
+        <button class="btn small outline" onclick="openAdminsModal({{ s.id }}, '{{ s.name|escapejs }}')">
+          Manage Admins ({{ s.admin_count }})
+        </button>
+        <button class="btn small outline" onclick="openEditSchoolModal({{ s.id }}, '{{ s.name|escapejs }}', '{{ s.slug|escapejs }}', '{{ s.primary_color|escapejs }}', '{{ s.timezone|escapejs }}', {{ s.is_active|yesno:'true,false' }})">
+          Edit
+        </button>
+        <button class="btn small danger" onclick="toggleSchoolActive({{ s.id }}, this)">
+          {% if s.is_active %}Deactivate{% else %}Activate{% endif %}
+        </button>
+      </div>
+    </div>
+    {% empty %}
+    <div style="grid-column: 1/-1; text-align:center; padding: 48px; background:#fff; border-radius:16px; color:var(--muted);">
+      <p style="font-size:16px; margin:0 0 12px;">No schools created yet.</p>
+      <button class="btn" onclick="openCreateSchoolModal()">Create Your First School</button>
+    </div>
+    {% endfor %}
+  </div>
+</main>
+
+<!-- Create School Modal -->
+<div id="createModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create New Tenant School</h3>
+      <button class="modal-close" onclick="closeModal('createModal')">&times;</button>
+    </div>
+    <form id="createSchoolForm" onsubmit="handleCreateSchool(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>School Name *</label>
+          <input type="text" id="createName" required placeholder="e.g. St. Mary's Academy" oninput="autoSlug()">
+        </div>
+        <div class="form-group">
+          <label>URL Slug *</label>
+          <input type="text" id="createSlug" required placeholder="e.g. st-marys">
+          <div class="form-help">Will be accessible at <code>/s/&lt;slug&gt;/</code></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Brand Primary Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="createColorPicker" value="#2563eb" style="width:42px;height:38px;padding:2px;border:none;border-radius:6px;cursor:pointer;" oninput="document.getElementById('createColor').value = this.value">
+              <input type="text" id="createColor" value="#2563eb" placeholder="#2563eb" style="flex:1;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Timezone</label>
+            <select id="createTimezone">
+              <option value="UTC">UTC</option>
+              <option value="Asia/Manila" selected>Asia/Manila (PHT)</option>
+              <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+              <option value="Europe/London">Europe/London (GMT/BST)</option>
+              <option value="America/New_York">America/New_York (EST/EDT)</option>
+              <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+              <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+            </select>
+          </div>
+        </div>
+
+        <hr style="margin:20px 0; border:none; border-top:1px solid var(--border);">
+        <h4 style="margin:0 0 12px; font-size:14px; color:#334155;">Initial School Admin Account (Optional)</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Admin Username</label>
+            <input type="text" id="createAdminUsername" placeholder="e.g. admin_stmarys">
+          </div>
+          <div class="form-group">
+            <label>Admin Email</label>
+            <input type="email" id="createAdminEmail" placeholder="admin@school.edu">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Admin Password</label>
+            <input type="password" id="createAdminPassword" placeholder="Temporary password">
+          </div>
+          <div class="form-group">
+            <label>Admin Full Name</label>
+            <input type="text" id="createAdminName" placeholder="e.g. Principal Smith">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn outline" onclick="closeModal('createModal')">Cancel</button>
+        <button type="submit" class="btn" id="createSubmitBtn">Create School</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit School Modal -->
+<div id="editModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit School</h3>
+      <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+    </div>
+    <form id="editSchoolForm" onsubmit="handleEditSchool(event)">
+      <input type="hidden" id="editSchoolId">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>School Name *</label>
+          <input type="text" id="editName" required>
+        </div>
+        <div class="form-group">
+          <label>URL Slug *</label>
+          <input type="text" id="editSlug" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Brand Primary Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="editColorPicker" value="#2563eb" style="width:42px;height:38px;padding:2px;border:none;border-radius:6px;cursor:pointer;" oninput="document.getElementById('editColor').value = this.value">
+              <input type="text" id="editColor" value="#2563eb">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Timezone</label>
+            <select id="editTimezone">
+              <option value="UTC">UTC</option>
+              <option value="Asia/Manila">Asia/Manila (PHT)</option>
+              <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+              <option value="Europe/London">Europe/London (GMT/BST)</option>
+              <option value="America/New_York">America/New_York (EST/EDT)</option>
+              <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+              <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="editIsActive" style="width:auto;">
+            <span>School is Active (Uncheck to lock out school access)</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn outline" onclick="closeModal('editModal')">Cancel</button>
+        <button type="submit" class="btn" id="editSubmitBtn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Manage Admins Modal -->
+<div id="adminsModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="adminsModalTitle">Manage School Admins</h3>
+      <button class="modal-close" onclick="closeModal('adminsModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <h4 style="margin:0 0 10px; font-size:14px;">Existing School Admins</h4>
+      <div id="adminsList" style="max-height:160px; overflow-y:auto; margin-bottom:20px;">
+        <div style="color:var(--muted); font-size:13px;">Loading admins...</div>
+      </div>
+
+      <hr style="margin:16px 0; border:none; border-top:1px solid var(--border);">
+      <h4 style="margin:0 0 12px; font-size:14px; color:#334155;">Add New School Admin</h4>
+      <form id="addAdminForm" onsubmit="handleAddAdmin(event)">
+        <input type="hidden" id="adminSchoolId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Username *</label>
+            <input type="text" id="newAdminUsername" required placeholder="e.g. principal.john">
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="newAdminEmail" required placeholder="john@school.edu">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Password *</label>
+            <input type="password" id="newAdminPassword" required placeholder="Min 8 characters">
+          </div>
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="newAdminName" placeholder="e.g. John Doe">
+          </div>
+        </div>
+        <button type="submit" class="btn small" style="width:100%;">Create School Admin</button>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn outline" onclick="closeModal('adminsModal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function csrfToken(){ return document.querySelector('meta[name="csrf-token"]').content; }
+
+async function apiCall(url, data=null, method='POST'){
+  const options = {
+    method,
+    headers: {
+      'X-CSRFToken': csrfToken(),
+      'Content-Type': 'application/json'
+    }
+  };
+  if(data) options.body = JSON.stringify(data);
+  const res = await fetch(url, options);
+  const resData = await res.json().catch(()=>({}));
+  if(!res.ok){
+    throw new Error(resData.error || resData.message || 'Request failed');
+  }
+  return resData;
+}
+
+function showToast(msg, isError=false){
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (isError ? ' error' : '');
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(()=>{ toast.remove(); }, 3200);
+}
+
+function filterSchools(){
+  const q = document.getElementById('schoolSearch').value.toLowerCase();
+  document.querySelectorAll('.school-card').forEach(card => {
+    const name = card.dataset.name || '';
+    const slug = card.dataset.slug || '';
+    card.style.display = (name.includes(q) || slug.includes(q)) ? '' : 'none';
+  });
+}
+
+function autoSlug(){
+  const name = document.getElementById('createName').value;
+  const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  document.getElementById('createSlug').value = slug;
+}
+
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+
+function openCreateSchoolModal(){
+  document.getElementById('createSchoolForm').reset();
+  document.getElementById('createColorPicker').value = '#2563eb';
+  document.getElementById('createColor').value = '#2563eb';
+  openModal('createModal');
+}
+
+async function handleCreateSchool(e){
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+  try{
+    const payload = {
+      name: document.getElementById('createName').value.trim(),
+      slug: document.getElementById('createSlug').value.trim(),
+      primary_color: document.getElementById('createColor').value.trim(),
+      timezone: document.getElementById('createTimezone').value,
+      admin_username: document.getElementById('createAdminUsername').value.trim(),
+      admin_email: document.getElementById('createAdminEmail').value.trim(),
+      admin_password: document.getElementById('createAdminPassword').value,
+      admin_full_name: document.getElementById('createAdminName').value.trim()
+    };
+    await apiCall('/superadmin/api/schools/create/', payload);
+    showToast('School created successfully!');
+    setTimeout(()=>location.reload(), 800);
+  }catch(err){
+    showToast(err.message, true);
+    btn.disabled = false;
+    btn.textContent = 'Create School';
+  }
+}
+
+function openEditSchoolModal(id, name, slug, color, timezone, isActive){
+  document.getElementById('editSchoolId').value = id;
+  document.getElementById('editName').value = name;
+  document.getElementById('editSlug').value = slug;
+  document.getElementById('editColor').value = color || '#2563eb';
+  document.getElementById('editColorPicker').value = color || '#2563eb';
+  document.getElementById('editTimezone').value = timezone || 'UTC';
+  document.getElementById('editIsActive').checked = isActive;
+  openModal('editModal');
+}
+
+async function handleEditSchool(e){
+  e.preventDefault();
+  const id = document.getElementById('editSchoolId').value;
+  const btn = document.getElementById('editSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try{
+    const payload = {
+      name: document.getElementById('editName').value.trim(),
+      slug: document.getElementById('editSlug').value.trim(),
+      primary_color: document.getElementById('editColor').value.trim(),
+      timezone: document.getElementById('editTimezone').value,
+      is_active: document.getElementById('editIsActive').checked
+    };
+    await apiCall(`/superadmin/api/schools/${id}/update/`, payload);
+    showToast('School updated successfully!');
+    setTimeout(()=>location.reload(), 800);
+  }catch(err){
+    showToast(err.message, true);
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function toggleSchoolActive(id, btn){
+  try{
+    const res = await apiCall(`/superadmin/api/schools/${id}/toggle-active/`, {});
+    const badge = document.getElementById(`badge-${id}`);
+    if(res.is_active){
+      badge.className = 'badge active';
+      badge.textContent = 'Active';
+      btn.textContent = 'Deactivate';
+      showToast('School activated.');
+    } else {
+      badge.className = 'badge inactive';
+      badge.textContent = 'Inactive';
+      btn.textContent = 'Activate';
+      showToast('School deactivated.');
+    }
+  }catch(err){
+    showToast(err.message, true);
+  }
+}
+
+async function openAdminsModal(schoolId, schoolName){
+  document.getElementById('adminSchoolId').value = schoolId;
+  document.getElementById('adminsModalTitle').textContent = `Admins — ${schoolName}`;
+  document.getElementById('addAdminForm').reset();
+  const listEl = document.getElementById('adminsList');
+  listEl.innerHTML = '<div style="color:var(--muted); font-size:13px;">Loading admins...</div>';
+  openModal('adminsModal');
+
+  try{
+    const admins = await apiCall(`/superadmin/api/schools/${schoolId}/admins/`, null, 'GET');
+    if(!admins || admins.length === 0){
+      listEl.innerHTML = '<div style="color:var(--muted); font-size:13px; padding:8px 0;">No school admins created yet. Use the form below to create one.</div>';
+      return;
+    }
+    listEl.innerHTML = admins.map(a => `
+      <div class="admin-item">
+        <div>
+          <div class="admin-name">${escapeHtml(a.full_name || a.username)}</div>
+          <div class="admin-meta">@${escapeHtml(a.username)} · ${escapeHtml(a.email || 'No email')}</div>
+        </div>
+        <span class="badge active" style="font-size:11px;">School Admin</span>
+      </div>
+    `).join('');
+  }catch(err){
+    listEl.innerHTML = `<div style="color:var(--danger); font-size:13px;">Error loading admins: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function handleAddAdmin(e){
+  e.preventDefault();
+  const schoolId = document.getElementById('adminSchoolId').value;
+  try{
+    const payload = {
+      username: document.getElementById('newAdminUsername').value.trim(),
+      email: document.getElementById('newAdminEmail').value.trim(),
+      password: document.getElementById('newAdminPassword').value,
+      full_name: document.getElementById('newAdminName').value.trim()
+    };
+    await apiCall(`/superadmin/api/schools/${schoolId}/create-admin/`, payload);
+    showToast('School admin created successfully!');
+    document.getElementById('addAdminForm').reset();
+    openAdminsModal(schoolId, document.getElementById('adminsModalTitle').textContent.replace('Admins — ', ''));
+  }catch(err){
+    showToast(err.message, true);
+  }
+}
+
+function escapeHtml(str){
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+</body>
+</html>

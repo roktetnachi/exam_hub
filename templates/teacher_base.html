@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<title>{% block title %}ExamHub{% endblock %} — {{ request.school.name|default:"ExamHub" }}</title>
+<style>
+  :root{
+    --blue:{% if request.school and request.school.primary_color %}{{ request.school.primary_color }}{% else %}#4b91c5{% endif %}; --blue-dark:#28186f; --blue-tint:#eef5fb; --border:#e3e8f2;
+    --page-bg:#edf1f9; --text:#232733; --muted:#6b7280;
+    --ok:#16a34a; --warn:#d97706; --violet:#7c5cc4;
+    --danger:#d9231a; --danger-dark:#a91c15; --danger-bg:#fbeae9;
+    --card-radius:18px;
+    --card-shadow:0 1px 2px rgba(30,41,59,.04), 0 10px 28px -14px rgba(30,41,59,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:var(--page-bg);-webkit-font-smoothing:antialiased;}
+  button,input,select,textarea{font-family:inherit;}
+  button{cursor:pointer;}
+  a{color:var(--blue);}
+  .hidden{display:none !important;}
+
+  /* brand bar + section nav */
+  .brandbar{height:64px;background:#fff;box-shadow:0 1px 0 rgba(30,41,59,.06);display:flex;align-items:center;gap:22px;padding:0 24px;position:sticky;top:0;z-index:40;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;color:var(--blue-dark);text-decoration:none;letter-spacing:-.01em;}
+  .brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-dark));}
+  .topnav{display:flex;gap:4px;background:var(--page-bg);border-radius:999px;padding:4px;}
+  .topnav a{padding:8px 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap;}
+  .topnav a:hover{color:var(--blue-dark);}
+  .topnav a.active{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.14);}
+  .who{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--muted);}
+  .who form{margin:0;}
+  .who button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;color:var(--danger-dark);font-weight:600;}
+  .who button.tour-link{color:var(--blue);}
+
+  .page{max-width:1240px;margin:0 auto;padding:28px 24px 48px;}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.01em;}
+  h2{font-size:18px;margin:0;}
+  h3{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .sub{color:var(--muted);font-size:14px;margin:0;line-height:1.5;}
+  .card{background:#fff;box-shadow:var(--card-shadow);border-radius:var(--card-radius);padding:22px 24px;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;background:var(--blue);color:#fff;min-height:40px;padding:9px 18px;border-radius:999px;font-size:13.5px;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .15s;}
+  .btn:hover{background:var(--blue-dark);}
+  .btn.outline{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+  .btn.outline:hover{background:var(--blue-tint);}
+  .btn.small{min-height:34px;padding:6px 14px;font-size:12.5px;}
+  .btn.danger{background:#fff;color:var(--danger);border:1px solid var(--danger);}
+  .btn.danger:hover{background:var(--danger-bg);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn:focus-visible,.topnav a:focus-visible,.icon-x:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
+
+  input[type=text],input[type=email],input[type=search],select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fbfcfe;color:var(--text);}
+  input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,145,197,.18);background:#fff;}
+  label.lbl{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:0 0 6px;}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--page-bg);border-radius:999px;padding:5px 6px 5px 12px;font-size:13px;margin:0 6px 6px 0;}
+  .chip.plain{padding-right:12px;}
+  .icon-x{border:none;background:transparent;color:var(--muted);width:22px;height:22px;border-radius:50%;font-size:15px;line-height:1;display:inline-grid;place-items:center;}
+  .icon-x:hover{background:#dfe5f1;color:var(--danger-dark);}
+  .empty{color:var(--muted);font-size:13.5px;padding:14px 0;}
+  .err{color:var(--danger-dark);font-size:13px;margin:6px 0 0;}
+  .ok{color:var(--ok);font-size:13px;margin:6px 0 0;}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;box-shadow:var(--card-shadow);z-index:100;}
+  .toast.error{background:var(--danger-dark);}
+
+  @media (max-width:760px){
+    .brandbar{gap:12px;padding:0 14px;}
+    .brand span.word{display:none;}
+    .who .name{display:none;}
+    .topnav a{padding:7px 11px;}
+    .page{padding:20px 16px 40px;}
+  }
+  {% block style %}{% endblock %}
+</style>
+</head>
+<body>
+<header class="brandbar">
+  <a class="brand" href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}">
+    {% if request.school and request.school.logo %}
+      <img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" style="height:30px;max-width:140px;object-fit:contain;border-radius:6px;">
+    {% else %}
+      <span class="dot"></span>
+    {% endif %}
+    <span class="word">{{ request.school.name|default:"ExamHub" }}</span>
+  </a>
+  <nav class="topnav" aria-label="Sections">
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}">Exams</a>
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}" {% block nav_classes %}{% endblock %}>{% if can_manage_classes %}Classes{% else %}My classes{% endif %}</a>
+    {% if request.user.can_view_activity %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}" {% block nav_activity %}{% endblock %}>Activity</a>{% endif %}
+    {% if is_main_admin or can_manage_classes %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}" {% block nav_roles %}{% endblock %}>Roles</a>{% endif %}
+  </nav>
+  <div class="who">
+    <span class="name">{{ request.user.get_full_name|default:request.user.username }}{% if is_main_admin %} · Main admin{% elif can_manage_classes %} · Admin{% endif %}</span>
+    <button type="button" class="tour-link" data-start-tour title="Replay the quick tour">Take the tour</button>
+    <form method="post" action="{{ request.school_url_prefix|default:'' }}{% url 'logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
+  </div>
+</header>
+
+<main class="page">
+{% block content %}{% endblock %}
+</main>
+
+<script>
+const CAN_MANAGE = {% if can_manage_classes %}true{% else %}false{% endif %};
+const SCHOOL_PREFIX = "{{ request.school_url_prefix|default:'' }}";
+function csrfToken(){ return document.querySelector('meta[name="csrf-token"]').content; }
+async function request(url, options={}){
+  const finalUrl = (url.startsWith('/') && !url.startsWith(SCHOOL_PREFIX) && SCHOOL_PREFIX) ? SCHOOL_PREFIX + url : url;
+  const response = await fetch(finalUrl, {...options, headers:{'X-CSRFToken':csrfToken(), ...(options.headers||{})}});
+  if(!response.ok) throw new Error(await response.text() || 'Something went wrong.');
+  return response.json();
+}
+function postJson(url, data){
+  return request(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data||{})});
+}
+function escapeHtml(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastTimer;
+function showToast(message, kind){
+  let el = document.getElementById('toast');
+  if(!el){ el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
+  el.className = 'toast' + (kind === 'error' ? ' error' : '');
+  el.textContent = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.remove(), 3200);
+}
+</script>
+{% block script %}{% endblock %}
+{% include "_tour.html" %}
+{% include "_notifications.html" %}
+</body>
+</html>

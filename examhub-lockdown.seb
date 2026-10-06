@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>allowQuit</key>
+	<true/>
+	<key>hashedQuitPassword</key>
+	<string></string>
+	<key>quitURL</key>
+	<string>https://examhub-production-57c2.up.railway.app/?sebquit=1</string>
+	<key>quitURLConfirm</key>
+	<false/>
+	<key>sendBrowserExamKey</key>
+	<true/>
+	<key>startURL</key>
+	<string>https://examhub-production-57c2.up.railway.app/</string>
+</dict>
+</plist>

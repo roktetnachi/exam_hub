@@ -1,0 +1,227 @@
+{# First-login guided tour. Included at the end of examhub.html and teacher_base.html.   #}
+{# Opens by itself once per account (until finished or skipped), then can be replayed via #}
+{# any element with [data-start-tour] (account menu / "Tour" button).                     #}
+<style>
+  .tour-shade{position:fixed;inset:0;z-index:2000;background:rgba(17,24,39,.55);}
+  .tour-shade.spot{background:transparent;}
+  .tour-ring{position:fixed;z-index:2001;border-radius:14px;pointer-events:none;
+    box-shadow:0 0 0 4px #4b91c5, 0 0 0 9999px rgba(17,24,39,.55);transition:all .2s ease;}
+  .tour-card{position:fixed;z-index:2002;width:min(380px,calc(100vw - 32px));background:#fff;color:#232733;border-radius:18px;
+    box-shadow:0 24px 60px -18px rgba(17,24,39,.45);padding:22px 22px 18px;font-family:inherit;transition:top .2s ease,left .2s ease;}
+  .tour-card.center{left:50% !important;top:50% !important;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));}
+  .tour-step-label{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4b91c5;margin:0 0 6px;}
+  .tour-card h3{font-size:18px;margin:0 0 8px;letter-spacing:-.01em;color:#28186f;text-transform:none;}
+  .tour-card p{font-size:14px;line-height:1.55;margin:0;color:#4b5563;}
+  .tour-card .tour-icon{width:44px;height:44px;border-radius:12px;background:#eef5fb;color:#28186f;display:grid;place-items:center;margin-bottom:12px;}
+  .tour-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;}
+  .tour-dots{display:flex;gap:5px;}
+  .tour-dots i{width:7px;height:7px;border-radius:50%;background:#d6dce8;}
+  .tour-dots i.on{background:#4b91c5;width:18px;border-radius:999px;}
+  .tour-btns{display:flex;gap:8px;}
+  .tour-btn{border:none;border-radius:999px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;min-height:38px;}
+  .tour-btn.primary{background:#4b91c5;color:#fff;}
+  .tour-btn.primary:hover{background:#28186f;}
+  .tour-btn.ghost{background:#fff;color:#4b91c5;border:1px solid #cfe1f0;}
+  .tour-skip{position:absolute;top:12px;right:12px;border:none;background:none;color:#6b7280;font-size:12.5px;cursor:pointer;padding:6px 8px;border-radius:8px;font-family:inherit;}
+  .tour-skip:hover{background:#f1f4f9;}
+  .tour-btn:focus-visible,.tour-skip:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
+</style>
+
+<script>
+(function(){
+  const ROLE = "{{ tour_role|escapejs }}";
+  const AUTO_START = {% if show_tour %}true{% else %}false{% endif %};
+  const NAME = "{{ request.user.first_name|default:request.user.username|escapejs }}";
+
+  const ICONS = {
+    wave:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>',
+    done:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  };
+  const nav = (path) => `.topnav a[href="{{ request.school_url_prefix|default:'' }}${path}"]`;
+  const ACCOUNT = '#accountMenuBtn, .who';
+
+  const welcome = (who, line) => ({icon:'wave', title:`Welcome to ExamHub${NAME ? ', ' + NAME : ''}!`,
+    body:`You're signed in as <strong>${who}</strong>. ${line} This quick tour takes under a minute — use <strong>Next</strong> or your arrow keys.`});
+  const assignmentsStep = {target: nav('/'), title:'Exams', body:'Your home page. Every exam lives here — open one to monitor pupils live, chat with them, and grade and publish results.'};
+  const activityStep = {target: nav('/activity/'), title:'Activity', body:'A timeline of what\'s happened — exams created, submissions, grading and class changes. Filter it by class or type.'};
+  const previewStep = {target:'#roleToggleWrap', title:'Pupil preview', body:'Switch to <strong>Pupil preview</strong> to see exactly what a pupil sees, read-only. Handy for checking an exam before it opens.'};
+  const accountStep = {target: ACCOUNT, title:'Your account', body:'Change your password or sign out here. You can replay this tour from here any time.'};
+  const finish = (line) => ({icon:'done', title:"You're all set", body: line});
+
+  const TOURS = {
+    main_admin: [
+      welcome('the main admin', 'You can do everything — including deciding who else is an admin.'),
+      assignmentsStep,
+      {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. As an admin you can assign to any pupil.'},
+      {target: nav('/classes/'), title:'Classes', body:'Set up classes here: create them, pick the teachers who teach each one, and enrol pupils. Teachers can only assign work to pupils in their own classes.'},
+      activityStep,
+      {target: nav('/roles/'), title:'Roles', body:'Only you see this. Add new staff accounts and set each person to <strong>Admin</strong> (can set up classes) or <strong>Teacher</strong> (works only with their assigned classes).'},
+      previewStep, accountStep,
+      finish('A good first step: open <strong>Roles</strong> to set up your admins, then <strong>Classes</strong> to build your rosters.'),
+    ],
+    admin: [
+      welcome('an admin', 'You can set up classes as well as create and run exams.'),
+      assignmentsStep,
+      {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. As an admin you can assign to any pupil.'},
+      {target: nav('/classes/'), title:'Classes', body:'Create classes, choose the teachers who teach each one, and enrol pupils. Teachers only see the classes you put them in.'},
+      activityStep, previewStep, accountStep,
+      finish('A good first step: open <strong>Classes</strong>, make sure each class has its teachers and pupils, then create your first exam.'),
+    ],
+    teacher: [
+      welcome('a teacher', 'You can create exams for the pupils in your classes.'),
+      assignmentsStep,
+      {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. You can pick any pupil in the classes you teach.'},
+      {target: nav('/classes/'), title:'My classes', body:'The classes an admin has assigned you to, with their pupils. If a class or pupil is missing, ask an admin to add it.'},
+      previewStep, accountStep,
+      finish('A good first step: check <strong>My classes</strong>, then press <strong>+ New exam</strong>.'),
+    ],
+    pupil: [
+      welcome('a pupil', ''),
+      {target:'#studentTaskList .card', title:'Your tasks', body:'Everything your teachers assign you appears here, with its due date and whether you\'ve started or submitted it.'},
+      {title:'Starting a task', body:'Press <strong>Start</strong> when it\'s time. <strong>The timer starts the moment you open a task</strong>, so only open it when you\'re ready. Your work saves as you go.'},
+      {title:'Stay in the exam window', body:'Some exams are secure: switching tabs, opening another window or leaving full screen <strong>locks</strong> the exam. If that happens, ask your teacher for the resume code.'},
+      {target:'#notifBellBtn', title:'Messages', body:'Messages from your teacher show up here. A red dot means something new.'},
+      accountStep,
+      finish('Good luck! When a task is ready, it\'ll be waiting in your list.'),
+    ],
+  };
+
+  let steps = [], index = 0, els = null, keyHandler = null, resizeHandler = null;
+
+  function visibleTarget(selector){
+    if(!selector) return null;
+    for(const el of document.querySelectorAll(selector)){
+      const r = el.getBoundingClientRect();
+      if(r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden') return el;
+    }
+    return null;
+  }
+
+  function build(){
+    const shade = document.createElement('div'); shade.className = 'tour-shade';
+    const ring = document.createElement('div'); ring.className = 'tour-ring';
+    const card = document.createElement('div'); card.className = 'tour-card';
+    card.setAttribute('role','dialog'); card.setAttribute('aria-modal','true'); card.setAttribute('aria-labelledby','tourTitle');
+    document.body.append(shade, ring, card);
+    shade.addEventListener('click', (e)=>e.stopPropagation());
+    return {shade, ring, card};
+  }
+
+  function place(){
+    const step = steps[index];
+    const target = visibleTarget(step.target);
+    const {ring, card, shade} = els;
+    if(target){
+      target.scrollIntoView({block:'nearest', inline:'nearest'});
+      const r = target.getBoundingClientRect(), pad = 6;
+      shade.classList.add('spot');
+      ring.style.display = 'block';
+      Object.assign(ring.style, {top:(r.top-pad)+'px', left:(r.left-pad)+'px', width:(r.width+pad*2)+'px', height:(r.height+pad*2)+'px'});
+      card.classList.remove('center');
+      const cw = card.offsetWidth, ch = card.offsetHeight, gap = 14;
+      let top = r.bottom + pad + gap;
+      if(top + ch > window.innerHeight - 12) top = Math.max(12, r.top - pad - gap - ch);
+      let left = Math.min(Math.max(12, r.left + r.width/2 - cw/2), window.innerWidth - cw - 12);
+      card.style.top = top + 'px'; card.style.left = left + 'px';
+    } else {
+      shade.classList.remove('spot');
+      ring.style.display = 'none';
+      card.classList.add('center');
+    }
+  }
+
+  function render(){
+    const step = steps[index], last = index === steps.length - 1;
+    els.card.innerHTML = `
+      <button type="button" class="tour-skip" data-tour="skip">${last ? 'Close' : 'Skip tour'}</button>
+      ${step.icon ? `<div class="tour-icon">${ICONS[step.icon]}</div>` : ''}
+      <p class="tour-step-label">Step ${index+1} of ${steps.length}</p>
+      <h3 id="tourTitle">${step.title}</h3>
+      <p>${step.body}</p>
+      <div class="tour-foot">
+        <div class="tour-dots">${steps.map((_,i)=>`<i class="${i===index?'on':''}"></i>`).join('')}</div>
+        <div class="tour-btns">
+          ${index > 0 ? '<button type="button" class="tour-btn ghost" data-tour="back">Back</button>' : ''}
+          <button type="button" class="tour-btn primary" data-tour="next">${last ? 'Finish' : (index === 0 ? "Let's go" : 'Next')}</button>
+        </div>
+      </div>`;
+    els.card.querySelector('[data-tour="next"]').addEventListener('click', next);
+    els.card.querySelector('[data-tour="skip"]').addEventListener('click', end);
+    els.card.querySelector('[data-tour="back"]')?.addEventListener('click', back);
+    place();
+    els.card.querySelector('[data-tour="next"]').focus();
+  }
+
+  function next(){ if(index < steps.length - 1){ index++; render(); } else end(); }
+  function back(){ if(index > 0){ index--; render(); } }
+
+  // Remember "done" in this browser straight away, so switching tabs never restarts the tour
+  // even before the server has saved it. The server flag is what keeps it off on every
+  // later sign-in. The URL needs the /s/<school>/ prefix: an unprefixed POST gets redirected
+  // by the school middleware, turns into a GET, and is rejected, so "done" was never saved.
+  const DONE_KEY = 'examhub-tour-done-{{ request.user.pk }}';
+  function markDone(){
+    try { localStorage.setItem(DONE_KEY, '1'); } catch(e) {}
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    fetch('{{ request.school_url_prefix|default:"" }}{% url "tour-done" %}',
+          {method:'POST', headers:{'X-CSRFToken': token}, keepalive:true}).catch(()=>{});
+  }
+  function doneInThisBrowser(){
+    try { return localStorage.getItem(DONE_KEY) === '1'; } catch(e) { return false; }
+  }
+
+  function end(){
+    if(!els) return;
+    els.shade.remove(); els.ring.remove(); els.card.remove(); els = null;
+    document.removeEventListener('keydown', keyHandler, true);
+    window.removeEventListener('resize', resizeHandler);
+    window.removeEventListener('scroll', resizeHandler, true);
+    markDone();
+  }
+
+  function start(){
+    if(els) return;
+    steps = TOURS[ROLE] || TOURS.teacher;
+    index = 0;
+    els = build();
+    keyHandler = (e)=>{
+      if(e.key === 'Escape'){ e.preventDefault(); end(); }
+      else if(e.key === 'ArrowRight'){ e.preventDefault(); next(); }
+      else if(e.key === 'ArrowLeft'){ e.preventDefault(); back(); }
+    };
+    resizeHandler = ()=>{ if(els) place(); };
+    document.addEventListener('keydown', keyHandler, true);
+    window.addEventListener('resize', resizeHandler);
+    window.addEventListener('scroll', resizeHandler, true);
+    render();
+  }
+
+  // A pupil's tour waits until their task list is actually on screen, so it never pops up
+  // over an exam they were sent straight into (e.g. via a Safe Exam Browser launch link).
+  function readyToAutoStart(){
+    if(ROLE !== 'pupil') return true;
+    const list = document.getElementById('studentTaskList');
+    return !!(list && !list.classList.contains('hidden') && list.getBoundingClientRect().height > 0);
+  }
+
+  window.ExamHubTour = {start};
+  document.addEventListener('click', (e)=>{
+    const trigger = e.target.closest('[data-start-tour]');
+    if(!trigger) return;
+    e.preventDefault();
+    document.getElementById('accountMenu')?.classList.add('hidden');
+    start();
+  });
+
+  if(AUTO_START && doneInThisBrowser()){
+    markDone();  // finished here before but the save didn't land: retry it, don't re-show
+  } else if(AUTO_START){
+    let tries = 0;
+    const timer = setInterval(()=>{
+      tries++;
+      if(readyToAutoStart()){ clearInterval(timer); start(); }
+      else if(tries > 40) clearInterval(timer);   // ~12s: not on the task list, try again next visit
+    }, 300);
+  }
+})();
+</script>

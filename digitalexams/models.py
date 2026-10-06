@@ -2,14 +2,79 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
+
+class School(models.Model):
+    """A tenant / school organisation. Every piece of data in ExamHub is scoped to one
+    School so that multiple schools can share a single hosted instance without seeing
+    each other's assignments, pupils, or results."""
+    name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(
+        max_length=60, unique=True,
+        help_text='Short identifier used in URLs, e.g. "st-marys". '
+                  'Used for subdomain routing (st-marys.examhub.com) or '
+                  'path routing (examhub.com/s/st-marys/).',
+    )
+    logo = models.ImageField(
+        upload_to='school_logos/', blank=True, null=True,
+        help_text='Optional school logo shown in the header.',
+    )
+    primary_color = models.CharField(
+        max_length=7, default='#0d6efd',
+        help_text='Hex color used for branding, e.g. #1a73e8.',
+    )
+    timezone = models.CharField(
+        max_length=60, default='UTC',
+        help_text='IANA timezone name, e.g. Asia/Manila. Used for displaying exam times.',
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Inactive schools are locked out — all logins are blocked.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
 class User(AbstractUser):
     class Role(models.TextChoices):
         TEACHER = "teacher", "Teacher"
         PUPIL = "pupil", "Pupil"
+
+    # Which school (tenant) this user belongs to. Null only for platform super-admins
+    # (i.e. the operator who manages all schools). Every teacher and pupil must have
+    # a school set — enforced at the view layer when creating accounts.
+    school = models.ForeignKey(
+        School, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='users',
+        help_text='The school this user belongs to. Leave blank only for platform super-admins.',
+    )
+    # School-level admin: can manage classes, teachers, and pupils within their own
+    # school. Replaces the old is_staff + role == TEACHER pattern for school admins.
+    is_school_admin = models.BooleanField(
+        default=False,
+        help_text='School admin: can create/manage classes, teachers, and pupils '
+                  'within their own school.',
+    )
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.PUPIL)
     # When this person finished (or skipped) the first-login guided tour. Null = show it on
     # their next page load. They can replay it any time from their account menu.
     tour_completed_at = models.DateTimeField(null=True, blank=True)
+    # Account activation. A new account (or a re-invited one) has a temporary password and
+    # must_change_password=True: on first sign-in they're sent straight to "Choose your
+    # password" before anything else, and only then does the welcome tour start.
+    must_change_password = models.BooleanField(default=False)
+    invited_at = models.DateTimeField(null=True, blank=True)
+    activated_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def account_status(self):
+        """'active' | 'invited' | 'not_invited' — shown on the Roles page."""
+        if self.activated_at or (self.last_login and not self.must_change_password):
+            return 'active'
+        return 'invited' if self.invited_at else 'not_invited'
 
     @property
     def tour_role(self):
@@ -30,30 +95,43 @@ class User(AbstractUser):
 
     @property
     def can_manage_classes(self):
-        """Class admins: a superuser, or a teacher whose "Staff status" is ticked in Django
-        admin. They create/rename/delete classes, set each class's teachers and pupils, and
-        add pupil accounts. Every other teacher only works with the classes they've been
-        assigned to (see teachable_pupils)."""
-        return self.is_active and (self.is_superuser or (self.is_staff and self.role == self.Role.TEACHER))
+        """Class admins: a platform superuser, or a teacher who is marked as a school admin
+        (is_school_admin=True). They create/rename/delete classes, set each class's teachers
+        and pupils, and add pupil accounts. Every other teacher only works with the classes
+        they've been assigned to (see teachable_pupils)."""
+        return self.is_active and (self.is_superuser or self.is_school_admin)
 
-    def teachable_pupils(self):
+    def teachable_pupils(self, school=None):
         """Pupils this account may assign work to: every assignable pupil for a class admin,
-        otherwise only the pupils enrolled in a class this teacher is assigned to."""
-        pupils = User.assignable_pupils()
+        otherwise only the pupils enrolled in a class this teacher is assigned to.
+        `school` is the school being viewed (request.school). It must be passed for platform
+        superusers, who have no school of their own — otherwise they'd see every school's pupils."""
+        pupils = User.assignable_pupils(school=school or self.school)
         if self.can_manage_classes:
             return pupils
         return pupils.filter(classes_enrolled__teachers=self).distinct()
 
-    def visible_classes(self):
-        """All classes for a class admin; only the classes this teacher is assigned to otherwise."""
-        if self.can_manage_classes:
-            return SchoolClass.objects.all()
-        return self.classes_taught.all()
+    def visible_classes(self, school=None):
+        """All of the school's classes for a class admin; only the classes this teacher is
+        assigned to otherwise. Always limited to one school (see teachable_pupils)."""
+        school = school or self.school
+        qs = SchoolClass.objects.all() if self.can_manage_classes else self.classes_taught.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
 
     @classmethod
-    def assignable_pupils(cls):
+    def assignable_pupils(cls, school=None):
         """Accounts a teacher can assign work to: active, role=Pupil, never an admin."""
-        return cls.objects.filter(role=cls.Role.PUPIL, is_superuser=False, is_active=True)
+        qs = cls.objects.filter(role=cls.Role.PUPIL, is_superuser=False, is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+
+    @property
+    def can_view_activity(self):
+        """The Activity log is for admins only; regular teachers don't get the tab."""
+        return self.can_manage_classes
 
 
 class SchoolClass(models.Model):
@@ -61,7 +139,14 @@ class SchoolClass(models.Model):
     whole, instead of picking pupils one by one every time. Only class admins (see
     User.can_manage_classes) create or edit classes; a regular teacher sees only the classes
     listed in `teachers` and can assign work only to those classes' pupils."""
-    name = models.CharField(max_length=120, unique=True)
+    school = models.ForeignKey(
+        School, null=True, blank=True, on_delete=models.CASCADE,
+        related_name='classes',
+        help_text='The school this class belongs to.',
+    )
+    # unique=True removed: two different schools are allowed to have a class with
+    # the same name (e.g. both have "Grade 10 - Section A").
+    name = models.CharField(max_length=120)
     teachers = models.ManyToManyField(
         User, related_name='classes_taught', blank=True,
         limit_choices_to={'role': User.Role.TEACHER},
@@ -86,16 +171,26 @@ class Assignment(models.Model):
         LOCKDOWN = "lockdown", "Lockdown app"
         PAPER = "paper", "Paper"
 
+    school = models.ForeignKey(
+        School, null=True, blank=True, on_delete=models.CASCADE,
+        related_name='assignments',
+        help_text='The school this assignment belongs to.',
+    )
     title = models.CharField(max_length=180)
     instructions = models.TextField(blank=True)
     teacher_name = models.CharField(max_length=120)
     teacher_email = models.EmailField()
     opens_at = models.DateTimeField(default=timezone.now)
     due_at = models.DateTimeField(null=True, blank=True)
-    duration_minutes = models.PositiveIntegerField(
-        default=60,
-        help_text='Exam duration in minutes. The countdown starts the moment a pupil opens the assignment.',
-    )
+    # No longer used: an exam now runs until its closing time (due_at) or until the teacher
+    # closes it. Kept so older rows and migrations stay valid.
+    duration_minutes = models.PositiveIntegerField(default=60)
+    # Visibility. Hidden = pre-created; pupils can't see or open it until the teacher makes it
+    # visible (or opens_at passes, when it's scheduled). See exam_visible_to_pupils().
+    is_hidden = models.BooleanField(default=False)
+    # Set when a teacher closes the exam by hand ("Close now"), whether or not a closing time
+    # was scheduled. Cleared again by "Reopen".
+    closed_at = models.DateTimeField(null=True, blank=True)
     delivery_mode = models.CharField(max_length=16, choices=DeliveryMode.choices, default=DeliveryMode.BROWSER)
     require_join_code = models.BooleanField(default=False)
     join_code = models.CharField(max_length=8, blank=True, default='')
@@ -216,6 +311,9 @@ class Submission(models.Model):
     lock_reason = models.CharField(max_length=60, blank=True)
     resume_code = models.CharField(max_length=24, blank=True)
     lock_count = models.PositiveIntegerField(default=0)
+    # When the pupil last opened their released grade ("View grade"). A grade released or
+    # re-graded after this shows as a new notification on the pupil's bell.
+    grade_seen_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.recipient} ({self.status})'
@@ -230,6 +328,11 @@ class AllowedBrowserExamKey(models.Model):
     actually use, and paste the key it reports here. Add one row per platform (Windows SEB
     and iPad SEB, say, produce different keys for the identical logical config) — ExamHub
     accepts a lockdown request if its computed hash matches ANY row here."""
+    school = models.ForeignKey(
+        School, null=True, blank=True, on_delete=models.CASCADE,
+        related_name='seb_keys',
+        help_text='The school this SEB key belongs to. Each school manages its own keys.',
+    )
     label = models.CharField(max_length=80, help_text='e.g. "Windows SEB 3.7", "iPad SEB"')
     key_hash = models.CharField(max_length=64, help_text='The 64-character Browser Exam Key hex value SEB reports for this config.')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -284,3 +387,36 @@ class ActivityLogEntry(models.Model):
 
     def __str__(self):
         return f'{self.action}: {self.description}'
+
+
+class EmailLoginCode(models.Model):
+    """A one-time 6-digit sign-in code emailed to a user — the passwordless alternative to
+    signing in with a password. Only a salted hash of the code is stored. A code is single
+    use, expires after a few minutes, and is burned after too many wrong guesses."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='login_codes')
+    code_hash = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['user', '-created_at'])]
+
+    def __str__(self):
+        return f'Login code for {self.user} at {self.created_at:%Y-%m-%d %H:%M}'
+
+
+class StoredFile(models.Model):
+    """A copy of every uploaded file (exam PDFs, images, videos, school logos) kept in the
+    database. The app runs in more than one place against the same database (a local copy
+    and Railway), and Railway wipes its disk on every deploy — so a file saved only to one
+    machine's disk goes missing everywhere else. See digitalexams/storage.py."""
+    name = models.CharField(max_length=255, unique=True)
+    content = models.BinaryField()
+    size = models.PositiveBigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
