@@ -184,6 +184,7 @@ ls staticfiles/
 | 7.11 | Inside SEB, a Lockdown exam opens straight into the paper (no "Open in Safe Exam Browser" dialog): `/s/<slug>/api/seb/check/` returns `ok: true` — the hash is checked against the full `/s/<slug>/…` URL | Exam opens, timer starts | |
 | 7.12 | Newer SEB (macOS / iPad) without hash headers: the page verifies via `POST /api/seb/verify/` (SEB JavaScript API) and the exam opens; in a normal browser it stays blocked | Opens in SEB only | |
 | 7.13 | One-time launch (`/seb/enter/<token>/`): works with headers (redirect) and with the JavaScript API (small "Opening your exam…" page); an expired / used link says so | Pupil signed in inside SEB | |
+| 7.14 | Submitting inside SEB (any delivery mode) quits SEB within ~2 s via the quit address `/?sebquit=1` (`quitURLConfirm` false); if it doesn't, "You can now close Safe Exam Browser" is shown | SEB closes | |
 
 ---
 
@@ -430,6 +431,9 @@ python manage.py check --deploy
 | 22.4 | PDF zoom: − / % / + / Fit and Ctrl + scroll (trackpad pinch); page stays sharp when zoomed in; wide pages scroll instead of being cut off on the left | Zooms 30%–400% | |
 | 22.5 | Highlights, highlight notes, image notes and sticky-note dragging made **while zoomed** land on the right text and stay in place at every zoom (stored in unzoomed page coordinates) | Aligned at 100% and zoomed | |
 | 22.6 | Image items: − / % / + / Fit / 100% and Ctrl + scroll; big images start fitted to the screen | Zooms | |
+| 22.7 | **Exam focus:** a pupil in an unsubmitted exam sees no "Back to my tasks", bell or account menu — only the exam, Notepad / Resources / Calculator, Message teacher and Submit, plus the "Exam in progress" line | Nothing leads to other exams | |
+| 22.8 | Browser Back button during an exam keeps the pupil on the exam (toast: press Submit when finished) | Stays on exam | |
+| 22.9 | After submitting (normal browser) the task list, bell and account menu return; "View submission" shows the back button | Normal navigation | |
 
 ---
 
@@ -472,7 +476,7 @@ python manage.py test digitalexams.test_notifications digitalexams.test_exam_win
 python manage.py test digitalexams.test_sections_subjects digitalexams.test_marking digitalexams.test_resources digitalexams.test_seb
 ```
 
-> **Last full run (2026-10-07):** 122 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-07):** 123 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 

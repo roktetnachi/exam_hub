@@ -89,7 +89,10 @@ class SchoolTenantMiddleware:
             from django.shortcuts import redirect
             if request.user.is_authenticated:
                 if request.user.school:
-                    return redirect(f'/s/{request.user.school.slug}/')
+                    # Keep ?sebquit=1 (Safe Exam Browser's quit address after submitting) so the
+                    # "you can close Safe Exam Browser" page still shows if SEB didn't quit itself.
+                    quit_qs = '?sebquit=1' if request.GET.get('sebquit') == '1' else ''
+                    return redirect(f'/s/{request.user.school.slug}/{quit_qs}')
                 if request.user.is_superuser:
                     return redirect('/superadmin/')
                 return redirect('/admin/')

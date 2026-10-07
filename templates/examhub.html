@@ -344,6 +344,11 @@
   .answer-readonly-note{color:var(--muted);font-size:13px;margin-top:10px;}
   .pdf-stage{position:relative;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);}
   .pdf-stage canvas{display:block;position:relative;z-index:1;}
+  /* Exam focus: a pupil in an unsubmitted exam only sees the exam (answer, message teacher, submit). */
+  body.exam-focus #backFromTask, body.exam-focus #notifBellBtn, body.exam-focus #notifDropdown,
+  body.exam-focus #accountMenuBtn, body.exam-focus #accountMenu{display:none !important;}
+  .exam-focus-note{display:none;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;}
+  body.exam-focus .exam-focus-note{display:flex;}
   /* Zoom (pupil PDF viewer, images, resources) */
   .zoom-ctl{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
   .zoom-ctl button{min-width:28px;height:28px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;color:var(--text);padding:0 6px;}
@@ -1240,6 +1245,10 @@
 
     <div id="studentTask" class="hidden">
       <button class="back-link" id="backFromTask">&larr; Back to my tasks</button>
+      <div class="exam-focus-note" id="examFocusNote">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Exam in progress — your work saves automatically. Press Submit when you're finished.
+      </div>
       <div class="row" style="justify-content:space-between;align-items:flex-start;">
         <h2 id="taskTitle"></h2>
         <button class="btn small outline" id="openChatFromTaskBtn">Message teacher<span class="hidden" id="openChatFromTaskDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:6px;"></span></button>
@@ -4664,7 +4673,23 @@ document.getElementById('btnStudentLogin').addEventListener('click', async ()=>{
 });
 document.getElementById('backFromTaskList').addEventListener('click', showStudentLogin);
 
+// Exam focus: while a pupil is answering, everything that leads elsewhere (back to tasks, other
+// exams, the bell, the account menu) is hidden — only answering, Message teacher and Submit remain.
+// The browser's Back button is held on the exam too. It switches off once they've submitted (or
+// the exam closes), which always goes through showStudentTaskList / the SEB quit page.
+function setExamFocus(on){
+  const was = document.body.classList.contains('exam-focus');
+  document.body.classList.toggle('exam-focus', !!on);
+  if(on && !was){ try { history.pushState({examFocus: true}, '', location.href); } catch(_) {} }
+}
+window.addEventListener('popstate', ()=>{
+  if(!document.body.classList.contains('exam-focus')) return;
+  try { history.pushState({examFocus: true}, '', location.href); } catch(_) {}
+  showToast("You're in an exam — press Submit when you're finished.", 'info');
+});
+function runningInSeb(){ return !!state.sebVerified || sebDetected(); }
 function showStudentTaskList(){
+  setExamFocus(false);
   hideAll('#studentView > div');
   document.getElementById('studentTaskList').classList.remove('hidden');
   document.getElementById('backFromTaskList').classList.toggle('hidden', document.body.dataset.role === 'pupil');
@@ -4801,7 +4826,7 @@ async function checkSebWithServer(){
 function gateWithSeb(a){
   return new Promise(async (resolve)=>{
     const server = await checkSebWithServer();
-    if(server && server.ok){ resolve(true); return; }
+    if(server && server.ok){ state.sebVerified = true; resolve(true); return; }
     if(!server && sebDetected()){ resolve(true); return; } // check failed to run — let start/save decide
     const insideSeb = sebDetected() || (server && server.sebHeaders);
     const backdrop = document.getElementById('sebGateBackdrop');
@@ -5347,6 +5372,7 @@ async function openStudentTask(assignmentId){
 
   const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
   state.examReadOnly = readOnly;
+  setExamFocus(!readOnly);
   state.lastSavedPayload = null;
   setAutosaveStatus(readOnly ? '' : 'Your work saves automatically as you go.', '');
   document.getElementById('btnSubmit').textContent = sub.status === 'submitted' ? 'Submitted ✓'
@@ -6536,9 +6562,12 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   try { const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
     clearExamTimer();
-    if(a && a.deliveryMode === 'lockdown'){
+    if(a && (a.deliveryMode === 'lockdown' || runningInSeb())){
+      // Safe Exam Browser quits itself when it reaches the quit address in ExamHub's config
+      // (quitURL, no confirmation). Outside SEB this lands on a "you can close this" page.
+      setExamFocus(false);
       showToast('Submitted! Your teacher has been notified. Safe Exam Browser will close in a moment.', 'success', 3000);
-      setTimeout(()=>{ location.href = '/?sebquit=1'; }, 2200);
+      setTimeout(()=>{ location.href = '/?sebquit=1'; }, 2000);
     } else {
       showToast('Submitted! Your teacher has been notified.', 'success');
       if(document.fullscreenElement && document.exitFullscreen){ state.examWasFullscreen = false; try { await document.exitFullscreen(); } catch(_) {} }
