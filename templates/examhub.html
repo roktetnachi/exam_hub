@@ -533,7 +533,7 @@
   .qnav-current{flex:1;min-width:0;height:38px;border:1px solid var(--border);background:#f5f8fc;border-radius:10px;padding:0 12px;font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;text-align:left;}
   .qnav-current .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .qnav-current .pos{margin-left:auto;font-weight:600;color:var(--muted);font-size:13px;white-space:nowrap;}
-  .qnav-current .caret{font-size:11px;color:var(--muted);}
+  .qnav-current .caret{font-size:11px;color:var(--muted);margin-left:auto;}
   .qnav-grid{margin-top:8px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px -12px rgba(30,41,59,.25);}
   .qnav-grid .qg-sec{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:6px 0 6px;}
   .qnav-grid .qg-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
@@ -548,6 +548,42 @@
   .rich-toolbar button:hover{background:#eef1f4;}
   .rich-toolbar select{height:26px;border:1px solid var(--border);border-radius:4px;font-size:12px;margin:0 3px;}
   .rich-toolbar .sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+  .rich-toolbar .tb-break{flex-basis:100%;height:0;}
+  /* Exam instructions screen (before a pupil starts) */
+  .exam-intro-backdrop{position:fixed;inset:0;z-index:120;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+  .exam-intro{background:#fff;border-radius:22px;width:min(820px,100%);max-height:calc(100vh - 48px);overflow-y:auto;padding:36px 44px 30px;box-shadow:0 30px 80px -20px rgba(15,23,42,.5);text-align:center;}
+  .exam-intro-brand{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px;}
+  .exam-intro-logo{max-height:84px;max-width:240px;object-fit:contain;}
+  .exam-intro-school{font-size:14px;font-weight:700;color:var(--blue-dark);letter-spacing:.02em;}
+  .exam-intro h1{font-size:28px;margin:4px 0 14px;color:var(--text);}
+  .exam-intro-facts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:22px;}
+  .exam-intro-facts span{background:#f2f5fa;border-radius:999px;padding:6px 14px;font-size:13.5px;font-weight:600;color:#3c4552;}
+  .exam-intro-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;margin-bottom:6px;}
+  .exam-intro-text{text-align:left;white-space:pre-wrap;font-size:16px;line-height:1.65;background:#fafbfd;border:1px solid var(--border);border-radius:14px;padding:18px 20px;max-height:42vh;overflow-y:auto;}
+  .exam-intro-text.empty{color:var(--muted);font-style:italic;}
+  .exam-intro-actions{display:flex;justify-content:center;gap:12px;margin-top:26px;flex-wrap:wrap;}
+  .exam-intro-start{min-width:200px;font-size:16px;padding:13px 26px;}
+  .exam-intro-note{font-size:12.5px;color:var(--muted);margin:12px 0 0;}
+  @media (max-width:600px){ .exam-intro{padding:26px 20px;} .exam-intro h1{font-size:22px;} }
+  .item-move{display:inline-flex;gap:2px;flex-shrink:0;}
+  .item-move button, .item-move .item-drag{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:26px;height:26px;border:1px solid var(--border);background:#fff;border-radius:6px;font-size:13px;line-height:1;color:var(--muted);padding:0;}
+  .item-move button:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+  .item-move button:disabled{opacity:.35;cursor:default;}
+  .item-move .item-drag{cursor:grab;font-size:15px;user-select:none;}
+  .item-move .item-drag:hover{border-color:var(--blue);color:var(--blue);}
+  .item-row.dragging{opacity:.45;outline:2px dashed var(--blue);}
+  .item-row.moved{animation:itemMoved .6s ease-out;}
+  @keyframes itemMoved{from{background:#eaf7f8;}to{background:transparent;}}
+  /* Answer area: a calmer two-row toolbar and a comfortable writing surface */
+  .answer-toolbar{background:#fafbfd;padding:6px 12px;row-gap:4px;}
+  .answer-toolbar button{min-width:30px !important;height:30px !important;font-size:13.5px !important;border-radius:6px;}
+  .answer-toolbar button:hover{background:#e9edf3;}
+  .answer-toolbar select{height:30px !important;font-size:13px !important;border-radius:6px;background:#fff;}
+  .answer-toolbar .font-family-select{max-width:112px;}
+  .resp-top .prompt{white-space:pre-wrap;line-height:1.5;}
+  #responseEditables .editable{font-size:16px;line-height:1.65;padding:18px 20px;}
+  #responseEditables .editable p{margin:0 0 .6em;}
+  .word-count{margin-left:auto;margin-right:14px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
   .color-input-label{display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:#3c4552;cursor:pointer;padding:0 3px;}
   .color-input-label input[type=color]{width:16px;height:16px;border:none;padding:0;background:none;cursor:pointer;}
 
@@ -1343,13 +1379,30 @@
             <div class="prompt" id="taskPrompt"></div>
             <div class="response-tabs" id="responseTabs"></div>
           </div>
-          <div class="rich-toolbar" id="responseToolbar">
-            <button data-cmd="bold" title="Bold"><b>B</b></button>
-            <button data-cmd="italic" title="Italic"><i>I</i></button>
-            <button data-cmd="underline" title="Underline"><u>U</u></button>
+          <div class="rich-toolbar answer-toolbar" id="responseToolbar">
+            <select class="font-family-select" title="Font">
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+              <option value="'Times New Roman'">Times New Roman</option>
+              <option value="'Courier New'">Courier New</option>
+              <option value="Verdana">Verdana</option>
+            </select>
+            <select class="font-size-select" title="Text size — applies to the selected text, or to what you type next">
+              <option value="12">12</option>
+              <option value="14">14</option>
+              <option value="16" selected>16</option>
+              <option value="18">18</option>
+              <option value="20">20</option>
+              <option value="24">24</option>
+              <option value="28">28</option>
+            </select>
+            <span class="sep"></span>
+            <button data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
             <button data-cmd="superscript" title="Superscript">x²</button>
             <button data-cmd="subscript" title="Subscript">x₂</button>
-            <span class="sep"></span>
+            <span class="tb-break"></span>
             <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
             <button data-cmd="insertUnorderedList" title="Bulleted list">&#8226;</button>
             <button data-cmd="outdent" title="Decrease indent">⇤</button>
@@ -1361,31 +1414,35 @@
             <button data-cmd="justifyFull" title="Justify"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
             <span class="sep"></span>
             <button class="insert-table-btn" title="Insert table"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="16" x2="21" y2="16"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg></button>
-            <button data-cmd="undo" title="Undo">↩</button>
-            <button data-cmd="redo" title="Redo">↪</button>
             <span class="sep"></span>
-            <select class="font-family-select" title="Font">
-              <option value="Arial">Arial</option>
-              <option value="Georgia">Georgia</option>
-              <option value="'Times New Roman'">Times New Roman</option>
-              <option value="'Courier New'">Courier New</option>
-              <option value="Verdana">Verdana</option>
-            </select>
-            <select class="font-size-select" title="Size">
-              <option value="12">12px</option>
-              <option value="14">14px</option>
-              <option value="16" selected>16px</option>
-              <option value="18">18px</option>
-              <option value="20">20px</option>
-              <option value="24">24px</option>
-            </select>
+            <button data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
+            <button data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
           </div>
           <div id="responseEditables"></div>
         </div>
       </div>
       <div class="viewer-footer">
         <span class="autosave-status" id="autosaveStatus" aria-live="polite"></span>
+        <span class="word-count" id="answerWordCount"></span>
         <button class="btn" id="btnSubmit">Submit</button>
+      </div>
+    </div>
+
+    <div class="exam-intro-backdrop hidden" id="examIntroBackdrop" role="dialog" aria-modal="true" aria-labelledby="examIntroTitle">
+      <div class="exam-intro">
+        <div class="exam-intro-brand">
+          {% if request.school and request.school.logo %}<img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" class="exam-intro-logo">{% endif %}
+          <div class="exam-intro-school">{{ request.school.name|default:"ExamHub" }}</div>
+        </div>
+        <h1 id="examIntroTitle"></h1>
+        <div class="exam-intro-facts" id="examIntroFacts"></div>
+        <div class="exam-intro-label">Instructions</div>
+        <div class="exam-intro-text" id="examIntroText"></div>
+        <div class="exam-intro-actions">
+          <button type="button" class="btn outline" id="examIntroBack">Back to my tasks</button>
+          <button type="button" class="btn exam-intro-start" id="examIntroStart">Start exam</button>
+        </div>
+        <p class="exam-intro-note" id="examIntroNote"></p>
       </div>
     </div>
 
@@ -2458,16 +2515,13 @@ async function removeBuilderSection(sec){
   const sections = builderSections();
   if(sections.length <= 1){ showToast('An exam needs at least one section.', 'error'); return; }
   const n = sec.querySelectorAll('.item-row').length;
-  if(n > 0 && allBuilderItemRows().length - n < 1){
-    showToast("This section holds the exam's only item. Add an item to another section first, then remove this one.", 'error');
-    return;
-  }
   const name = sec.querySelector('.builder-section-name').value.trim() || 'this section';
   if(n > 0 && !(await confirmDialog({title: `Remove "${name}"?`, message: `This also removes the ${n} item${n === 1 ? '' : 's'} inside it.`, confirmLabel: 'Remove section', danger: true}))) return;
   const wasActive = sec.classList.contains('active');
   sec.remove();
   if(wasActive) setActiveBuilderSection(builderSections()[0]);
   refreshBuilderSectionCounts();
+  renumberBuilderItems();
 }
 document.getElementById('addBuilderSectionBtn').addEventListener('click', ()=>addBuilderSection());
 document.getElementById('builderSections').addEventListener('input', (e)=>{
@@ -2514,6 +2568,11 @@ function addItemRow(type, defaultLabel, sectionEl){
   row.innerHTML = `
     <div class="item-row-head">
       <span class="item-type-badge">${ITEM_TYPE_LABELS[type] || type}</span>
+      <span class="item-move">
+        <span class="item-drag" draggable="true" title="Drag to move" aria-hidden="true">⠿</span>
+        <button type="button" class="item-up" title="Move up" aria-label="Move up">↑</button>
+        <button type="button" class="item-down" title="Move down" aria-label="Move down">↓</button>
+      </span>
       <input type="text" class="item-label" placeholder="Label" value="${label}">
       <label class="sub" style="display:flex;align-items:center;gap:4px;white-space:nowrap;">Points
         <input type="number" class="item-points" min="0.5" step="0.5" value="1" style="width:56px;padding:5px;border:1px solid var(--border);border-radius:6px;">
@@ -2522,9 +2581,15 @@ function addItemRow(type, defaultLabel, sectionEl){
     </div>
     ${bodyHtml}
   `;
+  // "Item N" labels follow the item's position until the teacher types their own label.
+  row.dataset.autoLabel = defaultLabel ? '0' : '1';
+  row.querySelector('.item-label').addEventListener('input', e=>{ row.dataset.autoLabel = /^Item \d+$/.test(e.target.value.trim()) ? '1' : '0'; });
   row.querySelector('.remove-item-row').addEventListener('click', ()=>{
-    if(allBuilderItemRows().length > 1){ row.remove(); refreshBuilderSectionCounts(); }
+    row.remove(); refreshBuilderSectionCounts(); renumberBuilderItems();
   });
+  row.querySelector('.item-up').addEventListener('click', ()=>moveBuilderItem(row, -1));
+  row.querySelector('.item-down').addEventListener('click', ()=>moveBuilderItem(row, 1));
+  wireBuilderItemDrag(row);
   if(type === 'mcq_single' || type === 'mcq_multiple'){
     let optionCounter = 2;
     function refreshCorrectPicker(){
@@ -2565,8 +2630,57 @@ function addItemRow(type, defaultLabel, sectionEl){
   rows.appendChild(row);
   target.classList.remove('collapsed');
   refreshBuilderSectionCounts();
+  renumberBuilderItems();
   if(sectionEl === undefined && typeof row.scrollIntoView === 'function') row.scrollIntoView({block:'nearest', behavior:'smooth'});
 }
+// ---- numbering and rearranging items ----
+function renumberBuilderItems(){
+  const rows = allBuilderItemRows();
+  rows.forEach((row, i)=>{
+    if(row.dataset.autoLabel === '1') row.querySelector('.item-label').value = `Item ${i + 1}`;
+    row.querySelector('.item-up').disabled = i === 0;
+    row.querySelector('.item-down').disabled = i === rows.length - 1;
+  });
+}
+// Up / down by one place; at the edge of a section it moves into the neighbouring section.
+function moveBuilderItem(row, dir){
+  const rows = allBuilderItemRows();
+  const i = rows.indexOf(row), other = rows[i + dir];
+  if(!other) return;
+  const sameSection = other.closest('.builder-section') === row.closest('.builder-section');
+  if(dir < 0) sameSection ? other.before(row) : other.closest('.section-items').appendChild(row);
+  else sameSection ? other.after(row) : other.closest('.section-items').prepend(row);
+  refreshBuilderSectionCounts(); renumberBuilderItems();
+  row.classList.remove('moved'); void row.offsetWidth; row.classList.add('moved');
+  row.querySelector(dir < 0 ? '.item-up' : '.item-down').focus();
+}
+// Drag by the ⠿ handle, into any position in any section.
+let draggingBuilderRow = null;
+function wireBuilderItemDrag(row){
+  const handle = row.querySelector('.item-drag');
+  handle.addEventListener('dragstart', e=>{
+    draggingBuilderRow = row; row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', 'item'); e.dataTransfer.setDragImage(row, 24, 18); } catch(_) {}
+  });
+  handle.addEventListener('dragend', ()=>{
+    row.classList.remove('dragging'); draggingBuilderRow = null;
+    refreshBuilderSectionCounts(); renumberBuilderItems();
+  });
+}
+document.getElementById('builderSections').addEventListener('dragover', e=>{
+  if(!draggingBuilderRow) return;
+  const sec = e.target.closest('.builder-section');
+  if(!sec) return;
+  e.preventDefault();
+  const list = sec.querySelector('.section-items');
+  sec.classList.remove('collapsed');
+  const after = Array.from(list.querySelectorAll('.item-row:not(.dragging)')).find(r=>{
+    const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2;
+  });
+  if(after) list.insertBefore(draggingBuilderRow, after); else list.appendChild(draggingBuilderRow);
+});
+document.getElementById('builderSections').addEventListener('drop', e=>{ if(draggingBuilderRow) e.preventDefault(); });
 document.querySelectorAll('#itemTypeGrid .itemtype-tile').forEach(tile=>{
   tile.addEventListener('click', ()=>addItemRow(tile.dataset.addType));
 });
@@ -2751,7 +2865,10 @@ window.ExamHubNotifActions = {
     this.openMonitor(it);
     openChatModal(it.recipientId, `${it.pupilName} — ${it.assignmentTitle}`, false);
   },
-  openGrade(it){ openGradeSummary(it.assignmentId); },
+  async openGrade(it){
+    if(document.body.dataset.role === 'pupil' && state.currentPupilEmail){ try { await loadAssignments(state.currentPupilEmail); } catch(_) {} }
+    openGradeSummary(it.assignmentId);
+  },
   openReview(it){
     if(document.body.dataset.role === 'pupil') return;
     const a = state.assignments.find(x=>x.id===it.assignmentId);
@@ -2764,6 +2881,7 @@ window.ExamHubNotifActions = {
   pupilBusy(){
     // About to open an exam (arrived with ?open=…, e.g. from Safe Exam Browser) or already in one.
     if(state.pendingOpenAssignmentId || document.body.classList.contains('exam-focus')) return true;
+    if(!document.getElementById('examIntroBackdrop').classList.contains('hidden')) return true;
     if(document.getElementById('studentTask').classList.contains('hidden')) return false;
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     const sub = a && a.submissions[state.currentPupil];
@@ -2783,15 +2901,34 @@ function updateNotifBell(){ /* the shared bell (_notifications.html) polls /api/
 // (#studentTask visible): that view mutates the live submission object in state.assignments
 // on every keystroke before it's ever saved, and reloading assignments there would replace
 // that object out from under it, silently discarding unsaved answers.
+// A grade (or marks) was released while the pupil had the page open: redraw whatever they're
+// looking at — the task list, or the submitted exam they're reading back.
+function refreshPupilViewAfterRelease(){
+  if(!document.getElementById('studentTaskList').classList.contains('hidden')) { showStudentTaskList(); return; }
+  if(!document.getElementById('studentTask').classList.contains('hidden') && state.currentAssignmentId){
+    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+    const sub = a && a.submissions[state.currentPupil];
+    if(sub && sub.status === 'submitted'){
+      const keepItem = state.currentTextId, keepPage = state.currentPage;
+      openStudentTask(a.id).then(()=>{ if(keepItem && typeof goToItem === 'function'){ try { goToItem(keepItem); state.currentPage = keepPage || 1; } catch(_) {} } });
+    }
+  }
+}
 function startNotifPolling(){
   if(state.notifPollInterval) return;
   state.notifPollInterval = setInterval(async ()=>{
-    const inActiveExam = document.body.dataset.role === 'pupil' &&
-      !document.getElementById('studentTask').classList.contains('hidden');
+    // Only an exam in progress is left alone (see above). Reading back submitted work is fine.
+    const inActiveExam = document.body.dataset.role === 'pupil' && document.body.classList.contains('exam-focus');
     if(inActiveExam) return;
     try {
       if(document.body.dataset.role === 'pupil'){
-        if(state.currentPupilEmail) await loadAssignments(state.currentPupilEmail);
+        if(state.currentPupilEmail){
+          const gradeKey = ()=>JSON.stringify(state.assignments.map(a=>{ const s = a.submissions[state.currentPupil] || {};
+            return [a.id, s.status, s.published, s.totalScore, s.teacherMarks]; }));
+          const before = gradeKey();
+          await loadAssignments(state.currentPupilEmail);
+          if(gradeKey() !== before) refreshPupilViewAfterRelease();
+        }
       } else {
         await loadAssignments();
       }
@@ -3143,8 +3280,7 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
   applyVisibilityPicker('now'); applyClosePicker('scheduled');
   document.getElementById('builderSections').innerHTML = '';
   document.getElementById('builderResources').innerHTML = '';
-  const firstSection = addBuilderSection('Section 1');
-  addItemRow('pdf', 'Text 1', firstSection);
+  addBuilderSection('Section 1');   // starts empty — the teacher picks the first item's type
   const checklist = document.getElementById('pupilChecklist');
   checklist.innerHTML = '<p class="sub">Loading pupils…</p>';
   await refreshRosterAndChecklist();
@@ -4989,6 +5125,42 @@ function gateWithSeb(a){
     cancelBtn.addEventListener('click', onCancel);
   });
 }
+// Wide white instructions card with the school's logo; resolves true on Start, false on Back.
+function showExamIntro(a, sub){
+  return new Promise(resolve=>{
+    const backdrop = document.getElementById('examIntroBackdrop');
+    document.getElementById('examIntroTitle').textContent = a.title;
+    const answerable = a.items.filter(i=>i.type !== 'image' && i.type !== 'video');
+    const points = a.items.reduce((t, i)=>t + (Number(i.points) || 0), 0);
+    const facts = [`${a.items.length} item${a.items.length === 1 ? '' : 's'}`];
+    if(answerable.length && points) facts.push(`${points} point${points === 1 ? '' : 's'}`);
+    facts.push(sub.closesAt ? `Ends ${formatManila(sub.closesAt)}` : 'No time limit — your teacher closes it');
+    if(a.allowCalculator) facts.push('Calculator allowed');
+    if((a.resources || []).length) facts.push(`${a.resources.length} resource${a.resources.length === 1 ? '' : 's'} to refer to`);
+    document.getElementById('examIntroFacts').innerHTML = facts.map(f=>`<span>${escapeHtml(f)}</span>`).join('');
+    const text = document.getElementById('examIntroText');
+    text.textContent = (a.prompt || '').trim() || 'No special instructions. Answer every item, then press Submit when you are finished.';
+    text.classList.toggle('empty', !(a.prompt || '').trim());
+    const started = !!sub.startedAt || sub.status === 'progress';
+    const startBtn = document.getElementById('examIntroStart');
+    startBtn.textContent = started ? 'Continue exam' : 'Start exam';
+    document.getElementById('examIntroNote').textContent = started
+      ? 'Your answers so far are saved. The clock kept running while you were away.'
+      : 'Your work saves automatically. When you finish, press Submit — you can’t change your answers after that.';
+    backdrop.classList.remove('hidden');
+    setTimeout(()=>startBtn.focus(), 30);
+    const back = document.getElementById('examIntroBack');
+    function done(ok){
+      backdrop.classList.add('hidden');
+      startBtn.removeEventListener('click', onStart); back.removeEventListener('click', onBack);
+      resolve(ok);
+    }
+    function onStart(){ done(true); }
+    function onBack(){ done(false); }
+    startBtn.addEventListener('click', onStart);
+    back.addEventListener('click', onBack);
+  });
+}
 function showSebBlockedNotice(assignmentId, title, detail){
   const backdrop = document.getElementById('sebGateBackdrop');
   document.getElementById('sebGateMessage').textContent = detail
@@ -5284,7 +5456,7 @@ function buildAnswerWidget(item, existingValue, readOnly, onChange){
 // which got unmanageable for long exams. The navigator and the Contents panel stay in step.
 function answerIsFilled(item, value){
   if(value == null) return false;
-  if(typeof value === 'string') return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+  if(typeof value === 'string') return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\u200B/g, '').trim().length > 0;
   if(item.type === 'mcq_single') return !!value.optionId;
   if(item.type === 'mcq_multiple') return (value.optionIds || []).length > 0;
   if(item.type === 'true_false') return value.value === true || value.value === false;
@@ -5332,7 +5504,7 @@ function renderQNav(){
   box.innerHTML = `<div class="qnav">
       <button type="button" class="qnav-arrow" id="qnavPrev" aria-label="Previous question" ${idx === 0 ? 'disabled' : ''}>&lsaquo;</button>
       <button type="button" class="qnav-current" id="qnavCurrent" aria-expanded="${q.open}" title="Show all questions">
-        <span class="lbl">${escapeHtml(cur.label)}</span><span class="pos">${idx + 1} of ${items.length}</span><span class="caret">${q.open ? '▲' : '▼'}</span></button>
+        <span class="lbl">${escapeHtml(cur.label)}</span><span class="caret">${q.open ? '▲' : '▼'}</span></button>
       <button type="button" class="qnav-arrow" id="qnavNext" aria-label="Next question" ${idx === items.length - 1 ? 'disabled' : ''}>&rsaquo;</button>
     </div>
     <div class="qnav-grid${q.open ? '' : ' hidden'}" id="qnavGrid"></div>`;
@@ -5377,6 +5549,7 @@ function switchResponseTab(textId){
   state.activeResponseTextId = textId;
   renderQNav();
   syncContentsPanel();
+  updateAnswerWordCount();
 }
 
 function renderTaskGradeBanner(sub){
@@ -5443,6 +5616,14 @@ document.getElementById('openChatFromTaskBtn').addEventListener('click', ()=>{
   }
 });
 async function openStudentTask(assignmentId){
+  // Reading back submitted work: fetch the latest first, so a grade and marks released since
+  // this page loaded are shown.
+  if(document.body.dataset.role === 'pupil' && state.currentPupilEmail){
+    const before = state.assignments.find(x=>x.id===assignmentId);
+    if(before && before.submissions[state.currentPupil] && before.submissions[state.currentPupil].status === 'submitted'){
+      try { await loadAssignments(state.currentPupilEmail); } catch(_) {}
+    }
+  }
   const gateAssignment = state.assignments.find(x=>x.id===assignmentId);
   const gateSub = gateAssignment.submissions[state.currentPupil];
   // Teachers previewing a pupil's task read-only never need the SEB/join-code gates — those
@@ -5456,6 +5637,11 @@ async function openStudentTask(assignmentId){
   if(isRealPupilView && gateAssignment.requireJoinCode && gateSub.status !== 'submitted' && !gateSub.startedAt){
     const ok = await gateWithJoinCode(gateAssignment, gateSub);
     if(!ok) return; // pupil cancelled, or never entered a correct code — stay on the task list
+  }
+  // Instructions first: the exam (and its clock) only starts when the pupil presses Start.
+  if(isRealPupilView && gateSub.status !== 'submitted'){
+    const go = await showExamIntro(gateAssignment, gateSub);
+    if(!go){ showStudentTaskList(); return; }
   }
   // Only a live attempt follows the delivery mode. Once submitted, the pupil is just reading
   // their own work back — normal browser, no fullscreen, no exit lock, no copy guard.
@@ -6733,25 +6919,88 @@ document.getElementById('openCalculatorBtn').addEventListener('click', ()=>setTi
 
 // ---------------- rich text toolbars (shared wiring for the response toolbar and the notepad toolbar) ----------------
 try { document.execCommand('styleWithCSS', false, true); } catch(_) { /* older browsers just ignore this */ }
-function applyFontSize(editable, px){
-  editable.focus();
-  document.execCommand('fontSize', false, '7');
-  editable.querySelectorAll('font[size="7"]').forEach(f=>{
-    f.removeAttribute('size');
-    f.style.fontSize = px + 'px';
-  });
+// Clicking a toolbar <select> or colour picker takes focus (and the text selection) away from the
+// editor, so the last selection inside each editor is remembered and put back before a command.
+const savedEditorRanges = new WeakMap();
+document.addEventListener('selectionchange', ()=>{
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return;
+  const r = sel.getRangeAt(0);
+  const node = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
+  const ed = node && node.closest && node.closest('.editable');
+  if(ed && ed.isContentEditable){ savedEditorRanges.set(ed, r.cloneRange()); syncFontSizeSelect(ed, node); }
+});
+function restoreEditorSelection(ed){
+  ed.focus({preventScroll: true});
+  const r = savedEditorRanges.get(ed);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  if(r && ed.contains(r.commonAncestorContainer)){ sel.addRange(r); return; }
+  const end = document.createRange(); end.selectNodeContents(ed); end.collapse(false); sel.addRange(end);   // nothing picked yet: the end
 }
+// Show the size of the text at the caret in the toolbar's size box.
+function syncFontSizeSelect(ed, node){
+  const bar = ed.closest('#notepadModal') ? document.getElementById('notepadToolbar') : document.getElementById('responseToolbar');
+  const select = bar && bar.querySelector('.font-size-select');
+  if(!select || document.activeElement === select) return;
+  const px = Math.round(parseFloat(getComputedStyle(node.nodeType === 1 ? node : ed).fontSize));
+  if([...select.options].some(o=>Number(o.value) === px)) select.value = String(px);
+}
+// Text size: wraps the selected text; with just a caret, starts a run of that size so what the
+// pupil types next comes out in it. (With styleWithCSS on, the browser writes font-size:xxx-large
+// spans rather than <font size=7>, which is why the old version never changed anything.)
+function applyFontSize(editable, px){
+  restoreEditorSelection(editable);
+  const sel = window.getSelection();
+  if(!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if(range.collapsed){
+    const span = document.createElement('span');
+    span.style.fontSize = px + 'px';
+    span.textContent = '\u200B';
+    range.insertNode(span);
+    const caret = document.createRange();
+    caret.setStart(span.firstChild, 1); caret.collapse(true);
+    sel.removeAllRanges(); sel.addRange(caret);
+  } else {
+    document.execCommand('fontSize', false, '7');
+    editable.querySelectorAll('font[size="7"], span[style*="xxx-large"]').forEach(el=>{
+      if(el.tagName === 'FONT') el.removeAttribute('size');
+      el.style.fontSize = px + 'px';
+      el.querySelectorAll('[style*="font-size"]').forEach(inner=>{ inner.style.fontSize = ''; });
+    });
+  }
+  editable.dispatchEvent(new Event('input', {bubbles: true}));   // autosave + word count
+}
+// Words in the answer the pupil is on (essays usually come with a word limit).
+function countWords(html){
+  const div = document.createElement('div'); div.innerHTML = html || '';
+  const text = (div.innerText || div.textContent || '').replace(/\u200B/g, '').trim();
+  return text ? text.split(/\s+/).length : 0;
+}
+function updateAnswerWordCount(){
+  const el = document.getElementById('answerWordCount');
+  if(!el) return;
+  const wrap = document.getElementById('responseEditable_' + state.activeResponseTextId);
+  const ed = wrap && wrap.querySelector('.editable');
+  if(!ed){ el.textContent = ''; return; }
+  const n = countWords(ed.innerHTML);
+  el.textContent = `${n} word${n === 1 ? '' : 's'}`;
+}
+document.addEventListener('input', e=>{ if(e.target.closest && e.target.closest('#responseEditables')) updateAnswerWordCount(); });
 const TABLE_HTML = '<table style="border-collapse:collapse;width:100%;margin:8px 0;">' +
   '<tr><td style="border:1px solid #999;padding:6px;">&nbsp;</td><td style="border:1px solid #999;padding:6px;">&nbsp;</td></tr>' +
   '<tr><td style="border:1px solid #999;padding:6px;">&nbsp;</td><td style="border:1px solid #999;padding:6px;">&nbsp;</td></tr>' +
   '</table><p><br></p>';
 function wireRichToolbar(toolbarEl, getEditable){
   toolbarEl.querySelectorAll('button[data-cmd]').forEach(btn=>{
+    btn.addEventListener('mousedown', e=>e.preventDefault());   // keep the selection in the editor
     btn.addEventListener('click', ()=>{
       const ed = getEditable();
       if(!ed) return;
-      ed.focus();
+      restoreEditorSelection(ed);
       document.execCommand(btn.dataset.cmd, false, null);
+      ed.dispatchEvent(new Event('input', {bubbles: true}));
     });
   });
   const insertTableBtn = toolbarEl.querySelector('.insert-table-btn');
@@ -6763,8 +7012,9 @@ function wireRichToolbar(toolbarEl, getEditable){
   const fontFamily = toolbarEl.querySelector('.font-family-select');
   if(fontFamily) fontFamily.addEventListener('change', function(){
     const ed = getEditable(); if(!ed) return;
-    ed.focus();
+    restoreEditorSelection(ed);
     document.execCommand('fontName', false, this.value);
+    ed.dispatchEvent(new Event('input', {bubbles: true}));
   });
   const fontSize = toolbarEl.querySelector('.font-size-select');
   if(fontSize) fontSize.addEventListener('change', function(){
@@ -6773,13 +7023,13 @@ function wireRichToolbar(toolbarEl, getEditable){
   const fontColor = toolbarEl.querySelector('.font-color-input');
   if(fontColor) fontColor.addEventListener('input', function(){
     const ed = getEditable(); if(!ed) return;
-    ed.focus();
+    restoreEditorSelection(ed);
     document.execCommand('foreColor', false, this.value);
   });
   const hiliteColor = toolbarEl.querySelector('.hilite-color-input');
   if(hiliteColor) hiliteColor.addEventListener('input', function(){
     const ed = getEditable(); if(!ed) return;
-    ed.focus();
+    restoreEditorSelection(ed);
     document.execCommand('hiliteColor', false, this.value);
   });
 }
@@ -6796,7 +7046,7 @@ wireRichToolbar(document.getElementById('notepadToolbar'), ()=>document.getEleme
 // to answer, so they're not counted.
 function isItemAnswered(item, v){
   if(v == null) return false;
-  if(typeof v === 'string') return v.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+  if(typeof v === 'string') return v.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\u200B/g, '').trim().length > 0;
   if(item.type === 'mcq_single') return v.optionId != null;
   if(item.type === 'mcq_multiple') return (v.optionIds || []).length > 0;
   if(item.type === 'true_false') return v.value != null;

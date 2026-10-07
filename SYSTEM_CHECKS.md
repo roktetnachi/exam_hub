@@ -442,6 +442,11 @@ python manage.py check --deploy
 | 22.10 | **Scientific calculator** (when the exam allows the calculator): sin / cos / tan and inverses (2nd), DEG / RAD, ln, log, eˣ, 10ˣ, √, ∛, x², x³, xʸ, ʸ√x, 1/x, n!, %, π, e, EXP, abs (\|x\|), ( ), Ans, Rand, MC / MR / M+ / M−; correct order of operations (e.g. 2+3×4 = 14, −2² = −4); errors shown as "Math error" / "Syntax error" | Correct results | |
 | 22.11 | Calculator keyboard: digits, + − × ÷ ^ ( ) . % !, Enter (=), Backspace, Esc (AC) while it has focus; typing doesn't go into the answer box | Works | |
 | 22.12 | Arriving straight into an exam (`?open=…`, e.g. from SEB) shows no grade pop-up over it; held pop-ups appear after submitting | No pop-up during the exam | |
+| 22.13 | **Instructions screen:** opening an unsubmitted exam shows a wide white card with the school logo, title, facts and instructions; the exam starts (`started_at`, timer) only on **Start exam**; "Back to my tasks" leaves without starting; returning shows **Continue exam** | Nothing starts before Start | |
+| 22.14 | Answer box text size: selecting text + choosing a size changes it; choosing a size with just a cursor makes the next typed text that size; font, colours and buttons keep the selection | Sizes visibly change | |
+| 22.15 | Answer toolbar fits in two rows in the answer pane; word count updates while typing and per item | Tidy, live count | |
+| 22.16 | Question navigator shows ‹ › and the item label only (no "n of N"); clicking the label opens the grid | No count text | |
+| 22.17 | Released grade appears without reloading: pupil on the task list or reading back submitted work sees the grade / marks within ~20 s; "View submission" and the pop-up's "View grade" always show the latest | Marks visible | |
 
 ---
 
@@ -457,6 +462,19 @@ python manage.py check --deploy
 | 23.6 | PDF resources render page by page with − / % / + / Fit; images zoom; text keeps its line breaks | Readable | |
 | 23.7 | Resources aren't questions: no points, not in the navigator or grading | Totals unchanged | |
 | 23.8 | Wrong file types rejected (PDF slot needs a PDF, Image slot an image); text limited to 20,000 characters | HTTP 400 | |
+
+---
+
+## 24. Exam Builder Items
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 24.1 | **+ New exam** starts with one empty section and **no** items (no default PDF) | Empty | |
+| 24.2 | New items are labelled Item 1, Item 2, … in order; removing Item 2 of 4 renames the rest to Item 2, Item 3 | Renumbered | |
+| 24.3 | A label the teacher typed (e.g. "Essay") is kept when others renumber | Kept | |
+| 24.4 | ↑ / ↓ move an item one place (into the neighbouring section at a section's edge); first ↑ and last ↓ are disabled | Moves | |
+| 24.5 | Dragging the ⠿ handle moves an item anywhere, including into another section | Moves | |
+| 24.6 | The created exam keeps the on-screen order and each item's section | Same order for pupils | |
 
 ---
 
@@ -484,7 +502,7 @@ python manage.py test digitalexams.test_notifications digitalexams.test_exam_win
 python manage.py test digitalexams.test_sections_subjects digitalexams.test_marking digitalexams.test_resources digitalexams.test_seb
 ```
 
-> **Last full run (2026-10-07):** 124 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-07):** 125 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 
