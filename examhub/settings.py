@@ -34,8 +34,8 @@ ALLOWED_HOSTS = [
     if host
 ]
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "examhub-production-57c2.up.railway.app"]
-CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://examhub-production-57c2.up.railway.app']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "digitalexamhub.up.railway.app"]
+CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://digitalexamhub.up.railway.app/']
 
 
 
