@@ -34,8 +34,21 @@ ALLOWED_HOSTS = [
     if host
 ]
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "digitalexamhub.up.railway.app"]
-CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://digitalexamhub.up.railway.app/']
+# Addresses this site answers on. Always: local dev and ANY Railway domain (*.railway.app), so
+# renaming the Railway domain never takes the site (or Safe Exam Browser launches) down again.
+# A custom domain (e.g. exams.ssc.edu.ph) goes in Railway → Variables → ALLOWED_HOSTS,
+# comma-separated. Railway's own RAILWAY_PUBLIC_DOMAIN is picked up automatically.
+_extra_hosts = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()]
+if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
+    _extra_hosts.append(os.environ["RAILWAY_PUBLIC_DOMAIN"].strip())
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".railway.app", *_extra_hosts]
+# Form posts (sign-in, "Open" for a lockdown exam, saving answers…) are only accepted from these.
+CSRF_TRUSTED_ORIGINS = ["https://*.railway.app"] + [
+    f"https://*{h}" if h.startswith(".") else f"https://{h}" for h in _extra_hosts
+]
+# Railway serves https and forwards plain http to Django; this tells Django the visitor is on
+# https so links and Safe Exam Browser config files are built with the right address.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 

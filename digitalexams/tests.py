@@ -159,15 +159,17 @@ class ClassAndActivityPageTests(TestCase):
         return self.client.get(f'/s/{self.school.slug}{url}')
 
     def test_pages_render_and_pupils_are_redirected(self):
-        for user, word in ((self.admin_teacher, 'Year groups'), (self.teacher, 'My year groups')):
-            self.client.force_login(user)
-            resp = self.get_url('/classes/')
-            self.assertEqual(resp.status_code, 200)
-            self.assertIn(word, resp.content.decode())
-            # Activity is admin-only: plain teachers are sent back to the dashboard.
-            self.assertEqual(self.get_url('/activity/').status_code, 200 if user == self.admin_teacher else 302)
-            self.assertEqual('id="createClassBtn"' in self.get_url('/classes/').content.decode(),
-                             user == self.admin_teacher)
+        self.client.force_login(self.admin_teacher)
+        resp = self.get_url('/classes/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('Year groups', resp.content.decode())
+        self.assertIn('id="createClassBtn"', resp.content.decode())
+        self.assertEqual(self.get_url('/activity/').status_code, 200)
+        # Plain teachers work by subject: no Year groups page (sent to Subjects), no Activity.
+        self.client.force_login(self.teacher)
+        self.assertRedirects(self.get_url('/classes/'), f'/s/{self.school.slug}/subjects/', fetch_redirect_response=False)
+        self.assertEqual(self.get_url('/activity/').status_code, 302)
+        self.assertNotIn('>My year groups<', self.get_url('/subjects/').content.decode())
         self.client.force_login(self.pupil)
         self.assertRedirects(self.get_url('/classes/'), f'/s/{self.school.slug}/', fetch_redirect_response=False)
         self.assertRedirects(self.get_url('/activity/'), f'/s/{self.school.slug}/', fetch_redirect_response=False)
@@ -333,7 +335,7 @@ class RolesTabAndTourTests(TestCase):
             self.assertIn('const AUTO_START = false', self.get_url('/').content.decode())
             self.assertIn('data-start-tour', self.get_url('/').content.decode())
         self.client.force_login(self.teacher)
-        self.assertIn('const AUTO_START = false', self.get_url('/classes/').content.decode())
+        self.assertIn('const AUTO_START = false', self.get_url('/subjects/').content.decode())
         self.teacher.is_school_admin = True
         self.teacher.save()
         self.assertEqual(self.teacher.tour_role, 'admin')
@@ -557,10 +559,10 @@ class BulkImportTests(TestCase):
             ['', 'kim@bulk.edu', 'Grade 7 - Newton'],          # already enrolled → unchanged
             ['', 'KIM@bulk.edu', 'Grade 8 - Curie'],           # existing pupil → enrol
             ['Ana', 'ana@bulk.edu', 'Grade 8 - Curie'],        # teacher email
-            ['Far', 'far@other.edu', 'Grade 8 - Curie'],       # another school
+            ['Far', 'far@other.edu', 'Grade 8 - Curie'],       # same email at another school → a NEW account here
         ]), name='pupils.xlsx')
         rows = resp.json()['rows']
-        self.assertEqual([r['status'] for r in rows], ['create', 'unchanged', 'update', 'error', 'error'])
+        self.assertEqual([r['status'] for r in rows], ['create', 'unchanged', 'update', 'error', 'create'])
         self.upload('pupils', self.xlsx('Pupils', [
             ['Name', 'Email address', 'Section'],
             ['Tan, Ken', 'ken@bulk.edu', 'Grade 7 - Newton; Grade 8 - Curie'],

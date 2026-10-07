@@ -29,7 +29,7 @@ class SchoolScopingTests(TestCase):
         self.client.force_login(self.t_demo)
         home = self.client.get('/s/demo/')
         self.assertNotContains(home, '/s/demo/activity/')
-        self.assertNotContains(self.client.get('/s/demo/classes/'), 'View activity log')
+        self.assertNotContains(self.client.get('/s/demo/subjects/'), 'View activity log')
         self.assertEqual(self.client.get('/s/demo/activity/').status_code, 302)
         self.assertEqual(self.client.get('/s/demo/api/activity-log/').status_code, 403)
         self.assertEqual([c['name'] for c in self.client.get('/s/demo/api/classes/').json()['classes']], ['Demo 7A'])

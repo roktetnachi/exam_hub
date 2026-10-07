@@ -85,6 +85,10 @@ def teachers_page(request):
 
 @login_required
 def classes_page(request):
+    # Plain teachers work by subject only; the Year groups page is for admins.
+    if request.user.role == User.Role.TEACHER and not request.user.can_manage_classes:
+        prefix = getattr(request, 'school_url_prefix', '') or ''
+        return redirect(f'{prefix}/subjects/')
     return _teacher_page(request, 'classes.html')
 
 
@@ -638,6 +642,7 @@ def serialize_assignment(assignment, pupil_email=None):
         return data
     items = [serialize_item(item) for item in assignment.items.all()]
     return {'id': assignment.id, 'title': assignment.title, 'prompt': assignment.instructions,
+        'createdAt': manila_isoformat(assignment.created_at),
         'items': items,
         'teacherName': assignment.teacher_name, 'teacherEmail': assignment.teacher_email,
         'opensAt': manila_isoformat(assignment.opens_at), 'dueAt': manila_isoformat(assignment.due_at),
@@ -940,9 +945,11 @@ def create_assignment(request):
 @login_required
 @require_POST
 def update_assignment_api(request, assignment_id):
-    """Settings-only edit for an existing exam: title, instructions, visibility, closing
-    time, delivery mode, join code and calculator toggles. Editing the PDFs or
-    questions themselves isn't supported here yet — see the Create tab's own notice."""
+    """Edit an existing exam: title, instructions, visibility, closing time, delivery mode, join
+    code, calculator toggles and — optionally — who it's assigned to (`recipients`: the full new
+    list of {name, email}; pupils not in it are removed, new ones added). Removing a pupil who has
+    already started or handed in deletes their work, so that needs `confirmRemoveStarted: true`.
+    Editing the PDFs or questions themselves isn't supported here yet."""
     if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
         return HttpResponseForbidden('Only teachers can edit exams.')
     assignment = get_object_or_404(Assignment, id=assignment_id)
@@ -958,6 +965,33 @@ def update_assignment_api(request, assignment_id):
     title = (payload.get('title') or '').strip()
     if not title:
         return HttpResponseBadRequest('Give the exam a title.')
+
+    # Who it's assigned to (optional). Worked out and checked before anything is saved.
+    recipient_plan = None
+    if isinstance(payload.get('recipients'), list):
+        wanted = {}
+        for pupil in payload['recipients']:
+            name, email = (pupil.get('name') or '').strip(), (pupil.get('email') or '').strip()
+            if name and email:
+                wanted.setdefault(email.lower(), (name, email))
+        if not wanted:
+            return HttpResponseBadRequest('An exam needs at least one pupil.')
+        current = {r.pupil_email.lower(): r for r in assignment.recipients.select_related('submission')}
+        to_add = [wanted[e] for e in wanted if e not in current]
+        to_remove = [current[e] for e in current if e not in wanted]
+        allowed = {e.lower() for e in request.user.teachable_pupils(getattr(request, 'school', None))
+                   .values_list('email', flat=True) if e}
+        outside = [name for name, email in to_add if email.lower() not in allowed]
+        if outside:
+            return HttpResponseForbidden('You can only assign work to pupils in the subjects you teach. Not allowed: '
+                                         + ', '.join(outside[:5]) + ('…' if len(outside) > 5 else ''))
+        started = [r for r in to_remove if getattr(r, 'submission', None) is not None
+                   and (r.submission.status != 'not_started' or r.submission.started_at)]
+        if started and not payload.get('confirmRemoveStarted'):
+            return JsonResponse({'code': 'remove_started', 'pupils': [r.pupil_name for r in started],
+                                 'error': 'Some of the pupils you removed have already started or handed in. '
+                                          'Removing them deletes their work.'}, status=409)
+        recipient_plan = (to_add, to_remove)
 
     delivery_mode = payload.get('deliveryMode') or Assignment.DeliveryMode.BROWSER
     if delivery_mode not in Assignment.DeliveryMode.values:
@@ -995,8 +1029,23 @@ def update_assignment_api(request, assignment_id):
     assignment.allow_calculator = bool(payload.get('allowCalculator'))
     assignment.allow_graphing_calculator = bool(payload.get('allowGraphingCalculator'))
     assignment.save()
+    actor = request.user.get_full_name() or request.user.username
+    if recipient_plan:
+        to_add, to_remove = recipient_plan
+        for name, email in to_add:
+            Recipient.objects.create(assignment=assignment, pupil_name=name, pupil_email=email)
+        if to_remove:
+            Recipient.objects.filter(id__in=[r.id for r in to_remove]).delete()
+        if to_add or to_remove:
+            bits = []
+            if to_add:
+                bits.append(f'added {", ".join(n for n, _ in to_add[:5])}{"…" if len(to_add) > 5 else ""}')
+            if to_remove:
+                bits.append(f'removed {", ".join(r.pupil_name for r in to_remove[:5])}{"…" if len(to_remove) > 5 else ""}')
+            log_activity(actor, request.user.email, 'updated',
+                         f'Changed who "{assignment.title}" is assigned to: {"; ".join(bits)}.', assignment=assignment)
     assignment.refresh_from_db()
-    log_activity(request.user.get_full_name() or request.user.username, request.user.email,
+    log_activity(actor, request.user.email,
         'updated', f'Updated settings for "{assignment.title}".', assignment=assignment)
     return JsonResponse(serialize_assignment(assignment))
 
@@ -1792,8 +1841,13 @@ def create_pupil_api(request):
     email = (payload.get('email') or '').strip()
     if not first_name or not email:
         return HttpResponseBadRequest('At least a first name and email are required.')
-    if User.objects.filter(email__iexact=email).exists():
-        return HttpResponseBadRequest('A pupil with that email already exists.')
+    # The same email may be used by a pupil at another school (separate account); within this
+    # school it must be unique.
+    clash = User.objects.filter(email__iexact=email)
+    if getattr(request, 'school', None):
+        clash = clash.filter(school=request.school)
+    if clash.exists():
+        return HttpResponseBadRequest('Someone at this school already uses that email.')
     username_base = email.split('@')[0].lower() or first_name.lower()
     username = _unique_username(username_base)
     temp_password = secrets.token_urlsafe(6)

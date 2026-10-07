@@ -302,12 +302,16 @@ def _pupil_problem(user, school):
     return None
 
 
-def _users_by_email(rows, prefetch):
+def _users_by_email(rows, prefetch, school=None):
+    """Existing accounts for the emails in the sheet. With a school, only that school's accounts:
+    the same pupil email may exist at another school as a separate account."""
     emails = {rec.get('email', '').strip().lower() for _, rec in rows if rec.get('email')}
     out = {}
     if emails:
-        for u in (User.objects.annotate(email_lower=Lower('email')).filter(email_lower__in=emails)
-                  .prefetch_related(*prefetch).order_by('id')):
+        qs = User.objects.annotate(email_lower=Lower('email')).filter(email_lower__in=emails)
+        if school:
+            qs = qs.filter(school=school)
+        for u in qs.prefetch_related(*prefetch).order_by('id'):
             out.setdefault(u.email_lower, u)
     return out
 
@@ -408,7 +412,7 @@ def plan_section_pupils(rows, school):
     or several rows). Only ever adds; rows with no year group are skipped (the template lists
     every pupil, so most rows may be left blank)."""
     sections = {_norm_name(c.name): c for c in _school_classes(school)}
-    users = _users_by_email(rows, ['classes_enrolled'])
+    users = _users_by_email(rows, ['classes_enrolled'], school)
     planned = {}   # email -> {'user', 'groups': [...]}
     results = []
     for row_no, rec in rows:
@@ -462,7 +466,7 @@ def plan_subject_pupils(rows, school):
     subjects = {_norm_name(s.name): s for s in _school_subjects(school).prefetch_related('pupils')}
     sections = {_norm_name(c.name): c for c in _school_classes(school).prefetch_related('pupils')}
     members = {s.id: {p.id for p in s.pupils.all()} for s in subjects.values()}
-    users = _users_by_email(rows, [])
+    users = _users_by_email(rows, [], school)
     adds = {}      # subject id -> [users]
     results = []
     for row_no, rec in rows:
@@ -539,8 +543,12 @@ def plan_pupils(rows, school):
     emails = {rec.get('email', '').strip().lower() for _, rec in rows if rec.get('email')}
     existing_users = {}
     if emails:
-        matches = (User.objects.annotate(email_lower=Lower('email')).filter(email_lower__in=emails)
-                   .prefetch_related('classes_enrolled', 'subjects_enrolled').order_by('id'))
+        # Only this school's accounts: a pupil email used at another school is a different person
+        # here, so a new account is created for this school.
+        matches = User.objects.annotate(email_lower=Lower('email')).filter(email_lower__in=emails)
+        if school:
+            matches = matches.filter(school=school)
+        matches = matches.prefetch_related('classes_enrolled', 'subjects_enrolled').order_by('id')
         for u in matches:
             existing_users.setdefault(u.email_lower, u)
 

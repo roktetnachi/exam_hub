@@ -66,6 +66,12 @@
   .roster-pupil-row{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:5px 0;border-bottom:1px solid var(--border);}
   .roster-pupil-row:last-child{border-bottom:none;}
   .link-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0;}
+  .exam-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 12px;margin-bottom:6px;border-bottom:1px solid var(--border);font-size:13px;}
+  .exam-filter-label{font-weight:700;color:var(--text);}
+  .exam-filter label{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;margin:0;}
+  .exam-filter input[type=date]{width:auto;padding:5px 8px;font-size:13px;border:1px solid var(--border);border-radius:8px;}
+  .exam-filter-quick{display:inline-flex;gap:12px;}
+  .exam-filter-quick .link-btn{color:var(--blue);font-size:12.5px;font-weight:600;}
 
   .btn{
     border:none;background:var(--blue);color:#fff;padding:10px 20px;border-radius:var(--pill-radius);
@@ -558,14 +564,14 @@
   {% if request.user.is_superuser or request.user.role == 'teacher' %}
   <nav class="topnav" id="teacherTopNav" aria-label="Sections">
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}" class="active" aria-current="page">Exams</a>
-    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Year groups{% else %}My year groups{% endif %}</a>
+    {% if request.user.can_manage_classes %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">Year groups</a>{% endif %}
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'subjects-page' %}">{% if request.user.can_manage_classes %}Subjects{% else %}My subjects{% endif %}</a>
     {% if request.user.can_view_activity %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}">Activity</a>{% endif %}
     {% if request.user.is_superuser or request.user.is_school_admin %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}">Roles</a>{% endif %}
   </nav>
   {% endif %}
   <div style="margin-left:auto;"></div>
-  <div class="role-toggle{% if request.user.role == 'pupil' and not request.user.is_superuser %} hidden{% endif %}" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
+  <div class="role-toggle{% if request.user.role == 'pupil' and not request.user.is_superuser or not request.user.can_manage_classes %} hidden{% endif %}" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
     <button id="btnTeacherRole" class="active">Teacher view</button>
     <button id="btnStudentRole">Pupil preview</button>
   </div>
@@ -673,7 +679,7 @@
 
       <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn" id="btnNewAssignment">+ New exam</button>
-        <a class="btn outline" id="btnManageRoster" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Year groups &amp; pupils{% else %}My year groups{% endif %}</a>
+        {% if request.user.can_manage_classes %}<a class="btn outline" id="btnManageRoster" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">Year groups &amp; pupils</a>{% else %}<a class="btn outline" id="btnManageRoster" href="{{ request.school_url_prefix|default:'' }}{% url 'subjects-page' %}">My subjects</a>{% endif %}
         {% if request.user.can_view_activity %}<a class="btn outline" id="btnActivityLog" href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}">Activity log</a>{% endif %}
       </div>
 
@@ -685,8 +691,19 @@
         <button class="btn small outline danger" id="bulkDeleteBtn">Delete selected</button>
       </div>
       <div class="card">
+        <div class="exam-filter" id="examFilterBar">
+          <span class="exam-filter-label">Created</span>
+          <label>from <input type="date" id="examFrom" aria-label="Created from"></label>
+          <label>to <input type="date" id="examTo" aria-label="Created to"></label>
+          <span class="exam-filter-quick">
+            <button type="button" class="link-btn" data-range="7">Last 7 days</button>
+            <button type="button" class="link-btn" data-range="30">Last 30 days</button>
+            <button type="button" class="link-btn" id="examFilterClear">Clear</button>
+          </span>
+          <span class="sub" id="examFilterCount" style="margin-left:auto;font-size:12.5px;"></span>
+        </div>
         <table id="assignmentTable">
-          <thead><tr><th style="width:28px;"><input type="checkbox" id="bulkSelectAll"></th><th>Title</th><th>Status</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
+          <thead><tr><th style="width:28px;"><input type="checkbox" id="bulkSelectAll"></th><th>Title</th><th>Created</th><th>Status</th><th>Assigned to</th><th>Submitted</th><th></th></tr></thead>
           <tbody id="assignmentTbody"></tbody>
         </table>
         <div class="empty" id="assignmentLoading">Loading your exams…</div>
@@ -1332,12 +1349,12 @@
     </div>
 
     <div class="modal-backdrop hidden" id="editAssignmentModal">
-      <div class="card" style="width:520px;max-width:94vw;max-height:86vh;overflow:auto;">
+      <div class="card" style="width:600px;max-width:94vw;max-height:88vh;overflow:auto;">
         <div class="row" style="justify-content:space-between;align-items:center;">
           <h2 style="margin:0;">Edit exam</h2>
           <button type="button" class="btn outline small" id="closeEditAssignmentBtn">Close</button>
         </div>
-        <p class="sub">Settings only — to change the PDFs or questions themselves, delete and recreate the exam for now.</p>
+        <p class="sub">Change the settings and who the exam is assigned to. To change the PDFs or questions themselves, delete and recreate the exam for now.</p>
         <div class="field">
           <label>Title</label>
           <input type="text" id="editAssignmentTitle">
@@ -1392,6 +1409,14 @@
         <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
           <input type="checkbox" id="editAssignmentGraphingCalculator"> Allow graphing calculator
         </label>
+        <div class="field" style="margin-top:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+            <label style="margin:0;">Assigned to</label>
+            <span class="sub" style="font-size:12px;" id="editAssignCount"></span>
+          </div>
+          <p class="sub" style="margin:2px 0 6px;font-size:12.5px;">Untick to remove a pupil, tick to add one. Removing a pupil who has already started deletes their work.</p>
+          <div id="editPupilChecklist" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:8px 10px;"><p class="sub">Loading pupils…</p></div>
+        </div>
         <p id="editAssignmentError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:6px 0 0;"></p>
         <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
           <button type="button" class="btn outline small" id="cancelEditAssignmentBtn">Cancel</button>
@@ -1577,7 +1602,7 @@ function apiAssignment(a){
     locked:!!r.locked, lockReason:r.lockReason||'', lockCount:r.lockCount||0, resumeCode:r.resumeCode||null,
     hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher}; });
   return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt, isHidden:!!a.isHidden, closedAt:a.closedAt||null, state:a.state||'live', items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
-    teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'',
+    teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'', createdAt:a.createdAt||null,
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
     allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator};
 }
@@ -1611,14 +1636,49 @@ function showTeacherDashboard(){
 }
 function hideAll(selector){ document.querySelectorAll(selector).forEach(el=>el.classList.add('hidden')); }
 
+// ---------------- dashboard: filter exams by the date they were created ----------------
+state.examFilter = {from: '', to: ''};
+function examCreatedDay(a){ return (a.createdAt || '').slice(0, 10); }  // Manila date, YYYY-MM-DD
+function visibleExams(){
+  const {from, to} = state.examFilter;
+  return state.assignments.filter(a=>{
+    const day = examCreatedDay(a);
+    if(from && (!day || day < from)) return false;
+    if(to && (!day || day > to)) return false;
+    return true;
+  });
+}
+function manilaToday(offsetDays=0){
+  const d = new Date(Date.now() + 8 * 3600 * 1000 - offsetDays * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+function setExamFilter(from, to){
+  state.examFilter = {from: from || '', to: to || ''};
+  document.getElementById('examFrom').value = state.examFilter.from;
+  document.getElementById('examTo').value = state.examFilter.to;
+  renderAssignmentTable();
+}
+document.getElementById('examFrom').addEventListener('change', e=>setExamFilter(e.target.value, state.examFilter.to));
+document.getElementById('examTo').addEventListener('change', e=>setExamFilter(state.examFilter.from, e.target.value));
+document.getElementById('examFilterClear').addEventListener('click', ()=>setExamFilter('', ''));
+document.querySelectorAll('#examFilterBar [data-range]').forEach(b=>b.addEventListener('click', ()=>setExamFilter(manilaToday(Number(b.dataset.range) - 1), manilaToday(0))));
+
 function renderAssignmentTable(){
   document.getElementById('assignmentLoading').classList.add('hidden');
   const tbody = document.getElementById('assignmentTbody');
   tbody.innerHTML = '';
   document.getElementById('assignmentEmpty').classList.toggle('hidden', state.assignments.length>0);
-  const liveIds = new Set(state.assignments.map(a=>a.id));
+  document.getElementById('examFilterBar').classList.toggle('hidden', state.assignments.length === 0);
+  const shown = visibleExams();
+  // Only exams that are on screen can stay selected, so a bulk action never touches hidden ones.
+  const liveIds = new Set(shown.map(a=>a.id));
   Array.from(state.selectedAssignmentIds).forEach(id=>{ if(!liveIds.has(id)) state.selectedAssignmentIds.delete(id); });
-  state.assignments.forEach(a=>{
+  const filtered = state.examFilter.from || state.examFilter.to;
+  document.getElementById('examFilterCount').textContent = filtered ? `Showing ${shown.length} of ${state.assignments.length} exams` : '';
+  if(filtered && !shown.length && state.assignments.length){
+    tbody.innerHTML = '<tr><td colspan="7" class="sub" style="text-align:center;padding:18px;">No exams were created in this date range.</td></tr>';
+  }
+  shown.forEach(a=>{
     const submittedCount = Object.values(a.submissions).filter(s=>s.status==='submitted').length;
     const hasUnread = Object.values(a.submissions).some(s=>s.hasUnreadFromPupil);
     const unreadDot = hasUnread
@@ -1627,6 +1687,7 @@ function renderAssignmentTable(){
     tr.innerHTML = `
       <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
       <td><button type="button" class="title-link" data-action="view" data-id="${a.id}">${escapeHtml(a.title)}</button>${unreadDot}</td>
+      <td style="white-space:nowrap;color:var(--muted);font-size:13px;">${a.createdAt ? formatManilaDate(a.createdAt) : '—'}</td>
       <td>${examStateHtml(a)}</td>
       <td>${a.assignedTo.length} pupil${a.assignedTo.length === 1 ? '' : 's'}</td>
       <td>${submittedCount} of ${a.assignedTo.length}</td>
@@ -1702,12 +1763,12 @@ function updateBulkToolbar(){
   toolbar.classList.toggle('hidden', count === 0);
   document.getElementById('bulkSelectedCount').textContent = count === 1 ? '1 exam selected' : `${count} exams selected`;
   const selectAll = document.getElementById('bulkSelectAll');
-  const total = state.assignments.length;
+  const total = visibleExams().length;
   selectAll.checked = total > 0 && count === total;
   selectAll.indeterminate = count > 0 && count < total;
 }
 document.getElementById('bulkSelectAll').addEventListener('change', (e)=>{
-  if(e.target.checked){ state.assignments.forEach(a=>state.selectedAssignmentIds.add(a.id)); }
+  if(e.target.checked){ visibleExams().forEach(a=>state.selectedAssignmentIds.add(a.id)); }
   else { state.selectedAssignmentIds.clear(); }
   renderAssignmentTable();
 });
@@ -1719,6 +1780,10 @@ document.getElementById('bulkDeleteBtn').addEventListener('click', ()=>{
 // Displays a schedule timestamp explicitly in Asia/Manila (GMT+8) — the timezone every
 // schedule in this app is entered and enforced in — regardless of the viewer's own browser
 // timezone, so "2pm" always reads as "2pm" for everyone.
+function formatManilaDate(iso){
+  try { return new Date(iso).toLocaleDateString('en-US', {timeZone:'Asia/Manila', month:'short', day:'numeric', year:'numeric'}); }
+  catch(_) { return (iso || '').slice(0, 10); }
+}
 function formatManila(iso){
   if(!iso) return null;
   try {
@@ -1754,6 +1819,7 @@ function buildAssignmentUpdatePayload(a, overrides){
 }
 let editingAssignmentId = null;
 function openEditAssignmentModal(id){
+  document.getElementById('editAssignCount').textContent = '';
   const a = state.assignments.find(x=>x.id===id);
   if(!a) return;
   editingAssignmentId = id;
@@ -1771,6 +1837,28 @@ function openEditAssignmentModal(id){
   const errorEl = document.getElementById('editAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   document.getElementById('editAssignmentModal').classList.remove('hidden');
+  loadEditPupils(a);
+}
+// Fill the Edit dialog's "Assigned to" list with the teacher's subjects (and, for admins, year
+// groups), ticking everyone currently on the exam.
+async function loadEditPupils(a){
+  const box = document.getElementById('editPupilChecklist');
+  box.innerHTML = '<p class="sub">Loading pupils…</p>';
+  await Promise.all([loadPupils(), loadClasses()]);
+  if(editingAssignmentId !== a.id) return;
+  const known = new Set(Object.values(state.pupilEmails || {}).map(e=>(e || '').toLowerCase()));
+  const current = a.assignedTo.map(name=>({name, email: (a.submissions[name] || {}).email || ''}));
+  const outside = current.filter(p=>p.email && !known.has(p.email.toLowerCase()))
+    .map((p, i)=>({id: `x${i}`, name: p.name, email: p.email}));
+  renderPupilChecklist('editPupilChecklist', outside.length ? {id: 'old', name: 'Already on this exam', pupils: outside} : null);
+  const onExam = new Set(current.map(p=>p.email.toLowerCase()));
+  box.querySelectorAll('.pupil-check input').forEach(cb=>{
+    const email = (cb.dataset.email || '').toLowerCase();
+    if(email && onExam.has(email)){ cb.checked = true; cb.dispatchEvent(new Event('change')); }
+  });
+  const count = ()=>{ document.getElementById('editAssignCount').textContent = `${pickedPupils('editPupilChecklist').length} pupil(s) selected`; };
+  box.onchange = count;
+  count();
 }
 function syncEditScheduleFields(){
   document.getElementById('editOpensWrap').style.visibility = document.getElementById('editVisibility').value === 'scheduled' ? 'visible' : 'hidden';
@@ -1807,10 +1895,28 @@ document.getElementById('saveEditAssignmentBtn').addEventListener('click', async
     allowCalculator: document.getElementById('editAssignmentCalculator').checked,
     allowGraphingCalculator: document.getElementById('editAssignmentGraphingCalculator').checked,
   };
+  if(!document.querySelector('#editPupilChecklist .pupil-check')){
+    // List still loading (or failed): leave who it's assigned to unchanged.
+  } else {
+    payload.recipients = pickedPupils('editPupilChecklist');
+    if(!payload.recipients.length){ errorEl.textContent = 'Tick at least one pupil.'; errorEl.classList.remove('hidden'); return; }
+  }
   const btn = document.getElementById('saveEditAssignmentBtn');
   btn.disabled = true;
   try {
-    await request(`/api/assignments/${id}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    try {
+      await request(`/api/assignments/${id}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    } catch(error) {
+      let info = null;
+      try { info = JSON.parse(error.message); } catch(_) {}
+      if(!info || info.code !== 'remove_started') throw error;
+      const ok = await confirmDialog({title: 'Remove pupils who have started?',
+        message: `${info.pupils.join(', ')} ${info.pupils.length === 1 ? 'has' : 'have'} already started or handed in. Removing ${info.pupils.length === 1 ? 'them' : 'them'} deletes that work and can't be undone.`,
+        confirmLabel: 'Remove and delete their work', danger: true});
+      if(!ok) return;
+      payload.confirmRemoveStarted = true;
+      await request(`/api/assignments/${id}/update/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    }
     await loadAssignments();
     closeEditAssignmentModal();
     renderAssignmentTable();
@@ -2455,15 +2561,32 @@ async function loadClasses(){
 }
 
 // ---------------- classes & pupils: shared roster used by the assignment picker and the Manage modal ----------------
-function pupilRowHtml(p, group){
-  const safeId = `chk_p_${group || 'x'}_${p.id}`;
-  return `<div class="pupil-check"><input type="checkbox" value="${p.name}" data-pupil-id="${p.id}" data-group="${group || ''}" id="${safeId}"><label for="${safeId}">${p.name} <span style="color:#5b6470;font-weight:normal">(${p.email})</span></label></div>`;
+function pupilRowHtml(p, group, pfx=''){
+  const safeId = `${pfx}chk_p_${group || 'x'}_${p.id}`;
+  return `<div class="pupil-check"><input type="checkbox" value="${escapeHtml(p.name)}" data-email="${escapeHtml(p.email || '')}" data-pupil-id="${p.id}" data-group="${group || ''}" id="${safeId}"><label for="${safeId}">${escapeHtml(p.name)} <span style="color:#5b6470;font-weight:normal">(${escapeHtml(p.email || '')})</span></label></div>`;
 }
 
-function renderPupilChecklist(){
-  const checklist = document.getElementById('pupilChecklist');
+// The ticked pupils in a checklist as [{name, email}], each pupil once.
+function pickedPupils(containerId){
+  const seen = new Set(), out = [];
+  document.querySelectorAll(`#${containerId} .pupil-check input:checked`).forEach(c=>{
+    const email = c.dataset.email || state.pupilEmails[c.value];
+    if(!email || seen.has(email.toLowerCase())) return;
+    seen.add(email.toLowerCase());
+    out.push({name: c.value, email});
+  });
+  return out;
+}
+
+// targetId: which container to fill (the create wizard's #pupilChecklist, or the Edit exam
+// dialog's). extra: an optional group shown first — used by Edit for pupils already on the exam
+// who aren't in any of the teacher's current lists, so they aren't silently dropped.
+function renderPupilChecklist(targetId='pupilChecklist', extra=null){
+  const checklist = document.getElementById(targetId);
+  if(!checklist) return;
+  const pfx = targetId === 'pupilChecklist' ? '' : targetId + '_';
   checklist.innerHTML = '';
-  if(state.pupils.length === 0){
+  if(state.pupils.length === 0 && !(extra && extra.pupils.length)){
     checklist.innerHTML = state.canManageClasses
       ? '<p class="sub">No pupil accounts yet — add one with "+ New pupil" above, or create some in Django admin (role: Pupil, with an email set).</p>'
       : (state.classes.length
@@ -2476,18 +2599,19 @@ function renderPupilChecklist(){
     const group = document.createElement('div');
     group.className = 'class-group';
     grp.pupils.forEach(p=>groupedIds.add(String(p.id)));
-    const headerId = `chk_${kind}_${grp.id}`;
+    const headerId = `${pfx}chk_${kind}_${grp.id}`;
     group.innerHTML = `<div class="class-group-header"><input type="checkbox" id="${headerId}" data-group-toggle="${kind}_${grp.id}"><label for="${headerId}">${escapeHtml(grp.name)} <span style="color:var(--muted);font-weight:normal">(${label} · ${grp.pupils.length} pupil${grp.pupils.length===1?'':'s'})</span></label></div>` +
-      sortPeople(grp.pupils).map(p=>pupilRowHtml(p, `${kind}_${grp.id}`)).join('');
+      sortPeople(grp.pupils).map(p=>pupilRowHtml(p, `${kind}_${grp.id}`, pfx)).join('');
     checklist.appendChild(group);
   };
   const heading = (text)=>{ const h = document.createElement('p'); h.className = 'sub'; h.style.cssText = 'margin:10px 0 6px;font-weight:700;'; h.textContent = text; checklist.appendChild(h); };
   const subjects = (state.subjects || []).filter(s=>s.pupils.length);
+  if(extra && extra.pupils.length){ heading('Already on this exam'); addGroup('extra', extra, 'not in your current lists'); }
   if(subjects.length){ heading('Subjects'); subjects.forEach(s=>addGroup('subject', s, 'subject')); }
   // Plain teachers assign by SUBJECT only; year groups (and loose pupils) are for admins.
   if(state.canManageClasses && state.classes.length){ if(subjects.length) heading('Year groups'); state.classes.forEach(c=>addGroup('class', c, 'year group')); }
   if(!state.canManageClasses){
-    if(!subjects.length) checklist.innerHTML = '<p class="sub">You haven\'t been assigned to a subject with pupils yet, so there\'s no one to assign work to. Ask an admin to add you to a subject.</p>';
+    if(!subjects.length && !(extra && extra.pupils.length)) checklist.innerHTML = '<p class="sub">You haven\'t been assigned to a subject with pupils yet, so there\'s no one to assign work to. Ask an admin to add you to a subject.</p>';
     wireChecklist(checklist);
     return;
   }
@@ -2498,7 +2622,8 @@ function renderPupilChecklist(){
     ungrouped.forEach(name=>{
       const row = document.createElement('div');
       row.className = 'pupil-check';
-      row.innerHTML = `<input type="checkbox" value="${name}" data-pupil-id="${state.pupilIds[name] ?? ''}" id="chk_${name.replace(/\s/g,'')}"><label for="chk_${name.replace(/\s/g,'')}">${name} <span style="color:#5b6470;font-weight:normal">(${state.pupilEmails[name]})</span></label>`;
+      const rid = `${pfx}chk_${String(state.pupilIds[name] ?? name.replace(/\s/g,''))}`;
+      row.innerHTML = `<input type="checkbox" value="${escapeHtml(name)}" data-email="${escapeHtml(state.pupilEmails[name] || '')}" data-pupil-id="${state.pupilIds[name] ?? ''}" id="${rid}"><label for="${rid}">${escapeHtml(name)} <span style="color:#5b6470;font-weight:normal">(${escapeHtml(state.pupilEmails[name] || '')})</span></label>`;
       wrap.appendChild(row);
     });
     checklist.appendChild(wrap);
@@ -2743,8 +2868,9 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   const closeCondition = activePillValue('closeConditionPicker', 'cond');
   const opensAt = startCondition === 'scheduled' ? document.getElementById('aOpen').value : '';
   const due = closeCondition === 'scheduled' ? document.getElementById('aDue').value : '';
-  // Only pupil rows (not the subject/section "select all" boxes); a pupil listed in two groups counts once.
-  const assignedTo = Array.from(new Set(Array.from(document.querySelectorAll('#pupilChecklist .pupil-check input:checked')).map(c=>c.value)));
+  // Only pupil rows (not the subject/year-group "select all" boxes); a pupil listed in two groups counts once.
+  const picked = pickedPupils('pupilChecklist');
+  const assignedTo = picked.map(p=>p.name);
 
   const {items, pdfFiles, imageFiles, videoFiles} = collectItemsForSubmit();
   const form = new FormData();
@@ -2780,7 +2906,7 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
     form.append('allow_calculator', document.getElementById('aAllowCalculator').checked ? 'true' : 'false');
     form.append('allow_graphing_calculator', document.getElementById('aAllowGraphingCalculator').checked ? 'true' : 'false');
     form.append('items_meta', JSON.stringify(items));
-    form.append('recipients', JSON.stringify(assignedTo.map(name=>({name,email:state.pupilEmails[name]}))));
+    form.append('recipients', JSON.stringify(picked));
     await request('/api/assignments/create/', {method:'POST', body:form});
     await loadAssignments(); showTeacherDashboard();
   } catch(error) { showToast(apiErrorMessage(error), 'error'); }
@@ -3008,12 +3134,12 @@ function renderContentTab(a){
         <h2 style="margin-bottom:4px;">What's in this exam</h2>
         <p class="sub" style="margin:0;">${a.items.length} item${a.items.length === 1 ? '' : 's'} · ${totalPoints} point${totalPoints === 1 ? '' : 's'} in total</p>
       </div>
-      <button class="btn outline small" type="button" id="contentPreviewBtn">Preview as a pupil</button>
+      ${state.canManageClasses ? '<button class="btn outline small" type="button" id="contentPreviewBtn">Preview as a pupil</button>' : ''}
     </div>
     ${a.prompt ? `<div class="submit-summary" style="margin:14px 0 6px;"><strong>Instructions for pupils:</strong> ${escapeHtml(a.prompt)}</div>` : ''}
     ${rows || '<p class="sub">This exam has no items.</p>'}
     <p class="sub" style="margin:16px 0 0;font-size:13px;">To change the title, instructions, schedule or delivery mode, use <strong>Settings</strong> on the dashboard. Items and questions can't be changed once an exam is created — if they need changing, create a new assignment.</p>`;
-  document.getElementById('contentPreviewBtn').addEventListener('click', ()=>{
+  document.getElementById('contentPreviewBtn')?.addEventListener('click', ()=>{
     const pupil = a.assignedTo[0];
     if(!pupil){ showToast('Assign at least one pupil to preview this assignment.', 'info'); return; }
     switchRole('student');

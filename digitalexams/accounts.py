@@ -257,7 +257,10 @@ def update_person_api(request, user_id):
     # Only check for a clash when the email is actually being changed: editing just the name must
     # always work, even if some other (e.g. old test) account happens to share this email.
     email_changed = email.lower() != (target.email or '').lower()
-    if email_changed and User.objects.filter(email__iexact=email).exclude(id=target.id).exists():
+    clash = User.objects.filter(email__iexact=email).exclude(id=target.id)
+    if target.role == User.Role.PUPIL and target.school_id:
+        clash = clash.filter(school_id=target.school_id)   # pupils: unique within their school only
+    if email_changed and clash.exists():
         return HttpResponseBadRequest('Another account already uses that email.')
     old_email, old_name = target.email, target.get_full_name() or target.username
     target.first_name, target.last_name, target.email = first, last, email

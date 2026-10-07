@@ -89,7 +89,7 @@
   </a>
   <nav class="topnav" aria-label="Sections">
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}">Exams</a>
-    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}" {% block nav_classes %}{% endblock %}>{% if can_manage_classes %}Year groups{% else %}My year groups{% endif %}</a>
+    {% if can_manage_classes %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}" {% block nav_classes %}{% endblock %}>Year groups</a>{% endif %}
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'subjects-page' %}" {% block nav_subjects %}{% endblock %}>{% if can_manage_classes %}Subjects{% else %}My subjects{% endif %}</a>
     {% if request.user.can_view_activity %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}" {% block nav_activity %}{% endblock %}>Activity</a>{% endif %}
     {% if is_main_admin or can_manage_classes %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}" {% block nav_roles %}{% endblock %}>Roles</a>{% endif %}

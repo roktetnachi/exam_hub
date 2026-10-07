@@ -25,12 +25,24 @@ class RequireUniqueEmailMixin:
         email = (self.cleaned_data.get('email') or '').strip()
         if not email:
             raise forms.ValidationError('An email is required for every ExamHub account.')
-        clash = User.objects.filter(email__iexact=email)
-        if self.instance and self.instance.pk:
-            clash = clash.exclude(pk=self.instance.pk)
-        if clash.exists():
-            raise forms.ValidationError('Another account already uses this email.')
         return email
+
+    def clean(self):
+        cleaned = super().clean()
+        email = cleaned.get('email')
+        if email:
+            clash = User.objects.filter(email__iexact=email)
+            if self.instance and self.instance.pk:
+                clash = clash.exclude(pk=self.instance.pk)
+            # Pupils only need a unique email within their own school (the same pupil email may
+            # exist at another school as a separate account). Staff emails stay unique everywhere.
+            role = cleaned.get('role', getattr(self.instance, 'role', None))
+            school = cleaned.get('school', getattr(self.instance, 'school', None))
+            if role == User.Role.PUPIL and not cleaned.get('is_superuser') and school:
+                clash = clash.filter(school=school)
+            if clash.exists():
+                self.add_error('email', 'Another account already uses this email.')
+        return cleaned
 
 
 class ExamHubUserCreationForm(RequireUniqueEmailMixin, UserCreationForm):

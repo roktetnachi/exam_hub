@@ -338,3 +338,74 @@ class ExamOwnershipTests(TestCase):
         self.assertEqual([p['email'] for p in self.client.get('/s/ssc/api/pupils/').json()['pupils']], ['p@x.edu'])
         page = self.client.get('/s/ssc/').content.decode()
         self.assertIn('Tick a subject to select everyone in it', page)
+
+
+class TeacherViewAndEditRecipientsTests(TestCase):
+    def setUp(self):
+        from .models import Assignment, Recipient, Submission
+        self.school = School.objects.create(name='SSC', slug='ssc')
+        self.other = School.objects.create(name='SSB', slug='ssb')
+        self.admin = User.objects.create_user('ad', 'ad@x.edu', 'x', school=self.school, role='teacher', is_school_admin=True)
+        self.t = User.objects.create_user('t', 't@x.edu', 'x', school=self.school, role='teacher', first_name='Tess')
+        self.a = User.objects.create_user('a', 'a@x.edu', 'x', school=self.school, first_name='Ann')
+        self.b = User.objects.create_user('b', 'b@x.edu', 'x', school=self.school, first_name='Ben')
+        self.c = User.objects.create_user('c', 'c@x.edu', 'x', school=self.school, first_name='Cy')
+        eco = Subject.objects.create(school=self.school, name='Economics')
+        eco.teachers.add(self.t); eco.pupils.add(self.a, self.b)
+        self.exam = Assignment.objects.create(school=self.school, title='Quiz', teacher_name='Tess', teacher_email='t@x.edu')
+        self.ra = Recipient.objects.create(assignment=self.exam, pupil_name='Ann', pupil_email='a@x.edu')
+        Submission.objects.create(recipient=self.ra, status='submitted')
+
+    def edit(self, recipients, **extra):
+        body = {'title': 'Quiz', 'deliveryMode': 'browser', 'recipients': recipients, **extra}
+        return self.client.post(f'/s/ssc/api/assignments/{self.exam.id}/update/', json.dumps(body), content_type='application/json')
+
+    def emails(self):
+        return sorted(self.exam.recipients.values_list('pupil_email', flat=True))
+
+    def test_edit_adds_and_removes_pupils_with_confirmation_for_started_work(self):
+        self.client.force_login(self.t)
+        self.assertEqual(self.edit([{'name': 'Ann', 'email': 'a@x.edu'}, {'name': 'Ben', 'email': 'b@x.edu'}]).status_code, 200)
+        self.assertEqual(self.emails(), ['a@x.edu', 'b@x.edu'])
+        # Cy isn't in Tess's subjects.
+        self.assertEqual(self.edit([{'name': 'Cy', 'email': 'c@x.edu'}, {'name': 'Ann', 'email': 'a@x.edu'}]).status_code, 403)
+        # Removing Ann (who handed in) needs confirmation.
+        r = self.edit([{'name': 'Ben', 'email': 'b@x.edu'}])
+        self.assertEqual(r.status_code, 409); self.assertEqual(r.json()['pupils'], ['Ann'])
+        self.assertEqual(self.emails(), ['a@x.edu', 'b@x.edu'])
+        self.assertEqual(self.edit([{'name': 'Ben', 'email': 'b@x.edu'}], confirmRemoveStarted=True).status_code, 200)
+        self.assertEqual(self.emails(), ['b@x.edu'])
+        self.assertEqual(self.edit([]).status_code, 400)
+        # Leaving `recipients` out keeps the list as it is.
+        self.client.post(f'/s/ssc/api/assignments/{self.exam.id}/update/', json.dumps({'title': 'Quiz 2'}), content_type='application/json')
+        self.assertEqual(self.emails(), ['b@x.edu'])
+
+    def test_exam_list_has_created_date(self):
+        self.client.force_login(self.t)
+        a = self.client.get('/s/ssc/api/assignments/').json()['assignments'][0]
+        self.assertRegex(a['createdAt'], r'^\d{4}-\d{2}-\d{2}T')
+
+    def test_plain_teacher_has_no_pupil_preview_or_year_groups_tab(self):
+        self.client.force_login(self.t)
+        html = self.client.get('/s/ssc/').content.decode()
+        self.assertIn('class="role-toggle hidden"', html)
+        self.assertNotIn("{% url 'classes-page' %}", html)
+        self.assertNotIn('>Year groups</a>', html)
+        self.assertIn('>My subjects</a>', html)
+        self.client.force_login(self.admin)
+        html = self.client.get('/s/ssc/').content.decode()
+        self.assertIn('>Year groups</a>', html)
+        self.assertNotIn('class="role-toggle hidden"', html)
+
+    def test_same_pupil_email_allowed_at_another_school(self):
+        self.client.force_login(self.admin)
+        User.objects.create_user('far', 'same@x.edu', 'x', school=self.other)
+        r = self.client.post('/s/ssc/api/pupils/create/', json.dumps({'firstName': 'Sam', 'email': 'same@x.edu'}),
+                             content_type='application/json')
+        self.assertIn(r.status_code, (200, 201), r.content)
+        self.assertEqual(User.objects.filter(email='same@x.edu').count(), 2)
+        r = self.client.post('/s/ssc/api/pupils/create/', json.dumps({'firstName': 'Sam', 'email': 'SAME@x.edu'}),
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 400)   # but not twice in the same school
+        res = self.client.post('/s/ssc/api/bulk/pupils/import/', {'file': csv_file('First name,Email\nSam,same@x.edu\nZed,z2@x.edu\n')}).json()
+        self.assertEqual([x['status'] for x in res['rows']], ['unchanged', 'create'])
