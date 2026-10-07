@@ -125,6 +125,16 @@
   .tm-badge.ann{background:#fff;border-color:#d9231a;font-size:12px;}
   .tm-badge.tm-flash{animation:rvFlash 1.2s ease-out 2;}
   .tm-ghost{position:absolute;border:2.5px dashed #d9231a;pointer-events:none;}
+  /* Grade tab: work view + marking + score/feedback per item */
+  .grade-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .grade-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .grade-actions.bottom{justify-content:flex-end;margin-top:12px;}
+  .gb-pub{display:inline-block;padding:1px 8px;border-radius:999px;background:#f1f3f6;color:var(--muted);font-weight:600;font-size:12px;}
+  .gb-pub.on{background:#e6f6ec;color:#1d7a3e;}
+  .rv-grade{margin-top:12px;padding:10px 12px;border:1px solid #cfe3ea;background:#f4fafc;border-radius:10px;display:flex;flex-direction:column;gap:8px;}
+  .rv-grade-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .rv-grade .grade-feedback-input{width:100%;min-height:54px;margin:0;}
+  .rv-grade .grade-score-input{width:80px;}
   .tm-ghost.circle{border-radius:50%;} .tm-ghost.highlight{border:none;background:rgba(255,214,0,.4);}
   .tm-shape.hl{fill:rgba(255,214,0,.38);stroke:none;mix-blend-mode:multiply;} .tm-ghost.underline{border-width:0 0 3px 0;border-style:solid;}
   .tm-commentable{cursor:pointer;}
@@ -207,7 +217,7 @@
   .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:60;display:flex;align-items:center;justify-content:center;}
 
   .grade-item-card{margin-bottom:10px;}
-  .grade-item-card textarea{width:100%;margin-top:8px;min-height:44px;font-family:inherit;font-size:12.5px;
+  .grade-item-card textarea.grade-feedback-input{width:100%;margin-top:8px;min-height:44px;font-family:inherit;font-size:12.5px;
     padding:6px 8px;border:1px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box;}
   .grade-score-input{width:64px;padding:6px;border:1px solid var(--border);border-radius:8px;text-align:right;font-size:13px;}
   .grade-answer-preview{background:#f7f9fd;border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
@@ -240,6 +250,16 @@
   .calc-display{background:#f7f9fd;border:1px solid var(--border);border-radius:9px;padding:12px 10px;text-align:right;
     font-size:22px;font-variant-numeric:tabular-nums;margin-bottom:10px;overflow-x:auto;white-space:nowrap;}
   .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .calc-grid.sci{grid-template-columns:repeat(6,1fr);gap:5px;}
+  .calc-grid.sci .calc-btn{padding:9px 0;font-size:13px;}
+  .calc-btn.calc-fn{background:#f4f1fb;color:#4b3f72;font-weight:600;}
+  .calc-btn.calc-fn:hover{background:#e8e2f6;}
+  .calc-btn.calc-fn.on{background:#4b3f72;color:#fff;}
+  .calc-screen{background:#f7f9fd;border:1px solid var(--border);border-radius:9px;padding:6px 10px 8px;margin-bottom:10px;}
+  .calc-screen .calc-display{background:none;border:none;padding:0;margin:0;}
+  .calc-flags{display:flex;gap:8px;font-size:10.5px;font-weight:800;letter-spacing:.04em;color:#6b6f8a;min-height:14px;}
+  .calc-expr{font-size:13px;color:var(--muted);text-align:right;white-space:nowrap;overflow-x:auto;min-height:18px;font-variant-numeric:tabular-nums;}
+  .calc-body:focus{outline:none;}
   .calc-btn{border:none;background:#f0f2f8;border-radius:8px;padding:10px 0;font-size:14px;font-weight:700;color:var(--text);}
   .calc-btn:hover{background:#e3e8f2;}
   .calc-btn.calc-op{background:#eaf7f8;color:var(--blue-dark);}
@@ -639,7 +659,7 @@
   .question-prompt-text{font-size:17px;}
   .chat-msg{font-size:14.5px;padding:9px 13px;}
   .grade-score-input{width:80px;padding:9px;font-size:15px;}
-  .grade-item-card textarea{font-size:14.5px;padding:10px 12px;min-height:60px;}
+  .grade-item-card textarea.grade-feedback-input{font-size:14.5px;padding:10px 12px;min-height:60px;}
   .editable{font-size:15.5px;}
   .modal-backdrop{background:rgba(15,23,42,.45);padding:16px;}
   .modal-backdrop .card{padding:26px 28px;border-radius:20px;max-height:calc(100vh - 32px);overflow-y:auto;}
@@ -1477,33 +1497,69 @@
       <div class="res-body" id="resourcesBody"></div>
     </div>
 
-    <div class="notepad-modal hidden" id="calculatorModal" style="width:230px;">
+    <div class="notepad-modal hidden" id="calculatorModal" style="width:350px;" role="dialog" aria-label="Scientific calculator">
       <div class="notepad-modal-header" id="calculatorHeader">
         <span>Calculator</span>
         <button type="button" id="closeCalculatorBtn" title="Close">&times;</button>
       </div>
-      <div class="calc-body">
-        <div class="calc-display" id="calcDisplay">0</div>
-        <div class="calc-grid">
-          <button type="button" class="calc-btn calc-op" data-calc="clear">C</button>
-          <button type="button" class="calc-btn calc-op" data-calc="backspace">&larr;</button>
-          <button type="button" class="calc-btn calc-op" data-calc="%">%</button>
-          <button type="button" class="calc-btn calc-op" data-calc="/">&divide;</button>
+      <div class="calc-body" id="calcBody" tabindex="0">
+        <div class="calc-screen">
+          <div class="calc-flags"><span id="calcAngle">DEG</span><span id="calcShiftFlag" class="hidden">2nd</span><span id="calcMemFlag" class="hidden">M</span></div>
+          <div class="calc-expr" id="calcExpr">&nbsp;</div>
+          <div class="calc-display" id="calcDisplay">0</div>
+        </div>
+        <div class="calc-grid sci">
+          <button type="button" class="calc-btn calc-fn" data-calc="shift" title="Second functions (sin⁻¹, 10ˣ, eˣ …)">2nd</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="angle" title="Switch degrees / radians">DEG</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="MC" title="Memory clear">MC</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="MR" title="Memory recall">MR</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="M+" title="Add result to memory">M+</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="M-" title="Subtract result from memory">M−</button>
+
+          <button type="button" class="calc-btn calc-fn" data-calc="sin" data-shift="asin">sin</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="cos" data-shift="acos">cos</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="tan" data-shift="atan">tan</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="ln" data-shift="exp">ln</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="log" data-shift="pow10">log</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="sqrt" data-shift="cbrt">√</button>
+
+          <button type="button" class="calc-btn calc-fn" data-calc="sq" data-shift="cube">x²</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="pow" data-shift="root">xʸ</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="inv" title="1 ÷ x">1/x</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="fact" title="Factorial">n!</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="pi">π</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="e">e</button>
+
+          <button type="button" class="calc-btn calc-fn" data-calc="(">(</button>
+          <button type="button" class="calc-btn calc-fn" data-calc=")">)</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="EE" title="× 10 to the power (e.g. 3.2 EE 5)">EXP</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="abs" title="Absolute value">|x|</button>
+          <button type="button" class="calc-btn calc-op" data-calc="clear">AC</button>
+          <button type="button" class="calc-btn calc-op" data-calc="backspace" title="Delete">&larr;</button>
+
           <button type="button" class="calc-btn" data-calc="7">7</button>
           <button type="button" class="calc-btn" data-calc="8">8</button>
           <button type="button" class="calc-btn" data-calc="9">9</button>
-          <button type="button" class="calc-btn calc-op" data-calc="*">&times;</button>
+          <button type="button" class="calc-btn calc-op" data-calc="/">&divide;</button>
+          <button type="button" class="calc-btn calc-op" data-calc="%" title="Percent">%</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="neg" title="Change sign">±</button>
+
           <button type="button" class="calc-btn" data-calc="4">4</button>
           <button type="button" class="calc-btn" data-calc="5">5</button>
           <button type="button" class="calc-btn" data-calc="6">6</button>
-          <button type="button" class="calc-btn calc-op" data-calc="-">&minus;</button>
+          <button type="button" class="calc-btn calc-op" data-calc="*">&times;</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="ans" title="Last answer">Ans</button>
+          <button type="button" class="calc-btn calc-fn" data-calc="rand" title="Random number 0–1">Rand</button>
+
           <button type="button" class="calc-btn" data-calc="1">1</button>
           <button type="button" class="calc-btn" data-calc="2">2</button>
           <button type="button" class="calc-btn" data-calc="3">3</button>
-          <button type="button" class="calc-btn calc-op" data-calc="+">+</button>
-          <button type="button" class="calc-btn" data-calc="0">0</button>
+          <button type="button" class="calc-btn calc-op" data-calc="-">&minus;</button>
+          <button type="button" class="calc-btn calc-eq" data-calc="=" style="grid-column:span 2;grid-row:span 2;">=</button>
+
+          <button type="button" class="calc-btn" data-calc="0" style="grid-column:span 2;">0</button>
           <button type="button" class="calc-btn" data-calc=".">.</button>
-          <button type="button" class="calc-btn calc-eq" data-calc="=" style="grid-column:span 2;">=</button>
+          <button type="button" class="calc-btn calc-op" data-calc="+">+</button>
         </div>
       </div>
     </div>
@@ -2702,10 +2758,12 @@ window.ExamHubNotifActions = {
     const pupil = a && Object.keys(a.submissions).find(n=>a.submissions[n].recipientId===it.recipientId);
     if(!pupil){ location.href = `${SCHOOL_PREFIX}/?review=${it.recipientId}`; return; }
     if(document.getElementById('teacherView').classList.contains('hidden')) switchRole('teacher');
-    showReview(a.id, pupil);
+    openGrading(a.id, pupil);
   },
   // A pupil mid-attempt is never interrupted by a pop-up; reading back submitted work is fine.
   pupilBusy(){
+    // About to open an exam (arrived with ?open=…, e.g. from Safe Exam Browser) or already in one.
+    if(state.pendingOpenAssignmentId || document.body.classList.contains('exam-focus')) return true;
     if(document.getElementById('studentTask').classList.contains('hidden')) return false;
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     const sub = a && a.submissions[state.currentPupil];
@@ -3187,9 +3245,9 @@ function switchDetailTab(tab){
 
 // ---------------- Phase 5: grading & publishing ----------------
 const AUTO_GRADED_TYPES = ['mcq_single','mcq_multiple','true_false','fill_text'];
-function renderGradeTab(a){
+function renderGradeTab(a, opts={}){
   const sel = document.getElementById('gradePupilSelect');
-  const prev = sel.value;
+  const prev = state.gradePupil || sel.value;
   sel.innerHTML = a.assignedTo.map(p=>{
     const sub = a.submissions[p];
     let tag = '';
@@ -3200,11 +3258,50 @@ function renderGradeTab(a){
     return `<option value="${escapeHtml(p)}">${escapeHtml(p)}${tag}</option>`;
   }).join('');
   if(prev && a.assignedTo.includes(prev)) sel.value = prev;
+  if(opts.keepWorkspace && reviewState.mode === 'grade' && reviewState.pupil === sel.value){
+    refreshGradeHeader(a, sel.value);
+    return;
+  }
   renderGradeBody(a, sel.value);
 }
-document.getElementById('gradePupilSelect').addEventListener('change', ()=>{
+// After saving: update the status line, the publish button and each item's score chip in place.
+function refreshGradeHeader(a, pupil){
+  const sub = a.submissions[pupil];
+  const status = document.querySelector('#gradeBody .grade-bar .sub');
+  if(status) status.innerHTML = sub.gradedAt
+    ? `Total <strong>${sub.totalScore}</strong> / ${sub.maxScore} · graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? '<span class="gb-pub on">Released to the pupil</span>' : '<span class="gb-pub">Not released yet</span>'}`
+    : 'Not graded yet.';
+  document.querySelectorAll('#gradeBody .toggle-publish-btn').forEach(b=>{ b.textContent = sub.published ? 'Hide grade from pupil' : 'Release grade to pupil'; });
+  const scores = sub.itemScores || {};
+  document.querySelectorAll('#reviewResponse .rv-sec[data-item-id]').forEach(sec=>{
+    const item = a.items.find(i=>String(i.id)===sec.dataset.itemId);
+    const sc = scores[sec.dataset.itemId] || {};
+    if(!item || sc.score == null) return;
+    const full = Number(sc.score) >= Number(item.points);
+    let chip = sec.querySelector('summary .rv-chip:not(.notes)');
+    if(!chip){ chip = document.createElement('span'); sec.querySelector('summary').appendChild(chip); }
+    chip.className = `rv-chip ${full ? 'ok' : (Number(sc.score) > 0 ? 'pts' : 'no')}`;
+    chip.textContent = `${sc.score} / ${item.points}`;
+  });
+}
+document.getElementById('gradePupilSelect').addEventListener('change', async ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
-  if(a) renderGradeBody(a, document.getElementById('gradePupilSelect').value);
+  if(!a) return;
+  const sel = document.getElementById('gradePupilSelect');
+  const next = sel.value;
+  if(state.gradeDirty && state.gradePupil && state.gradePupil !== next){
+    const leaving = state.gradePupil;
+    const save = await confirmDialog({title: 'Save your changes?', message: `You've changed scores or feedback for ${leaving} without saving.`,
+      confirmLabel: 'Save and continue', cancelLabel: 'Discard changes'});
+    if(save){
+      sel.value = leaving;
+      const ok = await saveGrade(a.id, leaving);
+      if(!ok) return;
+      sel.value = next;
+    }
+  }
+  state.gradePupil = next;
+  renderGradeBody(a, next);
 });
 function gradeScoreCellHtml(item, existing){
   const isAutoType = AUTO_GRADED_TYPES.includes(item.type);
@@ -3234,73 +3331,43 @@ document.getElementById('btnMarkAllSeen')?.addEventListener('click', async ()=>{
 });
 function renderGradeBody(a, pupil){
   const body = document.getElementById('gradeBody');
+  // The shared work view may be sitting in here from the last pupil — take it out first so
+  // replacing this panel's contents doesn't destroy it.
+  parkReviewLayout();
+  state.gradeDirty = false;
+  state.gradePupil = pupil || null;
+  const focusItem = state.gradeFocusItem; state.gradeFocusItem = null;
   if(!pupil){ body.innerHTML = '<div class="empty">No pupils assigned yet.</div>'; return; }
   const sub = a.submissions[pupil];
-  if(sub && sub.status === 'submitted') markSubmissionSeen(sub);
   if(!sub || sub.status !== 'submitted'){
-    body.innerHTML = `<div class="phase-placeholder"><strong>Not submitted yet</strong>${escapeHtml(pupil)} hasn't submitted this exam.</div>`;
+    body.innerHTML = `<div class="phase-placeholder"><strong>Not submitted yet</strong>${escapeHtml(pupil)} hasn't submitted this exam.
+      <button type="button" class="btn small outline" id="gradeViewSoFar" style="margin-top:10px;">View their work so far →</button></div>`;
+    document.getElementById('gradeViewSoFar').addEventListener('click', ()=>{
+      state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil; showReview(a.id, pupil);
+    });
     return;
   }
-  const scores = sub.itemScores || {};
-  const rows = a.items.map(item=>{
-    const raw = (sub.responses||{})[item.id] ?? (sub.responses||{})[String(item.id)];
-    const existing = scores[String(item.id)] || {};
-    const isMedia = ['pdf','image','video'].includes(item.type);
-    const answerHtml = (item.type==='pdf' || item.type==='long_answer')
-      ? (raw ? `<div class="grade-answer-preview">${raw}</div>` : '<em>No response written.</em>')
-      : readableAnswer(item, raw);
-    // Show the actual question text when there is one (question-type items), rather than
-    // just the generic "Item 1"/"Item 2" label — the label still appears as a small caption
-    // so the two stay easy to cross-reference against the resources sidebar.
-    const heading = item.prompt ? escapeHtml(item.prompt) : escapeHtml(item.label);
-    const caption = item.prompt ? `<div class="sub" style="font-size:11px;margin-top:2px;">${escapeHtml(item.label)}</div>` : '';
-    const annCount = (sub.annotations || []).filter(an=>an.textId===item.id).length;
-    const reviewBtn = `<button type="button" class="link-btn review-item-btn" data-item-id="${item.id}" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:var(--blue);">${
-      item.type==='pdf' ? `Review & mark up PDF and answer${annCount ? ` (${annCount} annotation${annCount === 1 ? '' : 's'})` : ''}` : (isMedia ? 'Review media' : (item.type === 'long_answer' ? 'Review & mark up this answer' : 'Review this answer'))} →</button>`;
-    return `<div class="card grade-item-card" data-item-id="${item.id}">
-      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;">${heading}</div>
-          ${caption}
-          <div style="font-size:13px;margin-top:4px;">${answerHtml}</div>
-          ${reviewBtn}
-        </div>
-        <div class="grade-score-cell" style="min-width:150px;text-align:right;">${gradeScoreCellHtml(item, existing)}</div>
-      </div>
-      <textarea class="grade-feedback-input" placeholder="Feedback for this pupil (optional)">${existing.feedback || ''}</textarea>
+  const status = sub.gradedAt
+    ? `Total <strong>${sub.totalScore}</strong> / ${sub.maxScore} · graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? '<span class="gb-pub on">Released to the pupil</span>' : '<span class="gb-pub">Not released yet</span>'}`
+    : 'Not graded yet — mark the work, enter scores and feedback, then <strong>Save grades</strong>. The pupil sees nothing until you release it.';
+  const actions = (where)=>`<div class="grade-actions ${where}">
+      <button class="btn outline small save-grade-btn" type="button">Save grades</button>
+      <button class="btn small toggle-publish-btn" type="button">${sub.published ? 'Hide grade from pupil' : 'Release grade to pupil'}</button>
     </div>`;
-  }).join('');
-  const totalLine = sub.gradedAt
-    ? `<p class="sub">Total: <strong>${sub.totalScore}</strong> / ${sub.maxScore} · Graded ${new Date(sub.gradedAt).toLocaleString()} · ${sub.published ? 'Visible to the pupil' : 'Not yet visible to the pupil'}</p>`
-    : '<p class="sub">Not graded yet — enter scores and feedback below, then save. The pupil only sees their grade once you release it.</p>';
-  body.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">${totalLine}
-      <button type="button" class="btn small outline" id="reviewWholeBtn">Review full submission →</button></div>${rows}
-    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
-      <button class="btn outline" id="saveGradeBtn">Save grades</button>
-      <button class="btn" id="togglePublishBtn">${sub.published ? 'Hide grade from pupil' : 'Release grade to pupil'}</button>
-    </div>`;
-  body.querySelectorAll('.override-score-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const card = btn.closest('.grade-item-card');
-      const itemId = card.dataset.itemId;
-      const item = a.items.find(it=>String(it.id)===itemId);
-      const existing = (scores[itemId] || {});
-      card.querySelector('.grade-score-cell').innerHTML =
-        `<div data-mode="manual"><input type="number" class="grade-score-input" min="0" max="${item.points}" step="0.5" value="${existing.score != null ? existing.score : ''}" autofocus> <span class="sub">/ ${item.points}</span></div>`;
-    });
+  body.innerHTML = `<div class="grade-bar card">
+      <div style="min-width:0;flex:1;"><div style="font-weight:700;">${escapeHtml(pupil)}</div><div class="sub" style="margin:2px 0 0;">${status}</div></div>
+      <button type="button" class="link-btn" id="gradeReadOnlyBtn" style="font-size:12.5px;font-weight:600;color:var(--blue);">Read-only view</button>
+      ${actions('top')}
+    </div>
+    <div id="gradeLayoutSlot"></div>
+    ${actions('bottom')}`;
+  document.getElementById('gradeLayoutSlot').appendChild(document.getElementById('reviewLayout'));
+  setupWorkspace(a, pupil, 'grade', focusItem);
+  body.querySelectorAll('.save-grade-btn').forEach(b=>b.addEventListener('click', ()=>saveGrade(a.id, pupil)));
+  body.querySelectorAll('.toggle-publish-btn').forEach(b=>b.addEventListener('click', ()=>togglePublish(a.id, pupil)));
+  document.getElementById('gradeReadOnlyBtn').addEventListener('click', ()=>{
+    state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil; showReview(a.id, pupil);
   });
-  body.querySelectorAll('.review-item-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil;
-      showReview(a.id, pupil, Number(btn.dataset.itemId));
-    });
-  });
-  document.getElementById('reviewWholeBtn').addEventListener('click', ()=>{
-    state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil;
-    showReview(a.id, pupil);
-  });
-  document.getElementById('saveGradeBtn').addEventListener('click', ()=>saveGrade(a.id, pupil));
-  document.getElementById('togglePublishBtn').addEventListener('click', ()=>togglePublish(a.id, pupil));
 }
 async function saveGrade(assignmentId, pupil){
   const a = state.assignments.find(x=>x.id===assignmentId);
@@ -3317,15 +3384,23 @@ async function saveGrade(assignmentId, pupil){
     }
     scores[itemId] = entry;
   });
-  const btn = document.getElementById('saveGradeBtn');
-  btn.disabled = true;
+  const btns = document.querySelectorAll('#gradeBody .save-grade-btn');
+  btns.forEach(b=>{ b.disabled = true; });
   try {
     const result = await request(`/api/submissions/${sub.recipientId}/grade/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({scores})});
     sub.itemScores = result.itemScores; sub.totalScore = result.totalScore; sub.maxScore = result.maxScore;
     sub.gradedAt = result.gradedAt; sub.published = result.published;
-    renderGradeTab(a);
-  } catch(error) { showToast(apiErrorMessage(error) || "Couldn't save grades.", 'error'); }
-  finally { btn.disabled = false; }
+    state.gradeDirty = false;
+    showToast(`Grades saved — ${sub.totalScore} / ${sub.maxScore}.`, 'success');
+    // Keep the teacher where they were: refresh the header and chips without reloading the PDF.
+    const open = [...document.querySelectorAll('#reviewResponse .rv-sec[open]')].map(d=>d.dataset.itemId || 'notepad');
+    const scrollY = window.scrollY;
+    renderGradeTab(a, {keepWorkspace: true});
+    document.querySelectorAll('#reviewResponse .rv-sec').forEach(d=>{ d.open = open.includes(d.dataset.itemId || 'notepad'); });
+    window.scrollTo(0, scrollY);
+    return true;
+  } catch(error) { showToast(apiErrorMessage(error) || "Couldn't save grades.", 'error'); return false; }
+  finally { btns.forEach(b=>{ b.disabled = false; }); }
 }
 async function togglePublish(assignmentId, pupil){
   const a = state.assignments.find(x=>x.id===assignmentId);
@@ -3333,7 +3408,8 @@ async function togglePublish(assignmentId, pupil){
   try {
     const result = await request(`/api/submissions/${sub.recipientId}/publish/`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({publish: !sub.published})});
     sub.published = result.published;
-    renderGradeTab(a);
+    showToast(sub.published ? `Grade released to ${pupil}.` : `Grade hidden from ${pupil}.`, 'success');
+    renderGradeTab(a, {keepWorkspace: true});
   } catch(error) { showToast(apiErrorMessage(error) || "Couldn't update whether this grade is published.", 'error'); }
 }
 document.getElementById('publishAllGradesBtn').addEventListener('click', async ()=>{
@@ -3347,7 +3423,7 @@ document.getElementById('publishAllGradesBtn').addEventListener('click', async (
       const sub = a.submissions[p];
       if(sub.gradedAt) sub.published = true;
     });
-    renderGradeTab(a);
+    renderGradeTab(a, {keepWorkspace: true});
     showToast(result.published ? `Grades released to ${result.published} pupil${result.published === 1 ? '' : 's'}.` : 'Nothing new to release — grade some submissions first.', result.published ? 'success' : 'info');
   } catch(error) { showToast(apiErrorMessage(error) || "Couldn't release grades.", 'error'); }
   finally { btn.disabled = false; }
@@ -3863,27 +3939,27 @@ function correctAnswerText(item){
 }
 function annotationsFor(sub, itemId){ return (sub.annotations||[]).filter(an=>an.textId===itemId); }
 
-async function showReview(assignmentId, pupil, focusItemId){
-  stopMonitorPolling();
-  document.getElementById('backFromReview').innerHTML = state.reviewReturnTab === 'grade' ? '&larr; Back to grading' : '&larr; Back to exam';
-  hideAll('#teacherView > div');
-  document.getElementById('teacherReview').classList.remove('hidden');
-  state.currentAssignmentId = assignmentId;
-  const a = state.assignments.find(x=>x.id===assignmentId);
+// The pupil's work (PDF viewer on the left, items on the right) is one block of markup,
+// #reviewLayout, used in two places:
+//  - Review screen ("review" mode): read-only — every answer and annotation, plus any marks and
+//    feedback already given, but no tools.
+//  - Grade tab ("grade" mode): the same view with the pen-on-paper marking tools, and each item's
+//    score and feedback, so reading, marking and grading happen in one place.
+// The block is moved (not copied) between the two, so its listeners and the viewer state stay put.
+function parkReviewLayout(){
+  const layout = document.getElementById('reviewLayout'), home = document.getElementById('teacherReview');
+  if(layout.parentElement !== home) home.appendChild(layout);
+}
+function reviewEditable(){ return reviewState.mode === 'grade'; }
+async function setupWorkspace(a, pupil, mode, focusItemId){
   const sub = a.submissions[pupil];
-  Object.assign(reviewState, {a, sub, pupil, doc:null, page:1, itemId:null});
+  tmClosePop(); tmCloseSpot();
+  Object.assign(reviewState, {a, sub, pupil, doc:null, page:1, itemId:null, mode});
+  TM.tool = 'select';
+  document.querySelectorAll('#tmTools [data-tool]').forEach(b=>b.classList.toggle('active', b.dataset.tool === 'select'));
+  document.getElementById('tmTools').classList.toggle('hidden', mode !== 'grade');
+  document.getElementById('reviewLayout').classList.toggle('grading', mode === 'grade');
   markSubmissionSeen(sub);
-  document.getElementById('reviewHeading').textContent = `${pupil} — ${a.title}`;
-  document.getElementById('reviewMeta').textContent = sub.status === 'submitted'
-    ? `Submitted ${sub.submittedAt || ''}` : 'Not submitted yet — showing their work so far.';
-  const chip = document.getElementById('reviewScoreChip');
-  chip.classList.toggle('hidden', sub.totalScore == null);
-  chip.textContent = sub.totalScore != null ? `${sub.totalScore} / ${sub.maxScore}${sub.published ? '' : ' · not released'}` : '';
-  document.getElementById('reviewToGradeBtn').onclick = ()=>{
-    showAssignmentDetail(a.id); switchDetailTab('grade');
-    const sel = document.getElementById('gradePupilSelect'); sel.value = pupil; renderGradeBody(a, pupil);
-  };
-
   renderReviewSections(a, sub);
 
   const refItems = a.items.filter(item=>MEDIA_TYPES.includes(item.type));
@@ -3905,6 +3981,33 @@ async function showReview(assignmentId, pupil, focusItemId){
     const first = document.querySelector('#reviewResponse .rv-sec[data-item-id]');
     if(first) first.open = true;
   }
+}
+async function showReview(assignmentId, pupil, focusItemId){
+  stopMonitorPolling();
+  document.getElementById('backFromReview').innerHTML = state.reviewReturnTab === 'grade' ? '&larr; Back to grading' : '&larr; Back to exam';
+  hideAll('#teacherView > div');
+  document.getElementById('teacherReview').classList.remove('hidden');
+  parkReviewLayout();
+  state.currentAssignmentId = assignmentId;
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a.submissions[pupil];
+  document.getElementById('reviewHeading').textContent = `${pupil} — ${a.title}`;
+  document.getElementById('reviewMeta').textContent = sub.status === 'submitted'
+    ? `Submitted ${sub.submittedAt || ''} · read-only — mark and grade in the Grade tab` : 'Not submitted yet — showing their work so far.';
+  const chip = document.getElementById('reviewScoreChip');
+  chip.classList.toggle('hidden', sub.totalScore == null);
+  chip.textContent = sub.totalScore != null ? `${sub.totalScore} / ${sub.maxScore}${sub.published ? '' : ' · not released'}` : '';
+  const toGrade = document.getElementById('reviewToGradeBtn');
+  toGrade.textContent = 'Mark & grade this pupil';
+  toGrade.classList.toggle('hidden', sub.status !== 'submitted');
+  toGrade.onclick = ()=>openGrading(a.id, pupil, focusItemId);
+  await setupWorkspace(a, pupil, 'review', focusItemId);
+}
+// Grade tab for one pupil (optionally opening one item).
+function openGrading(assignmentId, pupil, focusItemId){
+  state.gradePupil = pupil; state.gradeFocusItem = focusItemId || null;
+  showAssignmentDetail(assignmentId);
+  switchDetailTab('grade');
 }
 
 // ================= Teacher marking — "pen on paper" =================
@@ -4050,12 +4153,12 @@ function tmFlash(container, markId){
 // ---------- written answers: the review screen block ----------
 const TM_ANSWER_SOURCE = {};   // itemId -> the pupil's answer HTML, as submitted
 function tmAnswerBlockHtml(item){
+  // Grade tab: always in marking mode. Review screen: read-only, so no bar at all.
   return `<div class="tm-block" data-item="${item.id}">
-    <div class="tm-bar">
-      <button type="button" class="tm-toggle" aria-pressed="false">✎ Mark this answer</button>
-      <span class="tm-hint">Select words in the answer, then pick Underline, Highlight or Comment.</span>
+    ${reviewEditable() ? `<div class="tm-bar">
+      <span class="tm-hint">✎ Select words in the answer, then pick Underline, Highlight or Comment.</span>
       <span class="tm-status"></span>
-    </div>
+    </div>` : ''}
     <div class="tm-grid"><div class="rv-answer tm-answer"></div><div class="tm-comments"></div></div>
   </div>`;
 }
@@ -4071,8 +4174,10 @@ function tmDrawAnswer(block, sub){
   list.classList.toggle('hidden', !shown.length && !editable);
   block.classList.toggle('has-marks', shown.length > 0);
   const toggle = block.querySelector('.tm-toggle');
-  toggle.textContent = editable ? '✓ Done marking' : (shown.length ? `✎ Edit marks (${shown.length})` : '✎ Mark this answer');
-  toggle.setAttribute('aria-pressed', String(editable));
+  if(toggle){
+    toggle.textContent = editable ? '✓ Done marking' : (shown.length ? `✎ Edit marks (${shown.length})` : '✎ Mark this answer');
+    toggle.setAttribute('aria-pressed', String(editable));
+  }
   // Wire the list
   list.querySelectorAll('.tm-c').forEach(row=>{
     const id = row.dataset.mark;
@@ -4096,8 +4201,9 @@ function tmDrawAnswer(block, sub){
 function tmClosePop(){ if(TM.pop){ TM.pop.remove(); TM.pop = null; } }
 function tmInitAnswerBlocks(container, a, sub){
   container.querySelectorAll('.tm-block').forEach(block=>{
+    block.classList.toggle('marking', reviewEditable());
     tmDrawAnswer(block, sub);
-    block.querySelector('.tm-toggle').addEventListener('click', ()=>{
+    block.querySelector('.tm-toggle')?.addEventListener('click', ()=>{
       block.classList.toggle('marking');
       tmClosePop();
       tmDrawAnswer(block, sub);
@@ -4314,9 +4420,9 @@ function tmOpenSpot(stage, f, sub, itemId, target, editable, x, y, isNew){
 }
 // Re-draw just the teacher layer on whichever viewer is showing.
 function tmRerenderPdf(){
-  if(!document.getElementById('teacherReview').classList.contains('hidden') && reviewState.doc){
+  if(reviewState.doc && document.getElementById('reviewLayout').offsetParent !== null){
     const stage = document.getElementById('reviewStage');
-    tmRenderPdfLayer(stage, (reviewState.zoom || ANNOTATION_SCALE) / ANNOTATION_SCALE, reviewState.sub, reviewState.itemId, reviewState.page, true);
+    tmRenderPdfLayer(stage, (reviewState.zoom || ANNOTATION_SCALE) / ANNOTATION_SCALE, reviewState.sub, reviewState.itemId, reviewState.page, reviewEditable());
   }
 }
 // Lists of PDF marks / annotation comments under each PDF item on the review screen.
@@ -4332,7 +4438,7 @@ function tmRefreshPdfLists(sub, itemId){
   if(!a) return;
   const item = a.items.find(i=>i.id === Number(itemId));
   const box = document.querySelector(`#reviewResponse .tm-pdf-list[data-item="${itemId}"]`);
-  if(box && item){ box.innerHTML = tmPdfListHtml(sub, item, true); tmWirePdfRows(box); }
+  if(box && item){ box.innerHTML = tmPdfListHtml(sub, item, reviewEditable()); tmWirePdfRows(box); }
   const anns = document.querySelector(`#reviewResponse .rv-ann-list[data-item="${itemId}"]`);
   if(anns && item) { anns.innerHTML = reviewAnnListInner(sub, item); wireReviewAnnRows(anns, sub); }
 }
@@ -4392,6 +4498,7 @@ function wireReviewAnnRows(container, sub){
 }
 function renderReviewSections(a, sub){
   const scores = sub.itemScores || {};
+  const grading = reviewEditable();
   let n = 0;
   const sections = a.items.map(item=>{
     n++;
@@ -4412,19 +4519,25 @@ function renderReviewSections(a, sub){
     }
     if(anns.length) chips += `<span class="rv-chip notes">${anns.length} annotation${anns.length === 1 ? '' : 's'}</span>`;
     const title = item.prompt ? item.prompt : item.label;
-    const annList = anns.length ? `<div class="rv-label">Pupil's annotations <span class="rv-label-hint">— click one on the PDF to comment on it</span></div><div class="rv-ann-list" data-item="${item.id}">${reviewAnnListInner(sub, item)}</div>` : '';
-    const pdfMarks = item.type === 'pdf' ? `<div class="rv-label">Your marks on the PDF</div><div class="tm-pdf-list" data-item="${item.id}">${tmPdfListHtml(sub, item, true)}</div>` : '';
-    return `<details class="rv-sec" data-item-id="${item.id}">
+    const annList = anns.length ? `<div class="rv-label">Pupil's annotations${grading ? ' <span class="rv-label-hint">— with ↖ selected, click one on the PDF to comment on it</span>' : ''}</div><div class="rv-ann-list" data-item="${item.id}">${reviewAnnListInner(sub, item)}</div>` : '';
+    const pdfList = item.type === 'pdf' ? tmPdfListHtml(sub, item, grading) : '';
+    const pdfMarks = item.type === 'pdf' && (grading || pdfList) ? `<div class="rv-label">${grading ? 'Your marks on the PDF' : "Teacher's marks on the PDF"}</div><div class="tm-pdf-list" data-item="${item.id}">${pdfList}</div>` : '';
+    const gradeBox = grading ? `<div class="rv-grade">
+        <div class="rv-grade-row"><span class="rv-label" style="margin:0;">Score</span><div class="grade-score-cell">${gradeScoreCellHtml(item, score)}</div></div>
+        <textarea class="grade-feedback-input" rows="2" placeholder="Feedback for this item (optional) — the pupil sees it when you release the grade">${escapeHtml(score.feedback || '')}</textarea>
+      </div>` : '';
+    return `<details class="rv-sec${grading ? ' grade-item-card' : ''}" data-item-id="${item.id}">
       <summary><span class="rv-num">${n}</span><span class="rv-sum-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>${chips}</summary>
       <div class="rv-body">
         ${item.prompt ? `<div class="rv-label">${escapeHtml(item.label)} · ${ANSWER_TYPE_NAMES[item.type] || ''}</div><div style="white-space:pre-wrap;">${escapeHtml(item.prompt)}</div>` : ''}
         <div class="rv-label">${isMedia ? "Pupil's written response" : "Pupil's answer"}</div>
         ${(isHtml && !blank && !(item.type === 'image' || item.type === 'video')) ? ((TM_ANSWER_SOURCE[item.id] = raw), tmAnswerBlockHtml(item)) : `<div class="rv-answer">${answerHtml}</div>`}
         ${correct ? `<div class="rv-label">Correct answer</div><div>${escapeHtml(correct)}</div>` : ''}
-        ${score.feedback ? `<div class="rv-label">Your feedback</div><div class="rv-feedback">${escapeHtml(score.feedback)}</div>` : ''}
+        ${(!grading && score.feedback) ? `<div class="rv-label">Feedback</div><div class="rv-feedback">${escapeHtml(score.feedback)}</div>` : ''}
         ${annList}
         ${pdfMarks}
         ${isMedia ? `<button type="button" class="btn small outline rv-show-btn" data-show-item="${item.id}">Show this ${item.type === 'pdf' ? 'PDF' : item.type} in the viewer</button>` : ''}
+        ${gradeBox}
       </div>
     </details>`;
   }).join('');
@@ -4444,7 +4557,19 @@ function renderReviewSections(a, sub){
   wireReviewAnnRows(box, sub);
   box.querySelectorAll('.tm-pdf-list').forEach(tmWirePdfRows);
   tmInitAnswerBlocks(box, a, sub);
-  tmSetStatus(tmHasAny(sub) ? (sub.published ? 'Marks saved · visible to the pupil' : 'Marks saved · pupil sees them when you release the grade') : '');
+  tmSetStatus(grading && tmHasAny(sub) ? (sub.published ? 'Marks saved · visible to the pupil' : 'Marks saved · pupil sees them when you release the grade') : '');
+  if(grading){
+    box.querySelectorAll('.override-score-btn').forEach(btn=>btn.addEventListener('click', ()=>{
+      const card = btn.closest('.grade-item-card');
+      const item = a.items.find(it=>String(it.id)===card.dataset.itemId);
+      const existing = scores[card.dataset.itemId] || {};
+      card.querySelector('.grade-score-cell').innerHTML =
+        `<div data-mode="manual"><input type="number" class="grade-score-input" min="0" max="${item.points}" step="0.5" value="${existing.score != null ? existing.score : ''}"> <span class="sub">/ ${item.points}</span></div>`;
+      card.querySelector('.grade-score-input').focus();
+      state.gradeDirty = true;
+    }));
+    box.addEventListener('input', e=>{ if(e.target.closest('.grade-score-cell, .grade-feedback-input')) state.gradeDirty = true; });
+  }
 }
 
 function focusReviewSection(itemId){
@@ -4569,7 +4694,7 @@ async function renderReviewPage(){
       overlay.appendChild(note);
     }
   });
-  tmRenderPdfLayer(stage, f, sub, reviewState.itemId, reviewState.page, true);
+  tmRenderPdfLayer(stage, f, sub, reviewState.itemId, reviewState.page, reviewEditable());
 }
 
 function flashAnnotation(an){
@@ -4626,20 +4751,16 @@ document.getElementById('reviewScroll').addEventListener('keydown', (e)=>{
 });
 let reviewResizeTimer = null;
 window.addEventListener('resize', ()=>{
-  if(document.getElementById('teacherReview').classList.contains('hidden')) return;
+  if(document.getElementById('reviewLayout').offsetParent === null) return;
   clearTimeout(reviewResizeTimer);
   reviewResizeTimer = setTimeout(()=>{ reviewState.zoom = null; renderReviewPage(); if(reviewState.imgZoom == null) applyReviewImageZoom(); }, 200);
 });
 document.getElementById('backFromReview').addEventListener('click', ()=>{
   const returnTab = state.reviewReturnTab, returnPupil = state.reviewReturnPupil;
   state.reviewReturnTab = null; state.reviewReturnPupil = null;
+  if(returnTab === 'grade' && returnPupil) state.gradePupil = returnPupil;
   showAssignmentDetail(state.currentAssignmentId);
   if(returnTab) switchDetailTab(returnTab);
-  if(returnTab === 'grade' && returnPupil){
-    const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
-    const sel = document.getElementById('gradePupilSelect');
-    if(a && a.assignedTo.includes(returnPupil)){ sel.value = returnPupil; renderGradeBody(a, returnPupil); }
-  }
 });
 
 // ================= STUDENT SIDE =================
@@ -4680,7 +4801,10 @@ document.getElementById('backFromTaskList').addEventListener('click', showStuden
 function setExamFocus(on){
   const was = document.body.classList.contains('exam-focus');
   document.body.classList.toggle('exam-focus', !!on);
-  if(on && !was){ try { history.pushState({examFocus: true}, '', location.href); } catch(_) {} }
+  if(on && !was){
+    try { history.pushState({examFocus: true}, '', location.href); } catch(_) {}
+    window.ExamHubNotify?.dismiss?.();   // a pop-up that slipped in just before the exam opened
+  }
 }
 window.addEventListener('popstate', ()=>{
   if(!document.body.classList.contains('exam-focus')) return;
@@ -6430,43 +6554,182 @@ document.getElementById('openCalculatorBtn').addEventListener('click', ()=>{
 document.getElementById('closeCalculatorBtn').addEventListener('click', ()=>{
   document.getElementById('calculatorModal').classList.add('hidden');
 });
-(function wireCalculator(){
-  const display = document.getElementById('calcDisplay');
-  let current = '0', previous = null, pendingOp = null, justEvaluated = false;
-
-  function render(){ display.textContent = current; }
-  function compute(a, b, op){
-    a = parseFloat(a); b = parseFloat(b);
-    if(op==='+') return a+b;
-    if(op==='-') return a-b;
-    if(op==='*') return a*b;
-    if(op==='/') return b===0 ? NaN : a/b;
-    return b;
-  }
-  document.querySelectorAll('#calculatorModal .calc-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const key = btn.dataset.calc;
-      if(current==='Error' && key!=='clear'){ current='0'; previous=null; pendingOp=null; justEvaluated=false; }
-      if(key==='clear'){ current='0'; previous=null; pendingOp=null; justEvaluated=false; }
-      else if(key==='backspace'){ current = current.length>1 ? current.slice(0,-1) : '0'; }
-      else if(key==='%'){ current = String(parseFloat(current)/100); }
-      else if(['+','-','*','/'].includes(key)){
-        if(pendingOp && !justEvaluated){ current = String(compute(previous, current, pendingOp)); }
-        previous = current; pendingOp = key; current = '0'; justEvaluated = false;
-      } else if(key==='='){
-        if(pendingOp){ current = String(compute(previous, current, pendingOp)); pendingOp=null; previous=null; justEvaluated=true; }
-      } else if(key==='.'){
-        if(justEvaluated){ current='0.'; justEvaluated=false; }
-        else if(!current.includes('.')) current += '.';
-      } else { // digit
-        if(justEvaluated){ current = key; justEvaluated=false; }
-        else { current = current==='0' ? key : current + key; }
+// Scientific calculator. The expression is kept as a list of tokens (so ← deletes "sin(" in one
+// go) and evaluated with a small parser — never eval() — with the usual order of operations:
+// brackets, functions, powers (right to left), implied multiplication (2π, 3(4+1)), × ÷, + −.
+// Trig works in degrees or radians; Ans, memory, n!, %, EXP (×10ⁿ) and auto-closing brackets.
+const SciCalc = (function(){
+  const st = {tokens: [], ans: 0, mem: 0, deg: true, shift: false, result: '0', justEvaluated: false, error: false};
+  const FN = {   // button -> [shown, parsed]
+    sin: ['sin(', 'sin('], cos: ['cos(', 'cos('], tan: ['tan(', 'tan('],
+    asin: ['sin⁻¹(', 'asin('], acos: ['cos⁻¹(', 'acos('], atan: ['tan⁻¹(', 'atan('],
+    ln: ['ln(', 'ln('], log: ['log(', 'log('], exp: ['e^(', 'exp('], pow10: ['10^(', 'pow10('],
+    sqrt: ['√(', 'sqrt('], cbrt: ['∛(', 'cbrt('], abs: ['abs(', 'abs('],
+  };
+  const SIMPLE = {'(': ['(', '('], ')': [')', ')'], '+': ['+', '+'], '-': ['−', '-'], '*': ['×', '*'], '/': ['÷', '/'],
+    '%': ['%', '%'], pi: ['π', 'pi'], e: ['e', 'e'], ans: ['Ans', 'ans'], sq: ['²', '^2'], cube: ['³', '^3'],
+    pow: ['^', '^'], root: ['ˣ√', 'root'], fact: ['!', '!'], inv: ['⁻¹', '^(-1)'], EE: ['E', 'E'], neg: ['−', 'neg'], rand: ['Rand', 'rand']};
+  const fmt = n=>{
+    if(!isFinite(n)) throw new Error('Math error');
+    if(n === 0) return '0';
+    const a = Math.abs(n);
+    if(a >= 1e12 || a < 1e-9) return n.toExponential(8).replace(/\.?0+e/, 'e').replace('e+', 'e');
+    return String(parseFloat(n.toPrecision(12)));
+  };
+  // ---- parser ----
+  function evaluate(src){
+    const toks = [];
+    const re = /\s*(\d*\.\d+|\d+\.?|pow10|[a-z]+|\^|[-+*\/()!%E])\s*/gy;
+    let m, pos = 0;
+    while(pos < src.length){
+      re.lastIndex = pos; m = re.exec(src);
+      if(!m) throw new Error('Syntax error');
+      toks.push(m[1]); pos = re.lastIndex;
+    }
+    let i = 0;
+    const peek = ()=>toks[i], next = ()=>toks[i++];
+    const toRad = x=>st.deg ? x * Math.PI / 180 : x, fromRad = x=>st.deg ? x * 180 / Math.PI : x;
+    const round = x=>Math.abs(x) < 1e-12 ? 0 : x;
+    const F = {
+      sin: x=>round(Math.sin(toRad(x))), cos: x=>round(Math.cos(toRad(x))),
+      tan: x=>{ if(st.deg && Math.abs(((x % 180) + 180) % 180 - 90) < 1e-9) throw new Error('Math error'); return round(Math.tan(toRad(x))); },
+      asin: x=>{ if(x < -1 || x > 1) throw new Error('Math error'); return fromRad(Math.asin(x)); },
+      acos: x=>{ if(x < -1 || x > 1) throw new Error('Math error'); return fromRad(Math.acos(x)); },
+      atan: x=>fromRad(Math.atan(x)),
+      ln: x=>{ if(x <= 0) throw new Error('Math error'); return Math.log(x); },
+      log: x=>{ if(x <= 0) throw new Error('Math error'); return Math.log10(x); },
+      exp: x=>Math.exp(x), pow10: x=>Math.pow(10, x),
+      sqrt: x=>{ if(x < 0) throw new Error('Math error'); return Math.sqrt(x); },
+      cbrt: x=>Math.cbrt(x), abs: x=>Math.abs(x),
+    };
+    const startsPrimary = t=>t !== undefined && (/^[\d.]/.test(t) || /^[a-z]/.test(t) || t === '(');
+    function expr(){ let v = term(); while(peek() === '+' || peek() === '-'){ const op = next(); const r = term(); v = op === '+' ? v + r : v - r; } return v; }
+    function term(){
+      let v = unary();
+      while(true){
+        const t = peek();
+        if(t === '*' || t === '/'){ next(); const r = unary(); if(t === '/' && r === 0) throw new Error('Math error'); v = t === '*' ? v * r : v / r; }
+        else if(startsPrimary(t) && t !== 'root'){ v = v * unary(); }   // implied multiplication
+        else return v;
       }
-      if(!isFinite(current) || Number.isNaN(Number(current))) current = 'Error';
-      render();
+    }
+    function unary(){
+      const t = peek();
+      if(t === '-' || t === 'neg'){ next(); return -unary(); }
+      if(t === '+'){ next(); return unary(); }
+      return power();
+    }
+    function power(){
+      let base = postfix();
+      if(peek() === '^'){ next(); return Math.pow(base, unary()); }
+      if(peek() === 'root'){ next(); const x = unary(); if(base === 0) throw new Error('Math error'); return x < 0 && Math.abs(base % 2) === 1 ? -Math.pow(-x, 1 / base) : Math.pow(x, 1 / base); }
+      return base;
+    }
+    function postfix(){
+      let v = primary();
+      while(peek() === '!' || peek() === '%' || peek() === 'E'){
+        const t = next();
+        if(t === '!'){
+          if(v < 0 || v > 170 || Math.abs(v - Math.round(v)) > 1e-9) throw new Error('Math error');
+          let f = 1; for(let k = 2; k <= Math.round(v); k++) f *= k; v = f;
+        } else if(t === '%') v = v / 100;
+        else { const neg = peek() === '-' || peek() === 'neg'; if(neg || peek() === '+') next(); const ex = primary(); v = v * Math.pow(10, neg ? -ex : ex); }
+      }
+      return v;
+    }
+    function primary(){
+      const t = next();
+      if(t === undefined) throw new Error('Syntax error');
+      if(/^[\d.]/.test(t)){ if(t === '.') throw new Error('Syntax error'); return parseFloat(t); }
+      if(t === '('){ const v = expr(); if(peek() === ')') next(); return v; }   // missing ")" closes itself
+      if(t === 'pi') return Math.PI;
+      if(t === 'e') return Math.E;
+      if(t === 'ans') return st.ans;
+      if(t === 'rand') return Math.random();
+      if(F[t]){ if(peek() !== '(') throw new Error('Syntax error'); next(); const v = expr(); if(peek() === ')') next(); return F[t](v); }
+      throw new Error('Syntax error');
+    }
+    const v = expr();
+    if(i < toks.length) throw new Error('Syntax error');
+    if(!isFinite(v)) throw new Error('Math error');
+    return v;
+  }
+  // ---- input ----
+  const el = id=>document.getElementById(id);
+  function render(){
+    const shown = st.tokens.map(t=>t[0]).join('');
+    el('calcExpr').textContent = st.justEvaluated ? (shown + ' =') : (shown || ' ');
+    el('calcDisplay').textContent = st.justEvaluated || st.error ? st.result : (shown || '0');
+    el('calcAngle').textContent = st.deg ? 'DEG' : 'RAD';
+    el('calcShiftFlag').classList.toggle('hidden', !st.shift);
+    el('calcMemFlag').classList.toggle('hidden', !st.mem);
+    document.querySelectorAll('#calculatorModal [data-calc="shift"]').forEach(b=>b.classList.toggle('on', st.shift));
+    document.querySelectorAll('#calculatorModal [data-calc="angle"]').forEach(b=>{ b.textContent = st.deg ? 'DEG' : 'RAD'; });
+    document.querySelectorAll('#calculatorModal [data-shift]').forEach(b=>{
+      const k = st.shift ? b.dataset.shift : b.dataset.calc;
+      b.textContent = {sin:'sin', cos:'cos', tan:'tan', asin:'sin⁻¹', acos:'cos⁻¹', atan:'tan⁻¹', ln:'ln', exp:'eˣ', log:'log', pow10:'10ˣ',
+        sqrt:'√', cbrt:'∛', sq:'x²', cube:'x³', pow:'xʸ', root:'ʸ√x'}[k] || k;
     });
-  });
+  }
+  function startFresh(keepAns){
+    st.tokens = keepAns ? [['Ans', 'ans']] : [];
+    st.justEvaluated = false; st.error = false;
+  }
+  function press(key){
+    if(st.shift && key !== 'shift'){
+      const btn = document.querySelector(`#calculatorModal [data-calc="${key}"][data-shift]`);
+      if(btn) key = btn.dataset.shift;
+      st.shift = false;
+    }
+    if(key === 'shift'){ st.shift = !st.shift; render(); return; }
+    if(key === 'angle'){ st.deg = !st.deg; render(); return; }
+    if(key === 'clear'){ startFresh(false); st.result = '0'; render(); return; }
+    if(key === 'MC'){ st.mem = 0; render(); return; }
+    if(key === 'M+' || key === 'M-'){
+      let v; try { v = st.justEvaluated ? st.ans : evaluate(st.tokens.map(t=>t[1]).join(' ')); } catch(_) { v = null; }
+      if(v != null){ st.mem += key === 'M+' ? v : -v; }
+      render(); return;
+    }
+    if(key === 'backspace'){ if(st.justEvaluated || st.error) startFresh(false); else st.tokens.pop(); render(); return; }
+    if(key === '='){
+      if(!st.tokens.length) return;
+      try {
+        const v = evaluate(st.tokens.map(t=>t[1]).join(' '));
+        st.ans = v; st.result = fmt(v); st.justEvaluated = true; st.error = false;
+      } catch(err){ st.result = err.message || 'Error'; st.error = true; st.justEvaluated = true; }
+      render(); return;
+    }
+    // Typing after a result: an operator carries on from Ans, anything else starts again.
+    const continues = ['+', '-', '*', '/', 'sq', 'cube', 'pow', 'root', 'fact', 'inv', '%', 'EE'].includes(key);
+    if(st.justEvaluated){ startFresh(continues && !st.error); }
+    if(key === 'MR'){ st.tokens.push([fmt(st.mem), String(st.mem)]); render(); return; }
+    if(/^[0-9.]$/.test(key)){
+      const last = st.tokens[st.tokens.length - 1];
+      if(last && /^[0-9.]+$/.test(last[1])){
+        if(key === '.' && last[1].includes('.')) return;
+        last[0] += key; last[1] += key;
+      } else st.tokens.push([key === '.' ? '0.' : key, key === '.' ? '0.' : key]);
+      render(); return;
+    }
+    const tok = FN[key] || SIMPLE[key];
+    if(tok){ st.tokens.push([tok[0], tok[1]]); render(); }
+  }
+  function wire(){
+    document.querySelectorAll('#calculatorModal .calc-btn').forEach(btn=>btn.addEventListener('click', ()=>{ press(btn.dataset.calc); el('calcBody').focus({preventScroll: true}); }));
+    // Keyboard, while the calculator has focus: digits, + − × ÷ ^ ( ) . % !, Enter, Backspace, Esc.
+    el('calcBody').addEventListener('keydown', e=>{
+      const map = {Enter: '=', '=': '=', Backspace: 'backspace', Escape: 'clear', '^': 'pow', '!': 'fact', x: '*', X: '*'};
+      const k = map[e.key] || (/^[0-9.+\-*\/()%]$/.test(e.key) ? e.key : null);
+      if(!k) return;
+      e.preventDefault(); e.stopPropagation();
+      press(k);
+    });
+    render();
+  }
+  return {wire, press, evaluate, state: st};
 })();
+SciCalc.wire();
+document.getElementById('openCalculatorBtn').addEventListener('click', ()=>setTimeout(()=>document.getElementById('calcBody').focus({preventScroll: true}), 30));
 
 // ---------------- rich text toolbars (shared wiring for the response toolbar and the notepad toolbar) ----------------
 try { document.execCommand('styleWithCSS', false, true); } catch(_) { /* older browsers just ignore this */ }
@@ -6619,7 +6882,8 @@ loadAssignments().then(()=>{
       const pupil = Object.keys(assignment.submissions).find(name=>assignment.submissions[name].recipientId===reviewRecipientId);
       document.getElementById('btnTeacherRole').classList.add('active'); document.getElementById('btnStudentRole').classList.remove('active');
       document.getElementById('teacherView').classList.remove('hidden'); document.getElementById('studentView').classList.add('hidden');
-      showReview(assignment.id, pupil);
+      if(assignment.submissions[pupil].status === 'submitted') openGrading(assignment.id, pupil);
+      else showReview(assignment.id, pupil);
       return;
     }
   }

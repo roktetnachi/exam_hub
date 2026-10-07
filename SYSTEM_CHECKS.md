@@ -381,15 +381,20 @@ python manage.py check --deploy
 | 19.1 | Review page: PDF fits width, zooms, stays sharp; annotations sit on the right text at every zoom (also at 125% / 150% Windows scaling) | Visually aligned | |
 | 19.1a | If a PDF can't be loaded, the review shows the server's reason, not a blank viewer | "PDF unavailable" + reason | |
 | 19.2 | Highlights, highlight notes and sticky notes all render; "Annotations" toggle hides/shows them | Toggle works | |
-| 19.3 | Answers are in collapsible sections per item with score chip, correct answer and feedback; Expand / Collapse all | Sections toggle | |
+| 19.3 | Answers are in collapsible sections per item with score chip, correct answer and feedback; Expand / Collapse all (Review screen and Grade tab) | Sections toggle | |
 | 19.4 | Clicking an annotation in the list opens its page and flashes it | Jump + flash | |
-| 19.5 | Grade tab: every item has a review button opening that item's section; "Back to grading" returns to the same pupil | Same pupil selected | |
+| 19.5 | **Grade tab = mark + grade in one place:** choosing a submitted pupil shows their work (PDF with annotations on the left, items on the right) with the marking tools, and each item has its score box and feedback; *Save grades* / *Release grade* at the top and bottom | Work view inside the Grade tab | |
 | 19.6 | Pupil *View grade*: total, %, per-item score and feedback; opening it clears the grade notification | `grade_seen_at` set | |
-| 19.7 | "✎ Mark this answer": select words → **Underline / Highlight / Comment** (no Circle); numbered margin comments; style change / delete from the list; autosaves ("Marks saved") | Saved to `teacher_marks.answers` | |
-| 19.8 | PDF "Mark:" toolbar: select, **Highlight** (drag), **Underline** (drag), **Comment pin** (click) — no Circle / Box; older circles and boxes still display | Saved to `teacher_marks.pdf` | |
+| 19.7 | Grade tab, written answers: select words → **Underline / Highlight / Comment** (no Circle; no "Mark this answer" toggle needed); numbered margin comments; style change / delete from the list; autosaves ("Marks saved") | Saved to `teacher_marks.answers` | |
+| 19.8 | Grade tab, PDF "Mark:" toolbar: select, **Highlight** (drag), **Underline** (drag), **Comment pin** (click) — no Circle / Box; older circles and boxes still display | Saved to `teacher_marks.pdf` | |
 | 19.9 | Select tool → click a pupil's highlight / note → comment on it; shows as "💬 You: …" in the annotation list | Saved to `teacher_marks.annComments` | |
 | 19.10 | Pupil sees marks and comments **only after the grade is released** (on their answer, on the PDF, in *View grade*) | Hidden before publish | |
-| 19.11 | Review screen: − / + / Fit and Ctrl + scroll also zoom **image** items | Image resizes | |
+| 19.11 | Review screen and Grade tab: − / + / Fit and Ctrl + scroll also zoom **image** items | Image resizes | |
+| 19.12 | **Review screen is read-only:** all answers, annotations, existing marks and feedback, but no Mark toolbar, no selection pop-up, no score boxes; header button "Mark & grade this pupil" opens the Grade tab | Nothing editable | |
+| 19.13 | Grade tab "Read-only view" opens the Review screen; "Back to grading" returns to the same pupil | Same pupil | |
+| 19.14 | Saving grades keeps the open items, scroll position and PDF; header total, "Released / Not released" and item chips update | No reload jump | |
+| 19.15 | Changing pupil with unsaved scores/feedback asks "Save your changes?" (Save and continue / Discard changes) | No silent loss | |
+| 19.16 | Bell "Open their work" (new submission) opens that pupil in the Grade tab | Grade tab | |
 
 ---
 
@@ -434,6 +439,9 @@ python manage.py check --deploy
 | 22.7 | **Exam focus:** a pupil in an unsubmitted exam sees no "Back to my tasks", bell or account menu — only the exam, Notepad / Resources / Calculator, Message teacher and Submit, plus the "Exam in progress" line | Nothing leads to other exams | |
 | 22.8 | Browser Back button during an exam keeps the pupil on the exam (toast: press Submit when finished) | Stays on exam | |
 | 22.9 | After submitting (normal browser) the task list, bell and account menu return; "View submission" shows the back button | Normal navigation | |
+| 22.10 | **Scientific calculator** (when the exam allows the calculator): sin / cos / tan and inverses (2nd), DEG / RAD, ln, log, eˣ, 10ˣ, √, ∛, x², x³, xʸ, ʸ√x, 1/x, n!, %, π, e, EXP, abs (\|x\|), ( ), Ans, Rand, MC / MR / M+ / M−; correct order of operations (e.g. 2+3×4 = 14, −2² = −4); errors shown as "Math error" / "Syntax error" | Correct results | |
+| 22.11 | Calculator keyboard: digits, + − × ÷ ^ ( ) . % !, Enter (=), Backspace, Esc (AC) while it has focus; typing doesn't go into the answer box | Works | |
+| 22.12 | Arriving straight into an exam (`?open=…`, e.g. from SEB) shows no grade pop-up over it; held pop-ups appear after submitting | No pop-up during the exam | |
 
 ---
 
@@ -476,7 +484,7 @@ python manage.py test digitalexams.test_notifications digitalexams.test_exam_win
 python manage.py test digitalexams.test_sections_subjects digitalexams.test_marking digitalexams.test_resources digitalexams.test_seb
 ```
 
-> **Last full run (2026-10-07):** 123 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-07):** 124 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 

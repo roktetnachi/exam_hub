@@ -239,7 +239,14 @@
     } catch(e){ /* offline or signed out — try again next tick */ }
   }
 
-  window.ExamHubNotify = {refresh: poll};
+  // Put away a pop-up that's showing (e.g. a pupil's exam just opened); it comes back later.
+  function dismiss(){
+    if(!showing) return;
+    document.getElementById('nxBackdrop').classList.add('nx-hidden');
+    queue.unshift(showing);
+    showing = null;
+  }
+  window.ExamHubNotify = {refresh: poll, dismiss};
   wireBell();
   render();
   poll();
