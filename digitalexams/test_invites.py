@@ -97,5 +97,5 @@ class InviteAndFirstLoginTests(TestCase):
         roles = self.client.get('/s/ssc/roles/')
         self.assertContains(roles, 'People &amp; roles'); self.assertContains(roles, 'id="bulkModal"')
         classes = self.client.get('/s/ssc/classes/')
-        self.assertContains(classes, 'Bulk import classes')
+        self.assertContains(classes, 'Bulk import year groups')
         self.assertNotContains(classes, 'createPupilBtn'); self.assertNotContains(classes, 'Class activity'); self.assertNotContains(classes, 'Recent activity'); self.assertNotContains(classes, 'View activity log')

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django import forms
-from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, School, SchoolClass, Submission, User
+from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, School, SchoolClass, Subject, Submission, User
 
 
 class RequireUniqueEmailMixin:
@@ -88,6 +88,11 @@ class SchoolClassAdmin(admin.ModelAdmin):
     def pupil_count(self, obj):
         return obj.pupils.count()
     pupil_count.short_description = 'Pupils'
+
+
+@admin.register(Subject)
+class SubjectAdmin(SchoolClassAdmin):
+    pass
 
 
 class RecipientInline(admin.TabularInline):

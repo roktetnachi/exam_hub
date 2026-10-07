@@ -92,11 +92,11 @@
 <div class="explain" id="staffExplain">
   <div class="card">
     <span class="badge admin">Admin</span>
-    <ul><li>Create, rename and delete classes</li><li>Add teachers and pupils · send invites</li><li>Assign work to any pupil</li></ul>
+    <ul><li>Create, rename and delete year groups and subjects</li><li>Sees every exam in the school</li><li>Add teachers and pupils · send invites</li><li>Assign work to any pupil</li></ul>
   </div>
   <div class="card">
     <span class="badge teacher">Teacher</span>
-    <ul><li>Sees only the classes they're assigned to</li><li>Assigns work to pupils in those classes</li><li>Can't create or edit classes</li></ul>
+    <ul><li>Sees only their own exams</li><li>Assigns work only to the subjects they teach</li><li>Can't create or edit year groups or subjects</li></ul>
   </div>
 </div>
 
@@ -111,6 +111,7 @@
           <option value="invited">Invited</option>
           <option value="active">Active</option>
         </select>
+        <span id="sortSlot"></span>
         <span class="counts" id="counts"></span>
       </div>
       <div class="right">
@@ -153,7 +154,7 @@ Sending an invite sets a new temporary password and emails it with the sign-in l
 <div class="mback hidden" id="delModal" role="alertdialog" aria-modal="true" aria-labelledby="delTitle">
   <div class="mcard">
     <h2 id="delTitle"></h2>
-    <p class="sub" style="font-size:13.5px;margin:6px 0 0;line-height:1.5;">This permanently deletes the account: they can no longer sign in and are removed from their classes. Work they already handed in stays on the exams they took. <strong>This can't be undone.</strong></p>
+    <p class="sub" style="font-size:13.5px;margin:6px 0 0;line-height:1.5;">This permanently deletes the account: they can no longer sign in and are removed from their year groups and subjects. <span id="delWhat">Work they already handed in stays on the exams they took.</span> <strong>This can't be undone.</strong></p>
     <div class="del-list" id="delList"></div>
     <div class="field hidden" id="delTypeWrap"><label class="lbl" for="delType">Type <strong>DELETE</strong> to confirm</label><input type="text" id="delType" autocomplete="off"></div>
     <p class="err hidden" id="delError"></p>
@@ -164,7 +165,7 @@ Sending an invite sets a new temporary password and emails it with the sign-in l
 
 {% block script %}
 <script>
-const store = { staff: [], pupils: [], classes: [] };
+const store = { staff: [], pupils: [], classes: [], subjects: [] };
 let tab = new URLSearchParams(location.search).get('tab') === 'pupils' ? 'pupils' : 'staff';
 let query = '', statusFilter = '', newRole = 'teacher';
 const selected = { staff: new Set(), pupils: new Set() };
@@ -188,6 +189,13 @@ function roleControl(t){
   </div>`;
 }
 
+function groupsText(p){
+  const secs = p.classes || [], subs = p.subjects || [];
+  if(!secs.length && !subs.length) return '—';
+  return (secs.length ? escapeHtml(secs.join(', ')) : '<span style="color:var(--muted);">No year group</span>')
+    + (subs.length ? `<div style="color:var(--muted);font-size:12.5px;margin-top:2px;">Subjects: ${escapeHtml(subs.join(', '))}</div>` : '');
+}
+
 function render(){
   document.querySelectorAll('.ptabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab === tab));
   document.getElementById('nStaff').textContent = store.staff.length ? `(${store.staff.length})` : '';
@@ -202,12 +210,12 @@ function render(){
   const active = people.filter(p=>p.status === 'active' || p.isMainAdmin).length;
   document.getElementById('counts').textContent = `${active} of ${people.length} active`;
   const q = query.toLowerCase();
-  const shown = people.filter(p=>(!q || p.name.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q) || p.username.toLowerCase().includes(q))
+  const shown = sortPeople(people).filter(p=>(!q || p.name.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q) || p.username.toLowerCase().includes(q))
     && (!statusFilter || p.status === statusFilter));
   const sel = selected[tab];
   const allChecked = shown.length && shown.filter(p=>!p.isMainAdmin).every(p=>sel.has(p.id));
   document.getElementById('thead').innerHTML = `<tr><th class="ck"><input type="checkbox" id="checkAll" ${allChecked ? 'checked' : ''} aria-label="Select all shown"></th>
-    <th>${tab === 'staff' ? 'Person' : 'Pupil'}</th><th>Classes</th>${tab === 'staff' ? '<th>Role</th>' : ''}<th>Account</th></tr>`;
+    <th>${tab === 'staff' ? 'Person' : 'Pupil'}</th><th>Year groups &amp; subjects</th>${tab === 'staff' ? '<th>Role</th>' : ''}<th>Account</th></tr>`;
   const body = document.getElementById('rows');
   const cols = tab === 'staff' ? 5 : 4;
   if(!shown.length){
@@ -216,8 +224,8 @@ function render(){
     body.innerHTML = shown.map(p=>`<tr>
       <td class="ck">${p.isMainAdmin ? '' : `<input type="checkbox" data-sel="${p.id}" ${sel.has(p.id) ? 'checked' : ''} aria-label="Select ${escapeHtml(p.name)}">`}</td>
       <td class="who-cell"><div class="nm">${escapeHtml(p.name)}${p.isActive === false ? '<span class="badge off">Deactivated</span>' : ''}</div><div class="em">${escapeHtml(p.email || p.username)}</div>
-        ${p.isMainAdmin ? '' : `<div class="row-acts"><button type="button" class="link" data-edit="${p.id}">Edit</button>${tab === 'pupils' ? `<button type="button" class="link danger" data-del="${p.id}">Delete</button>` : ''}</div>`}</td>
-      <td class="classes-cell">${p.classes && p.classes.length ? escapeHtml(p.classes.join(', ')) : '—'}</td>
+        ${p.isMainAdmin ? '' : `<div class="row-acts"><button type="button" class="link" data-edit="${p.id}">Edit</button>${p.id !== ME_ID ? `<button type="button" class="link danger" data-del="${p.id}">Delete</button>` : ''}</div>`}</td>
+      <td class="classes-cell">${groupsText(p)}</td>
       ${tab === 'staff' ? `<td>${roleControl(p)}</td>` : ''}
       <td class="status-cell">${statusCell(p)}</td>
     </tr>`).join('');
@@ -237,7 +245,7 @@ function renderSelbar(){
   const n = selected[tab].size;
   document.getElementById('selbar').classList.toggle('hidden', !n);
   document.getElementById('selCount').textContent = `${n} selected`;
-  document.getElementById('deleteSelBtn').classList.toggle('hidden', tab !== 'pupils');
+  document.getElementById('deleteSelBtn').classList.remove('hidden');
 }
 
 async function setRole(button){
@@ -245,8 +253,8 @@ async function setRole(button){
   const makeAdmin = button.dataset.role === 'admin';
   if(makeAdmin === t.isAdmin) return;
   const question = makeAdmin
-    ? `Make ${t.name} an Admin?\n\nThey'll be able to create and delete classes, add teachers and pupils, and send invites.`
-    : `Change ${t.name} to Teacher?\n\nThey'll only see and assign to the classes they're assigned to.`;
+    ? `Make ${t.name} an Admin?\n\nThey'll be able to create and delete year groups and subjects, add teachers and pupils, and send invites.`
+    : `Change ${t.name} to Teacher?\n\nThey'll only see their own exams and assign work to the subjects they teach.`;
   if(!confirm(question)) return;
   button.closest('.seg').querySelectorAll('button').forEach(b=>b.disabled = true);
   try {
@@ -321,19 +329,26 @@ document.getElementById('edSave').addEventListener('click', async ()=>{
   finally { btn.disabled = false; }
 });
 
-// ---------------- delete pupils (one or many) ----------------
-let deletingIds = [];
+// ---------------- delete pupils or staff (one or many) ----------------
+const ME_ID = {{ request.user.id|default:0 }};
+let deletingIds = [], deletingKind = 'pupils';
 function openDelete(ids){
-  const people = store.pupils.filter(p=>ids.includes(p.id));
-  if(!people.length) return;
+  deletingKind = tab;
+  const staff = tab === 'staff';
+  const people = list().filter(p=>ids.includes(p.id) && !p.isMainAdmin && p.id !== ME_ID);
+  if(!people.length){ if(staff && ids.includes(ME_ID)) showToast("You can't delete your own account.", 'error'); return; }
+  const noun = staff ? 'staff member' : 'pupil', nouns = staff ? 'staff members' : 'pupils';
+  document.getElementById('delWhat').textContent = staff
+    ? 'Exams they created stay — admins can still open, monitor and grade them.'
+    : 'Work they already handed in stays on the exams they took.';
   deletingIds = people.map(p=>p.id);
   const many = people.length > 1;
-  document.getElementById('delTitle').textContent = many ? `Delete ${people.length} pupils?` : `Delete ${people[0].name}?`;
-  document.getElementById('delList').innerHTML = people.map(p=>`${escapeHtml(p.name)} <span style="color:var(--muted);">· ${escapeHtml(p.email || p.username)}</span>`).join('<br>');
+  document.getElementById('delTitle').textContent = many ? `Delete ${people.length} ${nouns}?` : `Delete ${people[0].name}?`;
+  document.getElementById('delList').innerHTML = people.map(p=>`${escapeHtml(p.name)}${staff && p.isAdmin ? ' <strong>(Admin)</strong>' : ''} <span style="color:var(--muted);">· ${escapeHtml(p.email || p.username)}</span>`).join('<br>');
   document.getElementById('delTypeWrap').classList.toggle('hidden', !many);
   document.getElementById('delType').value = '';
   document.getElementById('delError').classList.add('hidden');
-  document.getElementById('delConfirm').textContent = many ? `Delete ${people.length} pupils` : 'Delete pupil';
+  document.getElementById('delConfirm').textContent = many ? `Delete ${people.length} ${nouns}` : `Delete ${noun}`;
   document.getElementById('delModal').classList.remove('hidden');
   setTimeout(()=>(many ? document.getElementById('delType') : document.getElementById('delCancel')).focus(), 30);
 }
@@ -346,14 +361,15 @@ document.getElementById('delConfirm').addEventListener('click', async ()=>{
   }
   const btn = document.getElementById('delConfirm'); btn.disabled = true;
   try {
-    const res = await postJson('/api/accounts/pupils/delete/', {userIds: deletingIds});
-    deletingIds.forEach(id=>selected.pupils.delete(id));
+    const staff = deletingKind === 'staff';
+    const res = await postJson(staff ? '/api/accounts/staff/delete/' : '/api/accounts/pupils/delete/', {userIds: deletingIds});
+    deletingIds.forEach(id=>selected[deletingKind].delete(id));
     closeDelete(); await load();
-    showToast(`Deleted ${res.deleted} pupil account${res.deleted === 1 ? '' : 's'}.`);
+    showToast(`Deleted ${res.deleted} ${staff ? 'staff' : 'pupil'} account${res.deleted === 1 ? '' : 's'}.`);
   } catch(error){ err.textContent = error.message || 'Could not delete.'; err.classList.remove('hidden'); }
   finally { btn.disabled = false; }
 });
-document.getElementById('deleteSelBtn').addEventListener('click', ()=>openDelete(Array.from(selected.pupils)));
+document.getElementById('deleteSelBtn').addEventListener('click', ()=>openDelete(Array.from(selected[tab])));
 document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ closeEdit(); closeDelete(); } });
 ['editModal','delModal'].forEach(id=>document.getElementById(id).addEventListener('click', (e)=>{ if(e.target.id === id){ id === 'editModal' ? closeEdit() : closeDelete(); } }));
 
@@ -362,7 +378,7 @@ function renderAddCard(){
   const card = document.getElementById('addCard');
   const classPicks = store.classes.length
     ? `<div class="class-picks" id="newClasses">${store.classes.map(c=>`<label><input type="${tab === 'staff' ? 'checkbox' : 'radio'}" name="newCls" value="${c.id}"> ${escapeHtml(c.name)}</label>`).join('')}</div>`
-    : '<p class="sub" style="font-size:12.5px;margin:0;">No classes yet — create them on the Classes page.</p>';
+    : '<p class="sub" style="font-size:12.5px;margin:0;">No year groups yet — create them on the Year groups page.</p>';
   card.innerHTML = `
     <h2>${tab === 'staff' ? 'Add a staff member' : 'Add a pupil'}</h2>
     <p class="sub" style="font-size:13px;margin-bottom:14px;">${tab === 'staff' ? 'Creates a teacher or admin account.' : 'Creates a pupil account.'} Several at once? Use <strong>Bulk add</strong>.</p>
@@ -375,9 +391,11 @@ function renderAddCard(){
         <button type="button" data-role="teacher" class="${newRole === 'teacher' ? 'on' : ''}" role="radio">Teacher</button>
         <button type="button" data-role="admin" class="${newRole === 'admin' ? 'on admin' : ''}" role="radio">Admin</button>
       </div>
-      <p class="role-hint" id="roleHint">${newRole === 'admin' ? 'Can set up classes, add people and send invites.' : 'Works only with the classes an admin assigns them to.'}</p>
+      <p class="role-hint" id="roleHint">${newRole === 'admin' ? 'Can set up year groups and subjects, add people and send invites.' : 'Sees only their own exams; sets them for the subjects an admin assigns them.'}</p>
     </div>` : ''}
-    <div class="field"><label class="lbl">${tab === 'staff' ? 'Classes they teach' : 'Class'} <span style="font-weight:400;">(optional)</span></label>${classPicks}</div>
+    <div class="field"><label class="lbl">${tab === 'staff' ? 'Year groups they teach' : 'Year group'} <span style="font-weight:400;">(optional)</span></label>${classPicks}</div>
+    ${store.subjects.length ? `<div class="field"><label class="lbl">${tab === 'staff' ? 'Subjects they teach' : 'Subjects'} <span style="font-weight:400;">(optional)</span></label>
+      <div class="class-picks" id="newSubjects">${store.subjects.map(s=>`<label><input type="checkbox" value="${s.id}"> ${escapeHtml(s.name)}</label>`).join('')}</div></div>` : ''}
     <label class="inv"><input type="checkbox" id="newInvite" checked><span><strong>Email them an invite now</strong><br><span class="sub" style="font-size:12px;">Username, temporary password and sign-in link.</span></span></label>
     <button class="btn" id="addBtn" type="button" style="width:100%;">${tab === 'staff' ? 'Add staff member' : 'Add pupil'}</button>
     <p class="err hidden" id="addError"></p>
@@ -393,14 +411,15 @@ async function addPerson(){
   const email = document.getElementById('newEmail').value.trim();
   const inviteNow = document.getElementById('newInvite').checked;
   const classIds = Array.from(document.querySelectorAll('#newClasses input:checked')).map(i=>Number(i.value));
+  const subjectIds = Array.from(document.querySelectorAll('#newSubjects input:checked')).map(i=>Number(i.value));
   if(!firstName || !email){ err.textContent = 'First name and email are required.'; err.classList.remove('hidden'); return; }
   const btn = document.getElementById('addBtn'); btn.disabled = true;
   try {
     const created = tab === 'staff'
-      ? await postJson('/api/teachers/create/', {firstName, lastName, email, role: newRole, classIds, invite: inviteNow})
-      : await postJson('/api/pupils/create/', {firstName, lastName, email, classId: classIds[0] || null, invite: inviteNow});
+      ? await postJson('/api/teachers/create/', {firstName, lastName, email, role: newRole, classIds, subjectIds, invite: inviteNow})
+      : await postJson('/api/pupils/create/', {firstName, lastName, email, classId: classIds[0] || null, subjectIds, invite: inviteNow});
     ['newFirst','newLast','newEmail'].forEach(id=>document.getElementById(id).value = '');
-    document.querySelectorAll('#newClasses input').forEach(i=>i.checked = false);
+    document.querySelectorAll('#newClasses input, #newSubjects input').forEach(i=>i.checked = false);
     await load();
     result.innerHTML = `<strong>${escapeHtml(created.name)}</strong> added${tab === 'staff' ? ` as ${created.isAdmin ? 'an Admin' : 'a Teacher'}` : ''}.<br>
       ${created.emailed ? '✓ Invite emailed to ' + escapeHtml(created.email) + '.<br>' : (inviteNow ? "⚠ The invite email couldn't be sent — share these details yourself.<br>" : '')}
@@ -425,10 +444,12 @@ document.getElementById('bulkAddBtn').addEventListener('click', ()=>openBulk(tab
 window.onBulkImported = async ()=>{ await load(); };
 
 async function load(){
-  const [t, p, c] = await Promise.all([request('/api/teachers/'), request('/api/accounts/pupils/'), request('/api/classes/')]);
-  store.staff = t.teachers; store.pupils = p.pupils; store.classes = c.classes || [];
+  const [t, p, c, s] = await Promise.all([request('/api/teachers/'), request('/api/accounts/pupils/'), request('/api/classes/'), request('/api/subjects/')]);
+  store.staff = t.teachers; store.pupils = p.pupils; store.classes = c.classes || []; store.subjects = s.subjects || [];
   render();
 }
+document.getElementById('sortSlot').innerHTML = nameSortSelect('peopleSort');
+wireNameSort('peopleSort', render);
 (async ()=>{
   try { await load(); renderAddCard(); }
   catch(error){ document.getElementById('rows').innerHTML = `<tr><td colspan="5" class="err">${escapeHtml(error.message || 'Could not load people.')}</td></tr>`; }

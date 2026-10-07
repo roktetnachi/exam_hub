@@ -21,7 +21,7 @@
   a{color:var(--blue);}
   .hidden{display:none !important;}
 
-  /* brand bar + section nav */
+  /* brand bar + year group nav */
   .brandbar{height:64px;background:#fff;box-shadow:0 1px 0 rgba(30,41,59,.06);display:flex;align-items:center;gap:22px;padding:0 24px;position:sticky;top:0;z-index:40;}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;color:var(--blue-dark);text-decoration:none;letter-spacing:-.01em;}
   .brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-dark));}
@@ -89,7 +89,8 @@
   </a>
   <nav class="topnav" aria-label="Sections">
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}">Exams</a>
-    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}" {% block nav_classes %}{% endblock %}>{% if can_manage_classes %}Classes{% else %}My classes{% endif %}</a>
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}" {% block nav_classes %}{% endblock %}>{% if can_manage_classes %}Year groups{% else %}My year groups{% endif %}</a>
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'subjects-page' %}" {% block nav_subjects %}{% endblock %}>{% if can_manage_classes %}Subjects{% else %}My subjects{% endif %}</a>
     {% if request.user.can_view_activity %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}" {% block nav_activity %}{% endblock %}>Activity</a>{% endif %}
     {% if is_main_admin or can_manage_classes %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}" {% block nav_roles %}{% endblock %}>Roles</a>{% endif %}
   </nav>
@@ -128,8 +129,10 @@ function showToast(message, kind){
   toastTimer = setTimeout(()=>el.remove(), 3200);
 }
 </script>
+{% include "_name_sort.html" %}
 {% block script %}{% endblock %}
 {% include "_tour.html" %}
 {% include "_notifications.html" %}
+{% include "_password_toggle.html" %}
 </body>
 </html>

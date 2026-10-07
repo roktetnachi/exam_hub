@@ -2,7 +2,7 @@ import json
 
 from django.test import TestCase
 
-from .models import ActivityLogEntry, Assignment, School, SchoolClass, User
+from .models import ActivityLogEntry, Assignment, School, SchoolClass, Subject, User
 
 
 class ClassPermissionTests(TestCase):
@@ -26,6 +26,11 @@ class ClassPermissionTests(TestCase):
         self.theirs = SchoolClass.objects.create(name='Grade 9 - Curie', school=self.school)
         self.theirs.teachers.add(self.other_teacher)
         self.theirs.pupils.add(self.p3)
+        # Plain teachers assign by SUBJECT (year-group membership alone doesn't grant it).
+        self.physics = Subject.objects.create(name='Physics 10', school=self.school)
+        self.physics.teachers.add(self.teacher); self.physics.pupils.add(self.p1, self.p2)
+        self.chem = Subject.objects.create(name='Chemistry 9', school=self.school)
+        self.chem.teachers.add(self.other_teacher); self.chem.pupils.add(self.p3)
 
     def post_json(self, url, data):
         return self.client.post(f'/s/{self.school.slug}{url}', json.dumps(data), content_type='application/json')
@@ -85,12 +90,16 @@ class ClassPermissionTests(TestCase):
 
     def test_teacher_gains_access_once_admin_assigns_them(self):
         self.client.force_login(self.admin_teacher)
-        resp = self.post_json(f'/api/classes/{self.theirs.id}/update/',
-                              {'teacherIds': [self.other_teacher.id, self.teacher.id]})
+        # Attaching the teacher to the year group is NOT enough to assign work to its pupils…
+        self.post_json(f'/api/classes/{self.theirs.id}/update/', {'teacherIds': [self.other_teacher.id, self.teacher.id]})
+        self.client.force_login(self.teacher)
+        self.assertEqual(self.create_assignment([{'name': 'Cy', 'email': 'p3@example.com'}]).status_code, 403)
+        # …teaching the subject is.
+        self.client.force_login(self.admin_teacher)
+        resp = self.post_json(f'/api/subjects/{self.chem.id}/update/', {'teacherIds': [self.other_teacher.id, self.teacher.id]})
         self.assertEqual(resp.status_code, 200)
         self.client.force_login(self.teacher)
-        resp = self.create_assignment([{'name': 'Cy', 'email': 'p3@example.com'}])
-        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(self.create_assignment([{'name': 'Cy', 'email': 'p3@example.com'}]).status_code, 201)
 
     # ---- admin teacher ----
     def test_admin_manages_classes_and_teachers(self):
@@ -150,7 +159,7 @@ class ClassAndActivityPageTests(TestCase):
         return self.client.get(f'/s/{self.school.slug}{url}')
 
     def test_pages_render_and_pupils_are_redirected(self):
-        for user, word in ((self.admin_teacher, 'Classes'), (self.teacher, 'My classes')):
+        for user, word in ((self.admin_teacher, 'Year groups'), (self.teacher, 'My year groups')):
             self.client.force_login(user)
             resp = self.get_url('/classes/')
             self.assertEqual(resp.status_code, 200)
@@ -171,7 +180,7 @@ class ClassAndActivityPageTests(TestCase):
         data = self.get_url(f'/api/activity-log/?class={self.mine.id}').json()
         descs = [e['description'] for e in data['entries']]
         self.assertTrue(any('Added Ann' in d for d in descs))
-        self.assertTrue(any('Renamed class "Newton" to "Newton A"' in d for d in descs))
+        self.assertTrue(any('Renamed year group "Newton" to "Newton A"' in d for d in descs))
         self.assertFalse(any('Curie' in d for d in descs))
         self.assertEqual(data['selectedClass']['name'], 'Newton A')
         cats = self.get_url('/api/activity-log/?category=classes').json()['entries']
@@ -180,6 +189,8 @@ class ClassAndActivityPageTests(TestCase):
     def test_assignment_activity_shows_under_pupils_class(self):
         self.mine.teachers.add(self.teacher)
         self.mine.pupils.add(self.pupil)
+        subject = Subject.objects.create(name='English', school=self.school)
+        subject.teachers.add(self.teacher); subject.pupils.add(self.pupil)
         self.client.force_login(self.teacher)
         self.client.post(f'/s/{self.school.slug}/api/assignments/create/', {
             'title': 'Essay', 'items_meta': json.dumps([{'type': 'long_answer', 'label': 'Q1', 'prompt': 'Why?'}]),
@@ -480,15 +491,15 @@ class BulkImportTests(TestCase):
     def test_templates_have_instructions_as_second_tab(self):
         import io
         from openpyxl import load_workbook
-        for kind, first in (('classes', 'Classes'), ('pupils', 'Pupils')):
+        for kind, first in (('classes', 'Year groups'), ('pupils', 'Pupils')):
             resp = self.client.get(f'/s/{self.school.slug}/api/bulk/{kind}/template/')
             self.assertEqual(resp.status_code, 200)
             wb = load_workbook(io.BytesIO(resp.content))
             self.assertEqual(wb.sheetnames[:2], [first, 'Instructions'])
         # Classes template is pre-filled with existing classes and their teachers.
         wb = load_workbook(io.BytesIO(self.client.get(f'/s/{self.school.slug}/api/bulk/classes/template/').content))
-        self.assertEqual(wb['Classes']['A2'].value, 'Grade 7 - Newton')
-        self.assertEqual(wb['Classes']['B2'].value, 'ana@bulk.edu')
+        self.assertEqual(wb['Year groups']['A2'].value, 'Grade 7 - Newton')
+        self.assertEqual(wb['Year groups']['B2'].value, 'ana@bulk.edu')
 
     def test_classes_preview_then_commit(self):
         csv_text = ('Class name *,Teacher emails,Rename to\n'

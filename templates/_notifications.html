@@ -152,7 +152,7 @@
   function ensureBell(){
     let btn = document.getElementById('notifBellBtn');
     if(btn) return btn;
-    // Pages without a bell of their own (Classes / Activity / Roles) get one next to the name.
+    // Pages without a bell of their own (Year groups / Subjects / Activity / Roles) get one next to the name.
     const host = document.querySelector('.brandbar .who') || document.querySelector('.brandbar');
     if(!host) return null;
     const wrap = document.createElement('div');

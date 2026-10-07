@@ -10,7 +10,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 > Planned / in-progress work. Move items to a versioned section when shipped.
 
 ### Upgrade notes
-- Run `python manage.py migrate` (new migration `0026_storedfile`).
+- Run `python manage.py migrate` (new migrations `0026_storedfile` and `0027_subject_and_section_labels`).
 - Then, **on the computer that holds the uploaded files** (the local copy with the `media/` folder), run `python manage.py sync_media_to_db` once. It copies every exam PDF / image / video / school logo into the database so the Railway site can serve them too.
 
 ### Fixed
@@ -18,6 +18,38 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Review page now explains why a PDF can't be opened (e.g. "this file isn't available on the server any more") and points to the annotations still listed on the right, instead of a bare "Couldn't open this PDF".
 - PDF / image / video requests now include the `/s/<slug>` prefix (no redirect hop).
 - **Pupil sign-in flash:** pupils briefly saw the teacher dashboard, the "Teacher view / Pupil preview" switch and the "Preview as a pupil" page before their exams. The page now renders in the pupil layout from the start, with a "Loading your exams…" placeholder (and an error message instead of the teacher dashboard if loading fails).
+
+### Changed — Exam privacy & assigning by subject
+- **Teachers only see their own exams.** The dashboard list, notifications and every exam action (monitor/status, edit, open/close, delete, messages, broadcast, accommodations, grading, publishing, unlock, files) are limited to the exam's own teacher. Admins and the main admin still see every exam in the school. Other teachers get "This exam belongs to another teacher." (`can_manage_exam()` / `visible_exams_for()` in views.py.)
+- **Plain teachers assign by subject only.** "Assign to" shows just the subjects they teach (tick a whole subject or individual pupils); year groups aren't offered, and being attached to a year group no longer lets a teacher assign to its pupils (`User.teachable_pupils`). Admins keep both subjects and year groups. Wording on Roles, the tour and the Year groups page updated to match.
+
+### Changed — Year groups, teacher template, admin editing
+- **"Sections" are now called "Year groups"** everywhere (nav, pages, dialogs, tour, Roles, Activity, messages, bulk templates — e.g. "Bulk add pupils to year groups", "Year group list" tab). URLs and data unchanged; `/year-groups/` also works. Import headers "Year group", "Section" and "Class" are all accepted. Exam-builder "sections" (parts of an exam) are unrelated and unchanged.
+- **Bulk add teachers / pupils: choose "Blank template" or "Template with current staff / pupils"** (`GET /api/bulk/<teachers|pupils>/template/?prefill=1`). The pre-filled file lists everyone already in the school (last name A–Z; main admins left out of staff) with their role, year group and subjects; re-uploading it unchanged changes nothing.
+- Pupils template column "Section" is now "Year group" (missed in the rename).
+- **Bulk add teachers template uses Subjects only** (no Sections/Year groups column; a "Subject list" tab feeds the dropdown). Older files with a Sections column still import.
+- **Superadmin can edit a school admin's first name, last name and email** (Admins dialog → Edit). `POST /superadmin/api/schools/<id>/admins/<user_id>/update/`. A new email is also applied to the exams they created.
+
+### Fixed
+- **Roles → Edit refused name-only changes** with "Another account already uses that email" whenever some other account (e.g. an old test login or one at another school) shared the person's email. The duplicate check now only runs when the email is actually changed.
+
+### Added — Sections & subjects
+- **"Classes" are now called "Sections"** everywhere in the app (nav, pages, dialogs, tour, Roles, Activity, messages). Data, URLs (`/classes/`, `/api/classes/`) and the `SchoolClass` model are unchanged; `/sections/` also works.
+- **Subjects** (`Subject` model: school, name, teachers, pupils — migration `0027`). A subject can mix pupils from several sections. New **Subjects** page (`/subjects/`): create / rename / delete, assign teachers, see each pupil's section and the section mix, and add pupils from any section with a picker grouped by section (tick a section to take everyone not yet in the subject; picks survive search and the section filter). Regular teachers see "My subjects" (read-only).
+  - API: `GET /api/subjects/`, `POST /api/subjects/create/`, `POST /api/subjects/<id>/update/` (`name`, `teacherIds`, `pupilIds`, `addPupilIds`, `removePupilIds`), `POST /api/subjects/<id>/delete/`.
+  - A subject's teachers can assign exams to its pupils (`teachable_pupils` now covers sections **and** subjects; `User.visible_subjects()`).
+  - Exam "Assign to" picker groups pupils under **Subjects** and **Sections**; a pupil listed in several groups is ticked everywhere at once and counted once. (Also fixes the group "select all" boxes being sent as a recipient called "on".)
+- **New bulk imports** (preview first, add-only, `.xlsx` or `.csv`):
+  - Sections page → **Bulk import sections** (was "Bulk import classes") and **Bulk add pupils to sections** (`kind=section_pupils`): template lists every pupil with their current section; fill in "Add to section". Existing accounts only — new accounts are still created on Roles.
+  - Subjects page → **Bulk import subjects** (`kind=subjects`: subject name, teacher emails, rename to) and **Bulk add pupils to subjects** (`kind=subject_pupils`): one shaded row per section (fill in Subjects to add the whole section) followed by one row per pupil.
+  - Roles → bulk add teachers / pupils: new optional **Subjects** column; "Class(es)" column is now "Section(s)" (old headers still accepted). Add-one forms on Roles can pick subjects too; the people list shows sections and subjects.
+- **First name and last name are separate columns in every template** (Section pupils, Subject pupils, Teacher list, and the downloaded logins CSV; the Teachers/Pupils templates already were). Pre-filled pupil and teacher lists are in last-name A–Z order.
+- **Sort by name** on Roles (Staff and Pupils), Sections, Subjects (list and add-pupils picker) and the exam "Assign to" picker: Last name A–Z (default), Last name Z–A, First name A–Z, First name Z–A. The choice is remembered in the browser and shared across those pages (`templates/_name_sort.html`). Re-sorting "Assign to" keeps pupils already ticked.
+- **Commas separate several sections / subjects / teacher emails in one cell** (e.g. `Pre-U 1 Economics, Pre-U 1 Physics`) in every bulk import and template. `;` still works for older files; a cell that exactly matches an existing name containing a comma is kept whole.
+- **Delete staff** on Roles → Staff (single or bulk, type DELETE for bulk): `POST /api/accounts/staff/delete/`. You can't delete yourself or a main admin; their exams stay.
+- **Show / hide password** eye button on every password box (`templates/_password_toggle.html`).
+- Activity: subject changes are logged and appear under the "Sections & subjects" filter.
+- Tests: `test_sections_subjects.py`; wording in older tests updated (Classes → Sections).
 
 ### Added
 - **Edit people** (Roles → Staff / Pupils → *Edit*): first name, last name, email. A pupil's new email/name is applied to every exam they're on; a teacher's to the exams they own. `POST /api/accounts/<id>/update/`.

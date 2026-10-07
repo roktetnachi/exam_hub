@@ -77,7 +77,8 @@ def invite_user(request, user):
             emailed = True
         except Exception:
             logger.exception('Invite email to user %s failed', user.pk)
-    return ({'id': user.id, 'name': user.get_full_name() or user.username, 'email': user.email,
+    return ({'id': user.id, 'name': user.get_full_name() or user.username, 'firstName': user.first_name,
+             'lastName': user.last_name, 'email': user.email,
              'username': user.username, 'tempPassword': password, 'loginUrl': url,
              'role': 'pupil' if user.role == User.Role.PUPIL else ('admin' if user.can_manage_classes else 'teacher')},
             emailed)
@@ -206,11 +207,12 @@ def pupils_admin_api(request):
     school = getattr(request, 'school', None)
     if school:
         qs = qs.filter(school=school)
-    qs = qs.prefetch_related('classes_enrolled').order_by('first_name', 'last_name', 'username')
+    qs = qs.prefetch_related('classes_enrolled', 'subjects_enrolled').order_by('first_name', 'last_name', 'username')
     out = []
     for u in qs:
         d = serialize_person(u)
         d['classes'] = [c.name for c in u.classes_enrolled.all()]
+        d['subjects'] = [s.name for s in u.subjects_enrolled.all()]
         out.append(d)
     return JsonResponse({'pupils': out})
 
@@ -252,7 +254,10 @@ def update_person_api(request, user_id):
         validate_email(email)
     except ValidationError:
         return HttpResponseBadRequest("That email address doesn't look right.")
-    if User.objects.filter(email__iexact=email).exclude(id=target.id).exists():
+    # Only check for a clash when the email is actually being changed: editing just the name must
+    # always work, even if some other (e.g. old test) account happens to share this email.
+    email_changed = email.lower() != (target.email or '').lower()
+    if email_changed and User.objects.filter(email__iexact=email).exclude(id=target.id).exists():
         return HttpResponseBadRequest('Another account already uses that email.')
     old_email, old_name = target.email, target.get_full_name() or target.username
     target.first_name, target.last_name, target.email = first, last, email
@@ -304,5 +309,35 @@ def delete_pupils_api(request):
     User.objects.filter(id__in=[p.id for p in pupils]).delete()
     log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'pupil_deleted',
                  f'Deleted {len(names)} pupil account{"s" if len(names) != 1 else ""}: '
+                 + ', '.join(names[:10]) + ('…' if len(names) > 10 else '') + '.')
+    return JsonResponse({'deleted': len(names)})
+
+
+@login_required
+@require_POST
+def delete_staff_api(request):
+    """Delete one or more teacher/admin accounts (admins only). You can't delete yourself or a
+    main admin (superuser), so the school always keeps at least one admin. Exams they created
+    stay (they're linked by name/email, not by account) and admins can still open and grade them."""
+    if not _is_admin(request.user):
+        return HttpResponseForbidden('Only admins can delete staff accounts.')
+    from .views import log_activity
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid request.')
+    ids = {int(i) for i in (payload.get('userIds') or []) if str(i).isdigit()}
+    if not ids:
+        return HttpResponseBadRequest('Choose the staff to delete.')
+    if request.user.id in ids:
+        return HttpResponseBadRequest('You can\'t delete your own account.')
+    staff = list(_school_people(request).filter(id__in=ids, role=User.Role.TEACHER))
+    if len(staff) != len(ids):
+        return HttpResponseBadRequest('Only teacher and admin accounts from this school can be deleted here '
+                                      '(main admins are managed in Django admin).')
+    names = [f'{t.get_full_name() or t.username}{" (admin)" if t.is_school_admin else ""}' for t in staff]
+    User.objects.filter(id__in=[t.id for t in staff]).delete()
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'teacher_deleted',
+                 f'Deleted {len(names)} staff account{"s" if len(names) != 1 else ""}: '
                  + ', '.join(names[:10]) + ('…' if len(names) > 10 else '') + '.')
     return JsonResponse({'deleted': len(names)})

@@ -26,7 +26,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from . import email_login
 from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient,
-    School, SchoolClass, Submission, User)
+    School, SchoolClass, Subject, Submission, User)
 
 
 @login_required
@@ -542,6 +542,25 @@ def auto_grade_item(item, response):
     return None, max_score  # long_answer / table / pdf, or no answer key set — manual only
 
 
+def can_manage_exam(user, assignment):
+    """Admins (and the main admin) see and manage every exam in the school; a plain teacher only
+    the exams they created (exams are linked to their teacher by email)."""
+    if user.is_superuser or user.can_manage_classes:
+        return True
+    return bool(user.email) and (assignment.teacher_email or '').strip().lower() == user.email.strip().lower()
+
+
+def not_your_exam_response():
+    return HttpResponseForbidden("This exam belongs to another teacher.")
+
+
+def visible_exams_for(user, qs):
+    """Filter an Assignment queryset down to what this teacher may see."""
+    if user.is_superuser or user.can_manage_classes:
+        return qs
+    return qs.filter(teacher_email__iexact=user.email) if user.email else qs.none()
+
+
 def annotated_recipients():
     """Recipients with their submission and latest-message times fetched in ONE query, instead
     of 3-4 queries per pupil. That per-pupil pattern made the dashboard take ~20 seconds for
@@ -646,6 +665,8 @@ def assignments_api(request):
         email = request.user.email
     if email:
         qs = qs.filter(recipients__pupil_email__iexact=email).distinct()
+    if not is_real_pupil(request):
+        qs = visible_exams_for(request.user, qs)   # teachers: only their own exams (admins: all)
     assignments = list(qs)
     finalize_closed_attempts(assignments)
     if is_real_pupil(request):
@@ -663,6 +684,8 @@ def item_pdf(request, item_id):
     assignment = item.assignment
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
         if not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
             return HttpResponseForbidden('This PDF is not assigned to your account.')
@@ -695,6 +718,8 @@ def _serve_item_media(request, item_id, item_type, field_name):
     assignment = item.assignment
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
         if not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
             return HttpResponseForbidden('This file is not assigned to your account.')
@@ -738,6 +763,8 @@ def assignment_status_api(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
         return HttpResponseForbidden('Only teachers can view exam status.')
     finalize_closed_attempts([assignment])
@@ -772,7 +799,7 @@ def pupils_api(request):
         return HttpResponseForbidden('Only teachers can view the pupil list.')
     pupils = request.user.teachable_pupils(getattr(request, 'school', None)).order_by('first_name', 'last_name', 'username')
     return JsonResponse({'canManageClasses': request.user.can_manage_classes, 'pupils': [
-        {'id': p.id, 'name': p.get_full_name() or p.username, 'email': p.email}
+        {'id': p.id, 'name': p.get_full_name() or p.username, 'firstName': p.first_name, 'lastName': p.last_name, 'email': p.email}
         for p in pupils if p.email
     ]})
 
@@ -867,7 +894,7 @@ def create_assignment(request):
                if (p.get('email') or '').strip() and (p.get('email') or '').strip().lower() not in allowed_emails]
     if outside:
         return HttpResponseForbidden(
-            'You can only assign work to pupils in your own classes. Not allowed: ' + ', '.join(outside[:5]) +
+            'You can only assign work to pupils in the subjects you teach. Not allowed: ' + ', '.join(outside[:5]) +
             ('…' if len(outside) > 5 else ''))
     visibility = request.POST.get('visibility') or 'now'
     if visibility not in ('now', 'scheduled', 'hidden'):
@@ -921,6 +948,8 @@ def update_assignment_api(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     try:
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
@@ -986,6 +1015,8 @@ def exam_state_api(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     try:
         action = json.loads(request.body or '{}').get('action')
     except json.JSONDecodeError:
@@ -1031,6 +1062,8 @@ def delete_assignment_api(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     try:
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
@@ -1053,6 +1086,8 @@ def start_submission(request, recipient_id):
     recipient = get_object_or_404(Recipient, id=recipient_id)
     if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
     # Anyone who isn't the actual, restricted pupil this work belongs to is "acting as teacher"
     # in this app (that includes the shared superuser account used for previews) — matches the
     # frontend's own read-only-preview condition (document.body.dataset.role !== 'pupil').
@@ -1264,6 +1299,8 @@ def unlock_submission_api(request, recipient_id):
     recipient = get_object_or_404(Recipient, id=recipient_id)
     if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     submission.locked_at = None
     submission.save(update_fields=['locked_at'])
@@ -1291,7 +1328,7 @@ def lock_status_api(request, recipient_id):
 
 def _require_teacher(request):
     if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
-        return HttpResponseForbidden('Only teachers can manage classes and pupils.')
+        return HttpResponseForbidden('Only teachers can manage year groups, subjects and pupils.')
     return None
 
 
@@ -1302,7 +1339,7 @@ def _require_class_admin(request):
     if denied:
         return denied
     if not request.user.can_manage_classes:
-        return HttpResponseForbidden('Only admins can create or manage classes. Ask an admin to add you to a class.')
+        return HttpResponseForbidden('Only admins can create or manage year groups and subjects. Ask an admin to add you to one.')
     return None
 
 
@@ -1323,7 +1360,7 @@ def serialize_class(cls):
             for t in cls.teachers.all()
         ],
         'pupils': [
-            {'id': p.id, 'name': p.get_full_name() or p.username, 'email': p.email}
+            {'id': p.id, 'name': p.get_full_name() or p.username, 'firstName': p.first_name, 'lastName': p.last_name, 'email': p.email}
             for p in cls.pupils.all().order_by('first_name', 'last_name', 'username')
         ],
     }
@@ -1358,12 +1395,12 @@ def create_class_api(request):
         return HttpResponseBadRequest('Invalid class data.')
     name = (payload.get('name') or '').strip()
     if not name:
-        return HttpResponseBadRequest('Give the class a name.')
+        return HttpResponseBadRequest('Give the year group a name.')
     existing = SchoolClass.objects.filter(name__iexact=name)
     if getattr(request, 'school', None):
         existing = existing.filter(school=request.school)
     if existing.exists():
-        return HttpResponseBadRequest('A class with that name already exists.')
+        return HttpResponseBadRequest('A year group with that name already exists.')
     pupil_ids = payload.get('pupilIds') or []
     cls = SchoolClass.objects.create(name=name, school=getattr(request, 'school', None))
     if payload.get('teacherIds'):
@@ -1372,7 +1409,7 @@ def create_class_api(request):
         pupils = User.assignable_pupils(getattr(request, 'school', None)).filter(id__in=pupil_ids)
         cls.pupils.set(pupils)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
-        'class_created', f'Created class "{cls.name}".', school_class=cls)
+        'class_created', f'Created year group "{cls.name}".', school_class=cls)
     return JsonResponse(serialize_class(cls), status=201)
 
 
@@ -1396,12 +1433,12 @@ def update_class_api(request, class_id):
         if getattr(request, 'school', None):
             existing = existing.filter(school=request.school)
         if existing.exists():
-            return HttpResponseBadRequest('A class with that name already exists.')
+            return HttpResponseBadRequest('A year group with that name already exists.')
         old_name = cls.name
         cls.name = name
         cls.save()
         log_activity(actor, request.user.email, 'class_renamed',
-            f'Renamed class "{old_name}" to "{cls.name}".', school_class=cls)
+            f'Renamed year group "{old_name}" to "{cls.name}".', school_class=cls)
     if 'pupilIds' in payload:
         before = {p.id: p for p in cls.pupils.all()}
         pupils = list(User.assignable_pupils(getattr(request, 'school', None)).filter(id__in=payload.get('pupilIds') or []))
@@ -1412,16 +1449,16 @@ def update_class_api(request, class_id):
         label = lambda people: ', '.join(p.get_full_name() or p.username for p in people[:5]) + ('…' if len(people) > 5 else '')
         if added:
             log_activity(actor, request.user.email, 'class_pupils',
-                f'Added {label(added)} to class "{cls.name}".', school_class=cls)
+                f'Added {label(added)} to year group "{cls.name}".', school_class=cls)
         if removed:
             log_activity(actor, request.user.email, 'class_pupils',
-                f'Removed {label(removed)} from class "{cls.name}".', school_class=cls)
+                f'Removed {label(removed)} from year group "{cls.name}".', school_class=cls)
     if 'teacherIds' in payload:
         before = set(cls.teachers.values_list('id', flat=True))
         cls.teachers.set(assignable_teachers(getattr(request, 'school', None)).filter(id__in=payload.get('teacherIds') or []))
         if set(cls.teachers.values_list('id', flat=True)) != before:
             log_activity(request.user.get_full_name() or request.user.username, request.user.email,
-                'class_teachers', f'Updated teachers of class "{cls.name}": '
+                'class_teachers', f'Updated teachers of year group "{cls.name}": '
                 f'{", ".join(t.get_full_name() or t.username for t in cls.teachers.all()) or "none"}.',
                 school_class=cls)
     return JsonResponse(serialize_class(cls))
@@ -1437,8 +1474,173 @@ def delete_class_api(request, class_id):
     if getattr(request, 'school', None) and cls.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
-        'class_deleted', f'Deleted class "{cls.name}".')
+        'class_deleted', f'Deleted year group "{cls.name}".')
     cls.delete()
+    return JsonResponse({'deleted': True})
+
+
+# ---------------- subjects (pupils can come from several sections) ----------------
+
+def serialize_subject(subject, section_names=None):
+    """section_names: optional {pupil_id: [year group names]} so the page can show where each
+    pupil comes from without an extra query per pupil."""
+    section_names = section_names or {}
+    return {
+        'id': subject.id,
+        'name': subject.name,
+        'teachers': [
+            {'id': t.id, 'name': t.get_full_name() or t.username, 'email': t.email}
+            for t in subject.teachers.all()
+        ],
+        'pupils': [
+            {'id': p.id, 'name': p.get_full_name() or p.username, 'firstName': p.first_name, 'lastName': p.last_name, 'email': p.email,
+             'sections': section_names.get(p.id, [])}
+            for p in sorted(subject.pupils.all(), key=lambda u: (u.first_name.lower(), u.last_name.lower(), u.username))
+        ],
+    }
+
+
+def _pupil_section_names(school):
+    out = {}
+    qs = SchoolClass.pupils.through.objects.select_related('schoolclass')
+    if school:
+        qs = qs.filter(schoolclass__school=school)
+    for row in qs.order_by('schoolclass__name'):
+        out.setdefault(row.user_id, []).append(row.schoolclass.name)
+    return out
+
+
+def _get_school_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    if getattr(request, 'school', None) and subject.school_id != request.school.id:
+        return None
+    return subject
+
+
+@login_required
+def subjects_page(request):
+    return _teacher_page(request, 'subjects.html')
+
+
+@login_required
+@require_GET
+def subjects_api(request):
+    denied = _require_teacher(request)
+    if denied:
+        return denied
+    school = getattr(request, 'school', None)
+    subjects = request.user.visible_subjects(school).prefetch_related('pupils', 'teachers')
+    sections = _pupil_section_names(school)
+    data = {'canManageClasses': request.user.can_manage_classes,
+            'subjects': [serialize_subject(s, sections) for s in subjects]}
+    if request.user.can_manage_classes:
+        data['teachers'] = [
+            {'id': t.id, 'name': t.get_full_name() or t.username, 'email': t.email}
+            for t in assignable_teachers(school).order_by('first_name', 'last_name', 'username')
+        ]
+    return JsonResponse(data)
+
+
+@login_required
+@require_POST
+def create_subject_api(request):
+    denied = _require_class_admin(request)
+    if denied:
+        return denied
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid subject data.')
+    school = getattr(request, 'school', None)
+    name = (payload.get('name') or '').strip()
+    if not name:
+        return HttpResponseBadRequest('Give the subject a name.')
+    if len(name) > 120:
+        return HttpResponseBadRequest('Subject names can be at most 120 characters.')
+    existing = Subject.objects.filter(name__iexact=name)
+    if school:
+        existing = existing.filter(school=school)
+    if existing.exists():
+        return HttpResponseBadRequest('A subject with that name already exists.')
+    subject = Subject.objects.create(name=name, school=school)
+    if payload.get('teacherIds'):
+        subject.teachers.set(assignable_teachers(school).filter(id__in=payload['teacherIds']))
+    if payload.get('pupilIds'):
+        subject.pupils.set(User.assignable_pupils(school).filter(id__in=payload['pupilIds']))
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email,
+                 'subject_created', f'Created subject "{subject.name}".')
+    return JsonResponse(serialize_subject(subject, _pupil_section_names(school)), status=201)
+
+
+@login_required
+@require_POST
+def update_subject_api(request, subject_id):
+    """Any of: name, teacherIds (replace), pupilIds (replace), addPupilIds, removePupilIds."""
+    denied = _require_class_admin(request)
+    if denied:
+        return denied
+    subject = _get_school_subject(request, subject_id)
+    if subject is None:
+        return HttpResponseForbidden('Forbidden')
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid subject data.')
+    school = getattr(request, 'school', None)
+    actor = request.user.get_full_name() or request.user.username
+    label = lambda people: ', '.join(p.get_full_name() or p.username for p in people[:5]) + ('…' if len(people) > 5 else '')
+    name = (payload.get('name') or '').strip()
+    if name and name != subject.name:
+        if len(name) > 120:
+            return HttpResponseBadRequest('Subject names can be at most 120 characters.')
+        existing = Subject.objects.filter(name__iexact=name).exclude(id=subject.id)
+        if school:
+            existing = existing.filter(school=school)
+        if existing.exists():
+            return HttpResponseBadRequest('A subject with that name already exists.')
+        old = subject.name
+        subject.name = name
+        subject.save(update_fields=['name'])
+        log_activity(actor, request.user.email, 'subject_renamed', f'Renamed subject "{old}" to "{subject.name}".')
+    before = {p.id: p for p in subject.pupils.all()}
+    pupils_q = User.assignable_pupils(school)
+    if 'pupilIds' in payload:
+        subject.pupils.set(list(pupils_q.filter(id__in=payload.get('pupilIds') or [])))
+    if payload.get('addPupilIds'):
+        subject.pupils.add(*pupils_q.filter(id__in=payload['addPupilIds']))
+    if payload.get('removePupilIds'):
+        subject.pupils.remove(*subject.pupils.filter(id__in=payload['removePupilIds']))
+    after = {p.id: p for p in subject.pupils.all()}
+    added = [after[i] for i in after if i not in before]
+    removed = [before[i] for i in before if i not in after]
+    if added:
+        log_activity(actor, request.user.email, 'subject_pupils',
+                     f'Added {len(added)} pupil{"s" if len(added) != 1 else ""} to subject "{subject.name}": {label(added)}.')
+    if removed:
+        log_activity(actor, request.user.email, 'subject_pupils',
+                     f'Removed {label(removed)} from subject "{subject.name}".')
+    if 'teacherIds' in payload:
+        before_t = set(subject.teachers.values_list('id', flat=True))
+        subject.teachers.set(assignable_teachers(school).filter(id__in=payload.get('teacherIds') or []))
+        if set(subject.teachers.values_list('id', flat=True)) != before_t:
+            log_activity(actor, request.user.email, 'subject_teachers',
+                         f'Updated teachers of subject "{subject.name}": '
+                         f'{", ".join(t.get_full_name() or t.username for t in subject.teachers.all()) or "none"}.')
+    return JsonResponse(serialize_subject(subject, _pupil_section_names(school)))
+
+
+@login_required
+@require_POST
+def delete_subject_api(request, subject_id):
+    denied = _require_class_admin(request)
+    if denied:
+        return denied
+    subject = _get_school_subject(request, subject_id)
+    if subject is None:
+        return HttpResponseForbidden('Forbidden')
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email,
+                 'subject_deleted', f'Deleted subject "{subject.name}".')
+    subject.delete()
     return JsonResponse({'deleted': True})
 
 
@@ -1450,6 +1652,7 @@ def _serialize_teacher(t):
         'isAdmin': t.can_manage_classes,
         'isActive': t.is_active,
         'classes': [c.name for c in t.classes_taught.all()],
+        'subjects': [s.name for s in t.subjects_taught.all()],
         'lastLogin': t.last_login.isoformat() if t.last_login else None,
         'status': t.account_status,
         'invitedAt': t.invited_at.isoformat() if t.invited_at else None,
@@ -1465,7 +1668,7 @@ def teachers_api(request):
     teachers = User.objects.filter(Q(role=User.Role.TEACHER) | Q(is_superuser=True))
     if getattr(request, 'school', None):
         teachers = teachers.filter(school=request.school)
-    teachers = (teachers.prefetch_related('classes_taught')
+    teachers = (teachers.prefetch_related('classes_taught', 'subjects_taught')
                 .order_by('-is_superuser', '-is_school_admin', 'first_name', 'last_name', 'username'))
     return JsonResponse({'teachers': [_serialize_teacher(t) for t in teachers]})
 
@@ -1495,7 +1698,7 @@ def set_teacher_admin_api(request, user_id):
         log_activity(request.user.get_full_name() or request.user.username, request.user.email,
             'admin_granted' if make_admin else 'admin_revoked',
             f'Made {name} an admin.' if make_admin else f'Changed {name} back to a regular teacher.')
-    target = User.objects.prefetch_related('classes_taught').get(id=target.id)
+    target = User.objects.prefetch_related('classes_taught', 'subjects_taught').get(id=target.id)
     return JsonResponse(_serialize_teacher(target))
 
 
@@ -1542,6 +1745,13 @@ def create_teacher_api(request):
             classes = classes.filter(school=request.school)
         for cls in classes:
             cls.teachers.add(user)
+    subject_ids = [int(i) for i in (payload.get('subjectIds') or []) if str(i).isdigit()]
+    if subject_ids:
+        subjects = Subject.objects.filter(id__in=subject_ids)
+        if getattr(request, 'school', None):
+            subjects = subjects.filter(school=request.school)
+        for subject in subjects:
+            subject.teachers.add(user)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'teacher_created',
                  f'Added {name} ({email}) as {"an admin" if role == "admin" else "a teacher"}.')
     data = {'tempPassword': temp_password, 'emailed': False}
@@ -1549,7 +1759,7 @@ def create_teacher_api(request):
         from .accounts import invite_user
         cred, emailed = invite_user(request, user)
         data.update({'tempPassword': cred['tempPassword'], 'emailed': emailed})
-    data.update(_serialize_teacher(User.objects.prefetch_related('classes_taught').get(id=user.id)))
+    data.update(_serialize_teacher(User.objects.prefetch_related('classes_taught', 'subjects_taught').get(id=user.id)))
     return JsonResponse(data, status=201)
 
 
@@ -1599,9 +1809,16 @@ def create_pupil_api(request):
     cls = cls.first() if class_id else None
     if cls:
         cls.pupils.add(pupil)
+    subject_ids = [int(i) for i in (payload.get('subjectIds') or []) if str(i).isdigit()]
+    if subject_ids:
+        subjects = Subject.objects.filter(id__in=subject_ids)
+        if getattr(request, 'school', None):
+            subjects = subjects.filter(school=request.school)
+        for subject in subjects:
+            subject.pupils.add(pupil)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email,
         'pupil_created', f'Added pupil {pupil.get_full_name() or pupil.username} ({pupil.email})'
-        + (f' to class "{cls.name}".' if cls else '.'), school_class=cls)
+        + (f' to year group "{cls.name}".' if cls else '.'), school_class=cls)
     emailed = False
     if payload.get('invite'):
         from .accounts import invite_user
@@ -1628,6 +1845,8 @@ def update_recipient_accommodations_api(request, recipient_id):
     recipient = get_object_or_404(Recipient, id=recipient_id)
     if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
     try:
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
@@ -1655,9 +1874,8 @@ def update_recipient_accommodations_api(request, recipient_id):
 
 
 def _recipient_access_check(request, recipient):
-    """Shared guard for the 1:1 chat endpoints: any teacher can message any recipient
-    (this app has no per-assignment ownership — see _require_teacher); a pupil only their
-    own."""
+    """Shared guard for the 1:1 chat endpoints: the exam's own teacher (or an admin) can message
+    its pupils; a pupil only their own thread."""
     if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
         return HttpResponseForbidden('Not allowed.')
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
@@ -1665,6 +1883,8 @@ def _recipient_access_check(request, recipient):
             return HttpResponseForbidden('This is not your exam.')
     elif request.user.role != User.Role.TEACHER and not request.user.is_superuser:
         return HttpResponseForbidden('Not allowed.')
+    elif not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
     return None
 
 
@@ -1748,6 +1968,8 @@ def broadcast_message_api(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     try:
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
@@ -1777,8 +1999,9 @@ ACTIVITY_CATEGORIES = {
     'assignments': ['created', 'updated', 'deleted', 'broadcast', 'accommodation'],
     'submissions': ['submitted', 'locked', 'unlocked', 'resumed'],
     'grading': ['graded', 'published'],
-    'classes': ['class_created', 'class_renamed', 'class_deleted', 'class_teachers', 'class_pupils', 'pupil_created'],
-    'roles': ['admin_granted', 'admin_revoked', 'teacher_created'],
+    'classes': ['class_created', 'class_renamed', 'class_deleted', 'class_teachers', 'class_pupils', 'pupil_created',
+                'subject_created', 'subject_renamed', 'subject_deleted', 'subject_teachers', 'subject_pupils'],
+    'roles': ['admin_granted', 'admin_revoked', 'teacher_created', 'teacher_deleted'],
 }
 
 
@@ -1786,6 +2009,8 @@ def _notification_assignments(request):
     qs = Assignment.objects.all()
     if getattr(request, 'school', None):
         qs = qs.filter(school=request.school)
+    if not is_real_pupil(request):
+        qs = visible_exams_for(request.user, qs)
     return qs
 
 
@@ -1953,6 +2178,8 @@ def grade_submission_api(request, recipient_id):
     recipient = get_object_or_404(Recipient, id=recipient_id)
     if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     try:
         payload = json.loads(request.body or '{}')
@@ -2017,6 +2244,8 @@ def publish_submission_api(request, recipient_id):
     recipient = get_object_or_404(Recipient, id=recipient_id)
     if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
     submission = get_object_or_404(Submission, recipient=recipient)
     try:
         payload = json.loads(request.body or '{}')
@@ -2045,6 +2274,8 @@ def publish_assignment_grades_api(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     submissions = Submission.objects.filter(recipient__assignment=assignment, graded_at__isnull=False, published=False)
     count = submissions.update(published=True)
     if count:
@@ -2096,6 +2327,8 @@ def seb_launch_api(request):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if getattr(request, 'school', None) and assignment.school_id != request.school.id:
         return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
     if is_real_pupil(request) and not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
         return HttpResponseForbidden('This work is not assigned to your account.')
     token = make_seb_launch_token(request.user, assignment.id)
@@ -2354,10 +2587,52 @@ def superadmin_school_admins_api(request, school_id):
             'username': a.username,
             'email': a.email,
             'full_name': a.get_full_name(),
+            'first_name': a.first_name,
+            'last_name': a.last_name,
             'is_active': a.is_active,
         }
         for a in admins
     ], safe=False)
+
+
+@login_required
+@require_POST
+def superadmin_update_school_admin_api(request, school_id, user_id):
+    """Platform superadmin: change a school admin's first name, last name and email. A new email
+    is also applied to the exams they created (exams are linked to their teacher by email)."""
+    check = _superadmin_check(request)
+    if check:
+        return check
+    school = get_object_or_404(School, id=school_id)
+    admin_user = get_object_or_404(User, id=user_id, school=school, is_school_admin=True)
+    err = lambda msg: HttpResponseBadRequest(json.dumps({'error': msg}), content_type='application/json')
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return err('Invalid JSON format.')
+    first = (data.get('first_name') or '').strip()
+    last = (data.get('last_name') or '').strip()
+    email = (data.get('email') or '').strip()
+    if not first or not email:
+        return err('A first name and email are required.')
+    if len(first) > 150 or len(last) > 150:
+        return err('Names can be at most 150 characters.')
+    from django.core.validators import validate_email
+    try:
+        validate_email(email)
+    except DjangoValidationError:
+        return err("That email address doesn't look right.")
+    old_email = admin_user.email or ''
+    if email.lower() != old_email.lower() and User.objects.filter(email__iexact=email).exclude(id=admin_user.id).exists():
+        return err('Another account already uses that email.')
+    admin_user.first_name, admin_user.last_name, admin_user.email = first, last, email
+    admin_user.save(update_fields=['first_name', 'last_name', 'email'])
+    new_name = admin_user.get_full_name() or admin_user.username
+    if old_email:
+        Assignment.objects.filter(school=school, teacher_email__iexact=old_email).update(teacher_email=email, teacher_name=new_name)
+    return JsonResponse({'id': admin_user.id, 'username': admin_user.username, 'email': admin_user.email,
+                         'full_name': admin_user.get_full_name(), 'first_name': first, 'last_name': last,
+                         'is_active': admin_user.is_active})
 
 
 @login_required

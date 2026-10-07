@@ -558,7 +558,8 @@
   {% if request.user.is_superuser or request.user.role == 'teacher' %}
   <nav class="topnav" id="teacherTopNav" aria-label="Sections">
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}" class="active" aria-current="page">Exams</a>
-    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes{% else %}My classes{% endif %}</a>
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Year groups{% else %}My year groups{% endif %}</a>
+    <a href="{{ request.school_url_prefix|default:'' }}{% url 'subjects-page' %}">{% if request.user.can_manage_classes %}Subjects{% else %}My subjects{% endif %}</a>
     {% if request.user.can_view_activity %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}">Activity</a>{% endif %}
     {% if request.user.is_superuser or request.user.is_school_admin %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}">Roles</a>{% endif %}
   </nav>
@@ -672,7 +673,7 @@
 
       <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn" id="btnNewAssignment">+ New exam</button>
-        <a class="btn outline" id="btnManageRoster" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Classes &amp; pupils{% else %}My classes{% endif %}</a>
+        <a class="btn outline" id="btnManageRoster" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if request.user.can_manage_classes %}Year groups &amp; pupils{% else %}My year groups{% endif %}</a>
         {% if request.user.can_view_activity %}<a class="btn outline" id="btnActivityLog" href="{{ request.school_url_prefix|default:'' }}{% url 'activity-page' %}">Activity log</a>{% endif %}
       </div>
 
@@ -692,7 +693,7 @@
         <div class="empty-state hidden" id="assignmentEmpty">
           <div class="empty-icon">&#128221;</div>
           <h3>No exams yet</h3>
-          <p>Create your first one — add a PDF or questions, choose how pupils take it, and assign it to a class.</p>
+          <p>Create your first one — add a PDF or questions, choose how pupils take it, and assign it to a year group or subject.</p>
           <button class="btn" type="button" onclick="document.getElementById('btnNewAssignment').click()">+ Create your first exam</button>
         </div>
       </div>
@@ -881,13 +882,13 @@
 
         <div id="createStep-assign" class="wizard-step hidden">
         <div class="field">
-          <label>Assign to</label>
-          <p class="sub" style="margin:0 0 8px;">Tick a class to select everyone in it, or tick individual pupils below.{% if not request.user.can_manage_classes %} You can assign to the pupils in the classes an admin has assigned you to.{% endif %}</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><label style="margin:0;">Assign to</label><span id="assignSortSlot"></span></div>
+          <p class="sub" style="margin:0 0 8px;">{% if request.user.can_manage_classes %}Tick a subject or year group to select everyone in it, or tick individual pupils below.{% else %}Tick a subject to select everyone in it, or tick individual pupils. You can assign to the subjects an admin has assigned you to.{% endif %}</p>
           {% if request.user.can_manage_classes %}
           <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <button type="button" class="btn small outline" id="quickNewClassBtn">+ New class</button>
+            <button type="button" class="btn small outline" id="quickNewClassBtn">+ New year group</button>
             <button type="button" class="btn small outline" id="quickNewPupilBtn">+ New pupil</button>
-            <button type="button" class="btn small outline" id="manageRosterBtn">Manage classes &amp; pupils</button>
+            <button type="button" class="btn small outline" id="manageRosterBtn">Manage year groups &amp; pupils</button>
           </div>
           {% endif %}
           <div id="pupilChecklist"></div>
@@ -1288,24 +1289,24 @@
     <div class="modal-backdrop hidden" id="rosterModal">
       <div class="card" style="width:720px;max-width:94vw;max-height:86vh;overflow:auto;">
         <div class="row" style="justify-content:space-between;align-items:center;">
-          <h2 style="margin:0;">{% if request.user.can_manage_classes %}Classes &amp; pupils{% else %}My classes{% endif %}</h2>
+          <h2 style="margin:0;">{% if request.user.can_manage_classes %}Year groups &amp; pupils{% else %}My year groups{% endif %}</h2>
           <button type="button" class="btn outline small" id="closeRosterBtn">Close</button>
         </div>
         {% if request.user.can_manage_classes %}
-        <p class="sub">Admin view — create classes, choose which teachers teach each one, and add pupils. Teachers can only assign work to pupils in the classes they're assigned to.</p>
+        <p class="sub">Admin view — create year groups, choose each year group's teachers, and add pupils. Subjects (which can mix pupils from several year groups) are set up on the Subjects page.</p>
         {% else %}
-        <p class="sub">The classes an admin has assigned you to. You can assign work to any pupil in these classes. Ask an admin if a class or pupil is missing.</p>
+        <p class="sub">The year groups an admin has attached you to, for reference. You set exams for the subjects you teach. Ask an admin if a year group or pupil is missing.</p>
         {% endif %}
         <div class="row" style="gap:18px;align-items:flex-start;flex-wrap:wrap;">
           <div style="flex:1;min-width:280px;">
-            <h3 style="margin:10px 0 6px;font-size:14px;">Classes</h3>
+            <h3 style="margin:10px 0 6px;font-size:14px;">Year groups</h3>
             <div id="rosterClassList"></div>
             {% if request.user.can_manage_classes %}
             <div class="field" style="margin-top:10px;">
-              <label>New class name</label>
+              <label>New year group name</label>
               <div class="row" style="gap:8px;">
-                <input type="text" id="newClassName" placeholder="e.g. Grade 10 — Newton" style="flex:1;">
-                <button class="btn small" id="createClassBtn" type="button">Add class</button>
+                <input type="text" id="newClassName" placeholder="e.g. Year 7 or Pre-U 1" style="flex:1;">
+                <button class="btn small" id="createClassBtn" type="button">Add year group</button>
               </div>
               <p id="classFormError" class="hidden" style="color:var(--danger);font-size:12.5px;margin:4px 0 0;"></p>
             </div>
@@ -1477,6 +1478,7 @@
 
 </div>
 
+{% include "_name_sort.html" %}
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -1486,7 +1488,8 @@ const state = {
   pupils: [],          // populated from /api/pupils/ (real accounts an admin or teacher created with role=Pupil)
   pupilEmails: {},
   pupilIds: {},          // name -> id, so the "assign to" checklist can add a not-yet-grouped pupil to a class
-  classes: [],          // populated from /api/classes/ — [{id,name,teacherNames,teachers:[{id,name,email}],pupils:[{id,name,email}]}]
+  subjects: [],         // populated from /api/subjects/ — same shape as classes; pupils can come from several year groups
+  classes: [],          // year groups (populated from /api/classes/) — [{id,name,teacherNames,teachers:[{id,name,email}],pupils:[{id,name,email}]}]
   teachers: [],         // admins only: every teacher account, for the per-class "add teacher" picker
   canManageClasses: document.body.dataset.canManageClasses === '1',  // admin-teacher: create/edit classes; else assign-only
   assignments: [], // {id,title,prompt,items:[{id,type,label,order,...}],assignedTo:[],submissions:{pupil:{status,annotations:[],responses:{itemId:...},outlineHtml,submittedAt}}}
@@ -2426,31 +2429,35 @@ applyVisibilityPicker('now'); applyClosePicker('scheduled');
 async function loadPupils(){
   try {
     const result = await request('/api/pupils/');
+    state.pupilRecords = result.pupils;
     state.pupils = result.pupils.map(p=>p.name);
     state.pupilEmails = {};
     state.pupilIds = {};
     result.pupils.forEach(p=>{ state.pupilEmails[p.name] = p.email; state.pupilIds[p.name] = p.id; });
   } catch(error) {
-    state.pupils = []; state.pupilEmails = {}; state.pupilIds = {};
+    state.pupils = []; state.pupilRecords = []; state.pupilEmails = {}; state.pupilIds = {};
   }
 }
 
 async function loadClasses(){
+  // "Classes" are called Year groups in the UI; subjects can mix pupils from several year groups.
   try {
-    const result = await request('/api/classes/');
+    const [result, subjects] = await Promise.all([request('/api/classes/'), request('/api/subjects/').catch(()=>({subjects: []}))]);
     state.classes = result.classes;
+    state.subjects = subjects.subjects || [];
     state.teachers = result.teachers || [];
     state.canManageClasses = !!result.canManageClasses;
   } catch(error) {
     state.classes = [];
+    state.subjects = [];
     state.teachers = [];
   }
 }
 
 // ---------------- classes & pupils: shared roster used by the assignment picker and the Manage modal ----------------
-function pupilRowHtml(p){
-  const safeId = `chk_p_${p.id}`;
-  return `<div class="pupil-check"><input type="checkbox" value="${p.name}" data-pupil-id="${p.id}" id="${safeId}"><label for="${safeId}">${p.name} <span style="color:#5b6470;font-weight:normal">(${p.email})</span></label></div>`;
+function pupilRowHtml(p, group){
+  const safeId = `chk_p_${group || 'x'}_${p.id}`;
+  return `<div class="pupil-check"><input type="checkbox" value="${p.name}" data-pupil-id="${p.id}" data-group="${group || ''}" id="${safeId}"><label for="${safeId}">${p.name} <span style="color:#5b6470;font-weight:normal">(${p.email})</span></label></div>`;
 }
 
 function renderPupilChecklist(){
@@ -2460,31 +2467,34 @@ function renderPupilChecklist(){
     checklist.innerHTML = state.canManageClasses
       ? '<p class="sub">No pupil accounts yet — add one with "+ New pupil" above, or create some in Django admin (role: Pupil, with an email set).</p>'
       : (state.classes.length
-          ? '<p class="sub">Your classes don\'t have any pupils yet. Ask an admin to add pupils to them.</p>'
-          : '<p class="sub">You haven\'t been assigned to a class yet, so there\'s no one to assign work to. Ask an admin to add you to a class.</p>');
+          ? '<p class="sub">Your subjects don\'t have any pupils yet. Ask an admin to add pupils to them.</p>'
+          : '<p class="sub">You haven\'t been assigned to a subject yet, so there\'s no one to assign work to. Ask an admin to add you to one.</p>');
     return;
   }
   const groupedIds = new Set();
-  state.classes.forEach(cls=>{
+  const addGroup = (kind, grp, label)=>{
     const group = document.createElement('div');
     group.className = 'class-group';
-    const memberIds = cls.pupils.map(p=>String(p.id));
-    memberIds.forEach(id=>groupedIds.add(id));
-    const headerId = `chk_class_${cls.id}`;
-    group.innerHTML = `<div class="class-group-header"><input type="checkbox" id="${headerId}" data-class-toggle="${cls.id}"><label for="${headerId}">${cls.name} <span style="color:var(--muted);font-weight:normal">(${cls.pupils.length} pupil${cls.pupils.length===1?'':'s'})</span></label></div>` +
-      cls.pupils.map(pupilRowHtml).join('');
+    grp.pupils.forEach(p=>groupedIds.add(String(p.id)));
+    const headerId = `chk_${kind}_${grp.id}`;
+    group.innerHTML = `<div class="class-group-header"><input type="checkbox" id="${headerId}" data-group-toggle="${kind}_${grp.id}"><label for="${headerId}">${escapeHtml(grp.name)} <span style="color:var(--muted);font-weight:normal">(${label} · ${grp.pupils.length} pupil${grp.pupils.length===1?'':'s'})</span></label></div>` +
+      sortPeople(grp.pupils).map(p=>pupilRowHtml(p, `${kind}_${grp.id}`)).join('');
     checklist.appendChild(group);
-    group.querySelector(`[data-class-toggle="${cls.id}"]`).addEventListener('change', (e)=>{
-      group.querySelectorAll(`.pupil-check input[type="checkbox"]`).forEach(cb=>{ cb.checked = e.target.checked; });
-    });
-  });
-  const ungrouped = state.pupils.filter(name=>{
-    const match = state.classes.some(cls=>cls.pupils.some(p=>p.name===name));
-    return !match;
-  });
+  };
+  const heading = (text)=>{ const h = document.createElement('p'); h.className = 'sub'; h.style.cssText = 'margin:10px 0 6px;font-weight:700;'; h.textContent = text; checklist.appendChild(h); };
+  const subjects = (state.subjects || []).filter(s=>s.pupils.length);
+  if(subjects.length){ heading('Subjects'); subjects.forEach(s=>addGroup('subject', s, 'subject')); }
+  // Plain teachers assign by SUBJECT only; year groups (and loose pupils) are for admins.
+  if(state.canManageClasses && state.classes.length){ if(subjects.length) heading('Year groups'); state.classes.forEach(c=>addGroup('class', c, 'year group')); }
+  if(!state.canManageClasses){
+    if(!subjects.length) checklist.innerHTML = '<p class="sub">You haven\'t been assigned to a subject with pupils yet, so there\'s no one to assign work to. Ask an admin to add you to a subject.</p>';
+    wireChecklist(checklist);
+    return;
+  }
+  const ungrouped = sortPeople(state.pupilRecords || []).map(p=>p.name).filter(name=>!groupedIds.has(String(state.pupilIds[name])));
   if(ungrouped.length){
     const wrap = document.createElement('div');
-    if(state.classes.length) wrap.innerHTML = '<p class="sub" style="margin:8px 0 4px;">Not in a class yet</p>';
+    if(state.classes.length || subjects.length) wrap.innerHTML = '<p class="sub" style="margin:8px 0 4px;">Not in a year group yet</p>';
     ungrouped.forEach(name=>{
       const row = document.createElement('div');
       row.className = 'pupil-check';
@@ -2493,7 +2503,47 @@ function renderPupilChecklist(){
     });
     checklist.appendChild(wrap);
   }
+  wireChecklist(checklist);
 }
+
+function wireChecklist(checklist){
+  // A pupil can be listed under several subjects/sections: ticking them anywhere ticks every copy,
+  // and each group's box shows whether all / some of its pupils are picked.
+  const syncHeaders = ()=>{
+    checklist.querySelectorAll('[data-group-toggle]').forEach(h=>{
+      const boxes = Array.from(checklist.querySelectorAll(`.pupil-check input[data-group="${h.dataset.groupToggle}"]`));
+      const on = boxes.filter(b=>b.checked).length;
+      h.checked = boxes.length > 0 && on === boxes.length;
+      h.indeterminate = on > 0 && on < boxes.length;
+    });
+  };
+  const setPupil = (pupilId, checked)=>{
+    checklist.querySelectorAll(`.pupil-check input[data-pupil-id="${pupilId}"]`).forEach(cb=>{ cb.checked = checked; });
+  };
+  checklist.querySelectorAll('.pupil-check input').forEach(cb=>cb.addEventListener('change', ()=>{
+    if(cb.dataset.pupilId) setPupil(cb.dataset.pupilId, cb.checked);
+    syncHeaders();
+  }));
+  checklist.querySelectorAll('[data-group-toggle]').forEach(h=>h.addEventListener('change', ()=>{
+    checklist.querySelectorAll(`.pupil-check input[data-group="${h.dataset.groupToggle}"]`).forEach(cb=>setPupil(cb.dataset.pupilId, h.checked));
+    syncHeaders();
+  }));
+}
+
+// Sort control above "Assign to": re-sorts every group, keeping whoever is already ticked.
+(function(){
+  const slot = document.getElementById('assignSortSlot');
+  if(!slot) return;
+  slot.innerHTML = nameSortSelect('assignSort');
+  wireNameSort('assignSort', ()=>{
+    const picked = new Set(Array.from(document.querySelectorAll('#pupilChecklist .pupil-check input:checked')).map(c=>c.dataset.pupilId));
+    renderPupilChecklist();
+    picked.forEach(id=>{
+      const box = document.querySelector(`#pupilChecklist .pupil-check input[data-pupil-id="${id}"]`);
+      if(box){ box.checked = true; box.dispatchEvent(new Event('change')); }
+    });
+  });
+})();
 
 async function refreshRosterAndChecklist(){
   await Promise.all([loadPupils(), loadClasses()]);
@@ -2502,7 +2552,7 @@ async function refreshRosterAndChecklist(){
 
 function renderRosterModal(){
   const classList = document.getElementById('rosterClassList');
-  classList.innerHTML = state.classes.length ? '' : (state.canManageClasses ? '<p class="sub">No classes yet.</p>' : '<p class="sub">You haven\'t been assigned to any classes yet.</p>');
+  classList.innerHTML = state.classes.length ? '' : (state.canManageClasses ? '<p class="sub">No year groups yet.</p>' : '<p class="sub">You haven\'t been assigned to any year groups yet.</p>');
   state.classes.forEach(cls=>{
     const card = document.createElement('div');
     card.className = 'roster-class-card';
@@ -2520,12 +2570,12 @@ function renderRosterModal(){
       `<div style="margin-top:6px;"><span class="sub" style="font-size:12px;">Teachers:</span> ${teachers.map(t=>`<span class="chip">${escapeHtml(t.name)} <button type="button" class="link-btn" data-remove-teacher="${t.id}" data-from-class="${cls.id}" style="color:var(--muted);">×</button></span>`).join('') || '<span class="sub">None yet — no teacher can assign to this class.</span>'}</div>` +
       `<div style="margin-top:6px;"><select data-add-teacher-to-class="${cls.id}" style="${selectStyle}"><option value="">+ Assign teacher…</option>${state.teachers.filter(t=>!teachers.some(x=>x.id===t.id)).map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}</select></div>` +
       `<div style="margin-top:8px;"><span class="sub" style="font-size:12px;">Pupils:</span> ${cls.pupils.map(p=>`<span class="chip">${p.name} <button type="button" class="link-btn" data-remove-pupil="${p.id}" data-from-class="${cls.id}" style="color:var(--muted);">×</button></span>`).join('') || '<span class="sub">No pupils yet.</span>'}</div>` +
-      `<div style="margin-top:8px;"><select data-add-to-class="${cls.id}" style="${selectStyle}"><option value="">+ Add pupil to class…</option>${state.pupils.filter(name=>!cls.pupils.some(p=>p.name===name)).map(name=>`<option value="${name}">${name}</option>`).join('')}</select></div>`;
+      `<div style="margin-top:8px;"><select data-add-to-class="${cls.id}" style="${selectStyle}"><option value="">+ Add pupil to year group…</option>${state.pupils.filter(name=>!cls.pupils.some(p=>p.name===name)).map(name=>`<option value="${name}">${name}</option>`).join('')}</select></div>`;
     classList.appendChild(card);
   });
   classList.querySelectorAll('[data-delete-class]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      if(!(await confirmDialog({title: 'Delete this class?', message: 'Pupils keep their accounts and their work — only the class grouping is removed.', confirmLabel: 'Delete class', danger: true}))) return;
+      if(!(await confirmDialog({title: 'Delete this year group?', message: 'Pupils keep their accounts and their work — only the year group is removed (pupils stay in their subjects).', confirmLabel: 'Delete year group', danger: true}))) return;
       await request(`/api/classes/${btn.dataset.deleteClass}/delete/`, {method:'POST'});
       await refreshRosterAndChecklist();
       renderRosterModal();
@@ -2612,14 +2662,14 @@ document.getElementById('createClassBtn')?.addEventListener('click', async ()=>{
   const errorEl = document.getElementById('classFormError');
   errorEl.classList.add('hidden');
   const name = nameInput.value.trim();
-  if(!name){ errorEl.textContent = 'Give the class a name.'; errorEl.classList.remove('hidden'); return; }
+  if(!name){ errorEl.textContent = 'Give the year group a name.'; errorEl.classList.remove('hidden'); return; }
   try {
     await request('/api/classes/create/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
     nameInput.value = '';
     await refreshRosterAndChecklist();
     renderRosterModal();
   } catch(error) {
-    errorEl.textContent = error.message || 'Could not create that class.';
+    errorEl.textContent = error.message || 'Could not create that year group.';
     errorEl.classList.remove('hidden');
   }
 });
@@ -2693,7 +2743,8 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   const closeCondition = activePillValue('closeConditionPicker', 'cond');
   const opensAt = startCondition === 'scheduled' ? document.getElementById('aOpen').value : '';
   const due = closeCondition === 'scheduled' ? document.getElementById('aDue').value : '';
-  const assignedTo = Array.from(document.querySelectorAll('#pupilChecklist input:checked')).map(c=>c.value);
+  // Only pupil rows (not the subject/section "select all" boxes); a pupil listed in two groups counts once.
+  const assignedTo = Array.from(new Set(Array.from(document.querySelectorAll('#pupilChecklist .pupil-check input:checked')).map(c=>c.value)));
 
   const {items, pdfFiles, imageFiles, videoFiles} = collectItemsForSubmit();
   const form = new FormData();
@@ -5235,5 +5286,6 @@ loadAssignments().then(()=>{
 </script>
 {% include "_tour.html" %}
 {% include "_notifications.html" %}
+{% include "_password_toggle.html" %}
 </body>
 </html>

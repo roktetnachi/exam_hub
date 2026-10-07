@@ -1,5 +1,5 @@
 {% extends "teacher_base.html" %}
-{% block title %}{% if can_manage_classes %}Classes{% else %}My classes{% endif %}{% endblock %}
+{% block title %}{% if can_manage_classes %}Year groups{% else %}My year groups{% endif %}{% endblock %}
 {% block nav_classes %}class="active" aria-current="page"{% endblock %}
 
 {% block style %}
@@ -40,27 +40,28 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>{% if can_manage_classes %}Classes{% else %}My classes{% endif %}</h1>
+    <h1>{% if can_manage_classes %}Year groups{% else %}My year groups{% endif %}</h1>
     {% if can_manage_classes %}
-    <p class="sub">Set up classes, choose which teachers teach each one, and enrol pupils. Teachers can only assign work to pupils in their own classes.</p>
+    <p class="sub">Set up year groups (e.g. Year 7, Pre-U 1), choose each year group's teachers, and enrol pupils. For subjects that mix pupils from several year groups, use the <a href="{{ request.school_url_prefix|default:'' }}{% url 'subjects-page' %}">Subjects</a> page.</p>
     {% else %}
-    <p class="sub">The classes an admin has assigned you to. You can assign work to any pupil in these classes.</p>
+    <p class="sub">The year groups an admin has attached you to, for reference. To set an exam, pick one of your subjects in the exam's "Assign to" step.</p>
     {% endif %}
   </div>
   <div class="row">
-    {% if can_manage_classes %}<button class="btn small" id="bulkImportBtn" type="button">Bulk import classes (Excel / Google Sheets)</button>{% endif %}
+    {% if can_manage_classes %}<button class="btn small outline" id="bulkImportBtn" type="button">Bulk import year groups</button>
+    <button class="btn small" id="bulkSectionPupilsBtn" type="button">Bulk add pupils to year groups</button>{% endif %}
   </div>
 </div>
 
 <div class="layout">
   <aside class="card class-list">
-    <input type="search" class="search" id="classSearch" placeholder="Search classes…" aria-label="Search classes">
+    <input type="search" class="search" id="classSearch" placeholder="Search year groups…" aria-label="Search year groups">
     <div id="classList"><p class="empty">Loading…</p></div>
     {% if can_manage_classes %}
     <div class="new-class">
-      <label class="lbl" for="newClassName">New class</label>
+      <label class="lbl" for="newClassName">New year group</label>
       <div class="row">
-        <input type="text" id="newClassName" placeholder="e.g. Grade 10 — Newton">
+        <input type="text" id="newClassName" placeholder="e.g. Year 7 or Pre-U 1">
         <button class="btn small" id="createClassBtn" type="button">Add</button>
       </div>
       <p class="err hidden" id="classFormError"></p>
@@ -69,7 +70,7 @@
   </aside>
 
   <section class="card" id="detail">
-    <div class="placeholder"><p class="sub">Loading classes…</p></div>
+    <div class="placeholder"><p class="sub">Loading year groups…</p></div>
   </section>
 </div>
 
@@ -106,10 +107,10 @@ function renderList(){
   const q = state.filter.toLowerCase();
   const shown = state.classes.filter(c=>!q || c.name.toLowerCase().includes(q));
   if(!state.classes.length){
-    list.innerHTML = `<p class="empty">${CAN_MANAGE ? 'No classes yet — add the first one below.' : "You haven't been assigned to a class yet. Ask an admin to add you."}</p>`;
+    list.innerHTML = `<p class="empty">${CAN_MANAGE ? 'No year groups yet — add the first one below, or use "Bulk import year groups".' : "You haven't been assigned to a year group yet. Ask an admin to add you."}</p>`;
     return;
   }
-  if(!shown.length){ list.innerHTML = '<p class="empty">No classes match.</p>'; return; }
+  if(!shown.length){ list.innerHTML = '<p class="empty">No year groups match.</p>'; return; }
   list.innerHTML = shown.map(c=>{
     const t = c.teachers.length;
     const teacherText = t ? escapeHtml(c.teachers.map(x=>x.name).join(', ')) : '<span class="warn">No teacher yet</span>';
@@ -125,23 +126,23 @@ function renderDetail(){
   const el = document.getElementById('detail');
   const cls = selectedClass();
   if(!cls){
-    el.innerHTML = `<div class="placeholder"><h2>${CAN_MANAGE ? 'Create a class to get started' : 'No classes yet'}</h2>
-      <p class="sub" style="margin-top:6px;">${CAN_MANAGE ? 'Add a class on the left, then assign its teachers and pupils here.' : 'Once an admin adds you to a class, its pupils will show up here and in the assignment picker.'}</p></div>`;
+    el.innerHTML = `<div class="placeholder"><h2>${CAN_MANAGE ? 'Create a year group to get started' : 'No year groups yet'}</h2>
+      <p class="sub" style="margin-top:6px;">${CAN_MANAGE ? 'Add a year group on the left, then assign its teachers and pupils here.' : 'Once an admin adds you to a year group, its pupils will show up here and in the exam "Assign to" list.'}</p></div>`;
     return;
   }
-  const pupilRows = cls.pupils.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="em">${escapeHtml(p.email)}</td>
-    ${CAN_MANAGE ? `<td style="text-align:right;"><button type="button" class="icon-x" title="Remove from class" aria-label="Remove ${escapeHtml(p.name)}" data-remove-pupil="${p.id}">&times;</button></td>` : ''}</tr>`).join('');
+  const pupilRows = sortPeople(cls.pupils).map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="em">${escapeHtml(p.email)}</td>
+    ${CAN_MANAGE ? `<td style="text-align:right;"><button type="button" class="icon-x" title="Remove from year group" aria-label="Remove ${escapeHtml(p.name)}" data-remove-pupil="${p.id}">&times;</button></td>` : ''}</tr>`).join('');
 
   el.innerHTML = `
     <div class="detail-head">
       ${CAN_MANAGE
-        ? `<div class="name-edit"><input type="text" id="className" value="${escapeHtml(cls.name)}" aria-label="Class name"><button class="btn small outline" id="renameBtn" type="button">Save name</button></div>`
+        ? `<div class="name-edit"><input type="text" id="className" value="${escapeHtml(cls.name)}" aria-label="Section name"><button class="btn small outline" id="renameBtn" type="button">Save name</button></div>`
         : `<h2 style="font-size:22px;">${escapeHtml(cls.name)}</h2>`}
       <div class="row">
-        ${CAN_MANAGE ? '<button class="btn small danger" id="deleteClassBtn" type="button">Delete class</button>' : ''}
+        ${CAN_MANAGE ? '<button class="btn small danger" id="deleteClassBtn" type="button">Delete year group</button>' : ''}
       </div>
     </div>
-    ${CAN_MANAGE && !cls.teachers.length ? '<div class="callout">No teacher is assigned yet, so no teacher can set work for this class.</div>' : ''}
+    ${CAN_MANAGE && !cls.teachers.length ? '<div class="callout">No teacher is assigned yet, so no teacher can set work for this year group.</div>' : ''}
 
     <div class="section" style="margin-top:8px;">
       <div class="section-head"><h3 style="margin:0;">Teachers<span class="count">${cls.teachers.length}</span></h3></div>
@@ -153,16 +154,16 @@ function renderDetail(){
     </div>
 
     <div class="section">
-      <div class="section-head"><h3 style="margin:0;">Pupils<span class="count">${cls.pupils.length}</span></h3></div>
-      ${cls.pupils.length ? `<table class="pupil-table"><tbody>${pupilRows}</tbody></table>` : '<p class="empty" style="padding:4px 0;">No pupils in this class yet.</p>'}
+      <div class="section-head"><h3 style="margin:0;">Pupils<span class="count">${cls.pupils.length}</span></h3>${cls.pupils.length > 1 || CAN_MANAGE ? nameSortSelect('pupilSort') : ''}</div>
+      ${cls.pupils.length ? `<table class="pupil-table"><tbody>${pupilRows}</tbody></table>` : '<p class="empty" style="padding:4px 0;">No pupils in this year group yet.</p>'}
       ${CAN_MANAGE ? `
         <div style="margin-top:16px;max-width:520px;">
-          <label class="lbl">Add pupils to this class</label>
+          <label class="lbl">Add pupils to this year group</label>
           <input type="search" id="pickSearch" placeholder="Search pupils…">
           <div class="pick-list" id="pickList"></div>
           <div class="row" style="justify-content:space-between;flex-wrap:wrap;">
             <button class="btn small" id="addPupilsBtn" type="button" disabled>Add selected</button>
-            <span class="sub" style="font-size:12.5px;">New pupil? Create their account on the <a href="${SCHOOL_PREFIX}/roles/?tab=pupils">Roles page</a> first.</span>
+            <span class="sub" style="font-size:12.5px;">Many at once? Use <strong>Bulk add pupils to year groups</strong>. New pupil? Create their account on the <a href="${SCHOOL_PREFIX}/roles/?tab=pupils">Roles page</a> first.</span>
           </div>
         </div>` : ''}
     </div>
@@ -185,7 +186,7 @@ function renderPickList(cls){
   const box = document.getElementById('pickList');
   if(!box) return;
   const q = (document.getElementById('pickSearch').value || '').toLowerCase();
-  const available = state.pupils.filter(p=>!cls.pupils.some(x=>x.id===p.id))
+  const available = sortPeople(state.pupils).filter(p=>!cls.pupils.some(x=>x.id===p.id))
     .filter(p=>!q || p.name.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
   box.innerHTML = available.length ? available.map(p=>`<label><input type="checkbox" value="${p.id}"> ${escapeHtml(p.name)} <span class="em">${escapeHtml(p.email)}</span></label>`).join('')
     : '<p class="empty" style="padding:8px 0;">No other pupils to add.</p>';
@@ -196,20 +197,21 @@ function renderPickList(cls){
 }
 
 function wireDetail(cls){
+  wireNameSort('pupilSort', renderDetail);
   if(!CAN_MANAGE) return;
   document.getElementById('renameBtn').addEventListener('click', ()=>{
     const name = document.getElementById('className').value.trim();
-    if(!name) return showToast('Give the class a name.', 'error');
+    if(!name) return showToast('Give the year group a name.', 'error');
     if(name === cls.name) return;
-    updateClass(cls, {name}, 'Class renamed.');
+    updateClass(cls, {name}, 'Year group renamed.');
   });
   document.getElementById('deleteClassBtn').addEventListener('click', async ()=>{
-    if(!confirm(`Delete "${cls.name}"? Pupils keep their accounts and their work — only the class grouping is removed.`)) return;
+    if(!confirm(`Delete "${cls.name}"? Pupils keep their accounts and their work — only the year group is removed (pupils stay in their subjects).`)) return;
     try {
       await postJson(`/api/classes/${cls.id}/delete/`);
       state.selectedId = null;
       await loadAll(); selectClass(state.selectedId);
-      showToast('Class deleted.');
+      showToast('Year group deleted.');
     } catch(error){ showToast(error.message, 'error'); }
   });
   document.getElementById('addTeacherBtn').addEventListener('click', ()=>{
@@ -221,7 +223,7 @@ function wireDetail(cls){
     updateClass(cls, {teacherIds: cls.teachers.map(t=>t.id).filter(id=>id !== Number(b.dataset.removeTeacher))}, 'Teacher removed.');
   }));
   document.querySelectorAll('[data-remove-pupil]').forEach(b=>b.addEventListener('click', ()=>{
-    updateClass(cls, {pupilIds: cls.pupils.map(p=>p.id).filter(id=>id !== Number(b.dataset.removePupil))}, 'Pupil removed from class.');
+    updateClass(cls, {pupilIds: cls.pupils.map(p=>p.id).filter(id=>id !== Number(b.dataset.removePupil))}, 'Pupil removed from year group.');
   }));
   document.getElementById('pickSearch').addEventListener('input', ()=>renderPickList(cls));
   renderPickList(cls);
@@ -240,14 +242,14 @@ if(createBtn){
     const err = document.getElementById('classFormError');
     err.classList.add('hidden');
     const name = nameInput.value.trim();
-    if(!name){ err.textContent = 'Give the class a name.'; err.classList.remove('hidden'); return; }
+    if(!name){ err.textContent = 'Give the year group a name.'; err.classList.remove('hidden'); return; }
     try {
       const cls = await postJson('/api/classes/create/', {name});
       nameInput.value = '';
       await loadAll();
       selectClass(cls.id);
-      showToast('Class created — now assign its teachers and pupils.');
-    } catch(error){ err.textContent = error.message || 'Could not create that class.'; err.classList.remove('hidden'); }
+      showToast('Year group created — now assign its teachers and pupils.');
+    } catch(error){ err.textContent = error.message || 'Could not create that year group.'; err.classList.remove('hidden'); }
   };
   createBtn.addEventListener('click', create);
   nameInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') create(); });
@@ -256,10 +258,11 @@ if(createBtn){
 window.onBulkImported = async ()=>{ await loadAll(); renderList(); renderDetail(); };
 const bulkBtn = document.getElementById('bulkImportBtn');
 if(bulkBtn) bulkBtn.addEventListener('click', ()=>openBulk('classes'));
+document.getElementById('bulkSectionPupilsBtn')?.addEventListener('click', ()=>openBulk('section_pupils'));
 
 (async ()=>{
   try { await loadAll(); renderList(); renderDetail(); }
-  catch(error){ document.getElementById('detail').innerHTML = `<p class="err">${escapeHtml(error.message || 'Could not load classes.')}</p>`; }
+  catch(error){ document.getElementById('detail').innerHTML = `<p class="err">${escapeHtml(error.message || 'Could not load year groups.')}</p>`; }
 })();
 </script>
 {% endblock %}

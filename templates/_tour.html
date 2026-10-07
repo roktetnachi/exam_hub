@@ -43,7 +43,7 @@
   const welcome = (who, line) => ({icon:'wave', title:`Welcome to ExamHub${NAME ? ', ' + NAME : ''}!`,
     body:`You're signed in as <strong>${who}</strong>. ${line} This quick tour takes under a minute — use <strong>Next</strong> or your arrow keys.`});
   const assignmentsStep = {target: nav('/'), title:'Exams', body:'Your home page. Every exam lives here — open one to monitor pupils live, chat with them, and grade and publish results.'};
-  const activityStep = {target: nav('/activity/'), title:'Activity', body:'A timeline of what\'s happened — exams created, submissions, grading and class changes. Filter it by class or type.'};
+  const activityStep = {target: nav('/activity/'), title:'Activity', body:'A timeline of what\'s happened — exams created, submissions, grading and year group/subject changes. Filter it by year group or type.'};
   const previewStep = {target:'#roleToggleWrap', title:'Pupil preview', body:'Switch to <strong>Pupil preview</strong> to see exactly what a pupil sees, read-only. Handy for checking an exam before it opens.'};
   const accountStep = {target: ACCOUNT, title:'Your account', body:'Change your password or sign out here. You can replay this tour from here any time.'};
   const finish = (line) => ({icon:'done', title:"You're all set", body: line});
@@ -53,27 +53,30 @@
       welcome('the main admin', 'You can do everything — including deciding who else is an admin.'),
       assignmentsStep,
       {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. As an admin you can assign to any pupil.'},
-      {target: nav('/classes/'), title:'Classes', body:'Set up classes here: create them, pick the teachers who teach each one, and enrol pupils. Teachers can only assign work to pupils in their own classes.'},
+      {target: nav('/classes/'), title:'Year groups', body:'Set up year groups here: create them, pick each year group\'s teachers, and enrol pupils (one by one or in bulk).'},
+      {target: nav('/subjects/'), title:'Subjects', body:'Create subjects, pick their teachers, and add pupils from any year group. Teachers can only assign work to pupils in their own year groups and subjects.'},
       activityStep,
-      {target: nav('/roles/'), title:'Roles', body:'Only you see this. Add new staff accounts and set each person to <strong>Admin</strong> (can set up classes) or <strong>Teacher</strong> (works only with their assigned classes).'},
+      {target: nav('/roles/'), title:'Roles', body:'Only you see this. Add new staff accounts and set each person to <strong>Admin</strong> (can set up year groups and subjects) or <strong>Teacher</strong> (sees only their own exams and sets them only for the subjects they teach).'},
       previewStep, accountStep,
-      finish('A good first step: open <strong>Roles</strong> to set up your admins, then <strong>Classes</strong> to build your rosters.'),
+      finish('A good first step: open <strong>Roles</strong> to set up your admins, then <strong>Year groups</strong> and <strong>Subjects</strong> to build your rosters.'),
     ],
     admin: [
-      welcome('an admin', 'You can set up classes as well as create and run exams.'),
+      welcome('an admin', 'You can set up year groups and subjects as well as create and run exams.'),
       assignmentsStep,
       {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. As an admin you can assign to any pupil.'},
-      {target: nav('/classes/'), title:'Classes', body:'Create classes, choose the teachers who teach each one, and enrol pupils. Teachers only see the classes you put them in.'},
+      {target: nav('/classes/'), title:'Year groups', body:'Create year groups, choose each year group\'s teachers, and enrol pupils. Teachers only see the year groups you put them in.'},
+      {target: nav('/subjects/'), title:'Subjects', body:'Create subjects and add pupils from different year groups to each one. A subject\'s teachers can assign work to all of its pupils.'},
       activityStep, previewStep, accountStep,
-      finish('A good first step: open <strong>Classes</strong>, make sure each class has its teachers and pupils, then create your first exam.'),
+      finish('A good first step: open <strong>Year groups</strong> and <strong>Subjects</strong>, make sure each has its teachers and pupils, then create your first exam.'),
     ],
     teacher: [
-      welcome('a teacher', 'You can create exams for the pupils in your classes.'),
+      welcome('a teacher', 'You can create exams for the pupils in the subjects you teach.'),
       assignmentsStep,
-      {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. You can pick any pupil in the classes you teach.'},
-      {target: nav('/classes/'), title:'My classes', body:'The classes an admin has assigned you to, with their pupils. If a class or pupil is missing, ask an admin to add it.'},
+      {target:'#btnNewAssignment', title:'Create an exam', body:'Build an exam in three steps — content, delivery, then who to assign it to. You can pick a whole subject you teach, or individual pupils in it. Only you (and admins) see your exams.'},
+      {target: nav('/classes/'), title:'My year groups', body:'The year groups an admin has assigned you to, with their pupils.'},
+      {target: nav('/subjects/'), title:'My subjects', body:'The subjects you teach — their pupils can come from several year groups. If a subject or pupil is missing, ask an admin to add it.'},
       previewStep, accountStep,
-      finish('A good first step: check <strong>My classes</strong>, then press <strong>+ New exam</strong>.'),
+      finish('A good first step: check <strong>My subjects</strong>, then press <strong>+ New exam</strong>.'),
     ],
     pupil: [
       welcome('a pupil', ''),

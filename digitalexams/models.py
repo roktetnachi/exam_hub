@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -109,7 +110,17 @@ class User(AbstractUser):
         pupils = User.assignable_pupils(school=school or self.school)
         if self.can_manage_classes:
             return pupils
-        return pupils.filter(classes_enrolled__teachers=self).distinct()
+        # A plain teacher sets work only for the SUBJECTS they teach (a subject can hold pupils from
+        # several year groups). Being attached to a year group doesn't let them assign to it.
+        return pupils.filter(subjects_enrolled__teachers=self).distinct()
+
+    def visible_subjects(self, school=None):
+        """All of the school's subjects for an admin; only the subjects this teacher teaches otherwise."""
+        school = school or self.school
+        qs = Subject.objects.all() if self.can_manage_classes else self.subjects_taught.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
 
     def visible_classes(self, school=None):
         """All of the school's classes for a class admin; only the classes this teacher is
@@ -153,6 +164,35 @@ class SchoolClass(models.Model):
     )
     pupils = models.ManyToManyField(
         User, related_name='classes_enrolled', blank=True,
+        limit_choices_to={'role': User.Role.PUPIL, 'is_superuser': False, 'is_active': True},
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        # Shown as "Year groups" everywhere in the app; the model/table keep their old name so
+        # existing data, URLs (/classes/, /api/classes/) and migrations are untouched.
+        verbose_name = 'year group'
+        verbose_name_plural = 'year groups'
+
+    def __str__(self):
+        return self.name
+
+
+class Subject(models.Model):
+    """A taught subject (e.g. "Pre-U 1 Economics"). Unlike a section, a subject's pupils can
+    come from several different sections. Its teachers can assign work to its pupils."""
+    school = models.ForeignKey(
+        School, null=True, blank=True, on_delete=models.CASCADE, related_name='subjects',
+        help_text='The school this subject belongs to.',
+    )
+    name = models.CharField(max_length=120)
+    teachers = models.ManyToManyField(
+        User, related_name='subjects_taught', blank=True,
+        limit_choices_to={'role': User.Role.TEACHER},
+    )
+    pupils = models.ManyToManyField(
+        User, related_name='subjects_enrolled', blank=True,
         limit_choices_to={'role': User.Role.PUPIL, 'is_superuser': False, 'is_active': True},
     )
     created_at = models.DateTimeField(auto_now_add=True)

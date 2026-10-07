@@ -1,6 +1,6 @@
 {% comment %}
 Shared "bulk add from Excel / Google Sheets" dialog. Pages open it with openBulk('classes' |
-'teachers' | 'pupils') and define window.onBulkImported(kind) to refresh themselves.
+'section_pupils' | 'subjects' | 'subject_pupils' | 'teachers' | 'pupils') and define window.onBulkImported(kind) to refresh themselves.
 Needs teacher_base.html's request(), escapeHtml(), showToast(), SCHOOL_PREFIX.
 {% endcomment %}
 <style>
@@ -53,34 +53,64 @@ Needs teacher_base.html's request(), escapeHtml(), showToast(), SCHOOL_PREFIX.
 (function(){
 const BULK_TEXT = {
   classes: {
-    title: 'Bulk import classes',
-    sub: 'Create or update many classes at once and set who teaches each one. Teachers and pupils are added on the Roles page.',
+    title: 'Bulk import year groups',
+    sub: 'Create or update many year groups at once and set who teaches each one. Then put pupils into them with "Bulk add pupils to year groups".',
     steps: [
-      ['Download the template', 'Your current classes are already listed — edit a row to update it, add a row to create a class. Tab 2 is the guide.'],
-      ['Fill in teachers', 'Put the teacher email(s) per class (separate several with ";"). Blank keeps current teachers; NONE removes them.'],
+      ['Download the template', 'Your current year groups are already listed — edit a row to update it, add a row to create a year group. Tab 2 is the guide.'],
+      ['Fill in teachers', 'Put the teacher email(s) per year group (separate several with commas). Blank keeps current teachers; NONE removes them.'],
       ['Upload &amp; check', 'Upload the .xlsx (or a CSV / Google Sheets download). Nothing is saved until you confirm the preview.'],
     ],
-    item: 'Class', noun: 'class', template: 'classes',
+    item: 'Year group', noun: 'year group', template: 'classes', templateLabel: 'year groups',
+  },
+  section_pupils: {
+    title: 'Bulk add pupils to year groups',
+    sub: 'Put pupils who already have an account into year groups. New pupil accounts are created on the Roles page.',
+    steps: [
+      ['Download the template', 'Every pupil is listed with their current year group. Pick a year group in "Add to year group" for each one to add.'],
+      ['Leave the rest blank', 'Blank rows are skipped. Several year groups for one pupil? Separate them with commas.'],
+      ['Upload &amp; check', 'Unknown emails or year groups are flagged. This only adds — nobody is taken out of a year group.'],
+    ],
+    item: 'Pupil', noun: 'pupil row', template: 'section_pupils', templateLabel: 'year group pupils',
+  },
+  subjects: {
+    title: 'Bulk import subjects',
+    sub: 'Create or update many subjects at once and set who teaches each one. Then add pupils with "Bulk add pupils to subjects".',
+    steps: [
+      ['Download the template', 'Your current subjects are already listed — edit a row to update it, add a row to create a subject. Tab 2 is the guide.'],
+      ['Fill in teachers', 'Put the teacher email(s) per subject (separate several with commas). Blank keeps current teachers; NONE removes them.'],
+      ['Upload &amp; check', 'Upload the .xlsx (or a CSV / Google Sheets download). Nothing is saved until you confirm the preview.'],
+    ],
+    item: 'Subject', noun: 'subject', template: 'subjects', templateLabel: 'subjects',
+  },
+  subject_pupils: {
+    title: 'Bulk add pupils to subjects',
+    sub: 'Add pupils from any year group to the subjects they take — a whole year group in one row, or pupil by pupil.',
+    steps: [
+      ['Download the template', 'It lists one shaded row per year group, then every pupil. The "Subject list" tab shows your subjects.'],
+      ['Type the subjects', 'On a year group row to add everyone in it, or on a pupil row for just that pupil. Separate several with commas.'],
+      ['Upload &amp; check', 'The preview shows how many pupils each row adds. This only adds — nobody is taken out of a subject.'],
+    ],
+    item: 'Pupil / year group', noun: 'row', template: 'subject_pupils', templateLabel: 'subject pupils',
   },
   teachers: {
     title: 'Bulk add teachers',
-    sub: 'Create many teacher and admin accounts at once, and put them straight into the classes they teach.',
+    sub: 'Create many teacher and admin accounts at once, and put them straight into the subjects they teach.',
     steps: [
-      ['Download the template', 'Role and Classes have dropdowns — only classes that already exist are listed. Tab 2 is the guide.'],
-      ['Fill in your staff', 'First name, last name, email, Teacher/Admin and (optional) classes, separated by ";".'],
-      ['Upload &amp; check', 'Existing staff are updated (role, extra classes). New accounts get a temporary password.'],
+      ['Download a template', 'Blank (new people only) or with your current staff to edit. Role and Subjects have dropdowns. Tab 2 is the guide.'],
+      ['Fill in your staff', 'First name, last name, email, Teacher/Admin and (optional) subjects, separated by commas.'],
+      ['Upload &amp; check', 'Existing staff are updated (role, extra subjects). New accounts get a temporary password.'],
     ],
-    item: 'Teacher', noun: 'person', template: 'teachers',
+    item: 'Teacher', noun: 'person', template: 'teachers', templateLabel: 'teachers',
   },
   pupils: {
     title: 'Bulk add pupils',
-    sub: 'Create many pupil accounts at once and, if you like, put them into existing classes.',
+    sub: 'Create many pupil accounts at once and, if you like, put them into an existing year group and subjects.',
     steps: [
-      ['Download the template', 'Pick each pupil\'s class from the dropdown — only existing classes are listed. Class can be left blank.'],
-      ['Paste your pupils', 'First name, last name, email, class. Copy from your old sheet with Paste special → Values only.'],
-      ['Upload &amp; check', 'Rows naming a class that doesn\'t exist are flagged. New pupils get a temporary password.'],
+      ['Download a template', 'Blank (new pupils only) or with your current pupils to edit. Year group and Subjects have dropdowns and can be left blank.'],
+      ['Paste your pupils', 'First name, last name, email, year group, subjects. Copy from your old sheet with Paste special → Values only.'],
+      ['Upload &amp; check', 'Rows naming a year group or subject that doesn\'t exist are flagged. New pupils get a temporary password.'],
     ],
-    item: 'Pupil', noun: 'pupil row', template: 'pupils',
+    item: 'Pupil', noun: 'pupil row', template: 'pupils', templateLabel: 'pupils',
   },
 };
 const bulk = { kind: 'classes', file: null, preview: null, onlyErrors: false, invite: true };
@@ -97,11 +127,14 @@ function closeBulk(){ document.getElementById('bulkModal').classList.add('hidden
 
 function renderBulk(){
   const t = BULK_TEXT[bulk.kind];
-  const people = bulk.kind !== 'classes';
+  const people = bulk.kind === 'pupils' || bulk.kind === 'teachers';  // only these create accounts
   document.getElementById('bulkBody').innerHTML = `
     <div class="bi-steps">${t.steps.map((s,i)=>`<div class="bi-step"><b>${i+1}. ${s[0]}</b>${s[1]}</div>`).join('')}</div>
     <div class="bi-drop" id="biDrop">
-      <a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/">Download ${t.template} template (.xlsx)</a>
+      ${people
+        ? `<a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/" title="Just the headers — for adding new people">Blank template (.xlsx)</a>
+           <a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/?prefill=1" title="Everyone already in ExamHub, ready to edit and re-upload">Template with current ${bulk.kind === 'teachers' ? 'staff' : 'pupils'} (.xlsx)</a>`
+        : `<a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/">Download ${t.templateLabel} template (.xlsx)</a>`}
       <label class="btn small" style="margin:0;">Choose file…<input type="file" id="biFile" accept=".xlsx,.xlsm,.csv" hidden></label>
       <span class="fname" id="biFileName">${bulk.file ? escapeHtml(bulk.file.name) : 'or drop an .xlsx / .csv file here'}</span>
       <button class="btn small" id="biCheck" type="button" ${bulk.file ? '' : 'disabled'}>Check file</button>
@@ -136,7 +169,7 @@ async function sendBulk(commit, skipErrors){
   fd.append('file', bulk.file);
   fd.append('commit', commit ? '1' : '0');
   if(skipErrors) fd.append('skipErrors', '1');
-  if(commit && bulk.kind !== 'classes' && bulk.invite) fd.append('invite', '1');
+  if(commit && (bulk.kind === 'pupils' || bulk.kind === 'teachers') && bulk.invite) fd.append('invite', '1');
   const btns = document.querySelectorAll('#bulkBody button');
   btns.forEach(b=>b.disabled = true);
   try {
@@ -207,8 +240,9 @@ function renderBulkResult(){
 
 window.downloadCredentials = function(list, label){
   const cell = v=>`"${String(v ?? '').replace(/"/g,'""')}"`;
-  const lines = [['Name','Email','Username','Temporary password','Role','Classes','Sign-in link'].map(cell).join(',')]
-    .concat(list.map(c=>[c.name, c.email, c.username, c.tempPassword, c.role || (label === 'pupils' ? 'Pupil' : ''), c.classes || '', c.loginUrl || location.origin + SCHOOL_PREFIX + '/login/'].map(cell).join(',')));
+  const rows = typeof sortPeople === 'function' ? sortPeople(list) : list;
+  const lines = [['First name','Last name','Email','Username','Temporary password','Role','Year groups & subjects','Sign-in link'].map(cell).join(',')]
+    .concat(rows.map(c=>[c.firstName ?? c.name, c.lastName ?? '', c.email, c.username, c.tempPassword, c.role || (label === 'pupils' ? 'Pupil' : ''), c.classes || '', c.loginUrl || location.origin + SCHOOL_PREFIX + '/login/'].map(cell).join(',')));
   const blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

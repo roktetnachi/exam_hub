@@ -389,7 +389,7 @@
     </div>
     <div class="modal-body">
       <h4 style="margin:0 0 10px; font-size:14px;">Existing School Admins</h4>
-      <div id="adminsList" style="max-height:160px; overflow-y:auto; margin-bottom:20px;">
+      <div id="adminsList" style="max-height:320px; overflow-y:auto; margin-bottom:20px;">
         <div style="color:var(--muted); font-size:13px;">Loading admins...</div>
       </div>
 
@@ -574,17 +574,59 @@ async function openAdminsModal(schoolId, schoolName){
       listEl.innerHTML = '<div style="color:var(--muted); font-size:13px; padding:8px 0;">No school admins created yet. Use the form below to create one.</div>';
       return;
     }
+    adminCache = {};
+    admins.forEach(a => { adminCache[a.id] = a; });
     listEl.innerHTML = admins.map(a => `
-      <div class="admin-item">
+      <div class="admin-item" data-admin="${a.id}">
         <div>
           <div class="admin-name">${escapeHtml(a.full_name || a.username)}</div>
           <div class="admin-meta">@${escapeHtml(a.username)} · ${escapeHtml(a.email || 'No email')}</div>
         </div>
-        <span class="badge active" style="font-size:11px;">School Admin</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="badge active" style="font-size:11px;">School Admin</span>
+          <button type="button" class="btn small outline" onclick="editAdmin(${a.id})">Edit</button>
+        </div>
       </div>
     `).join('');
   }catch(err){
     listEl.innerHTML = `<div style="color:var(--danger); font-size:13px;">Error loading admins: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+let adminCache = {};
+function editAdmin(id){
+  const a = adminCache[id];
+  const row = document.querySelector(`[data-admin="${id}"]`);
+  if(!a || !row) return;
+  row.style.display = 'block';
+  row.innerHTML = `
+    <div class="form-row" style="margin-bottom:8px;">
+      <div class="form-group"><label>First name *</label><input type="text" id="edAdminFirst" value="${escapeHtml(a.first_name)}"></div>
+      <div class="form-group"><label>Last name</label><input type="text" id="edAdminLast" value="${escapeHtml(a.last_name)}"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:8px;"><label>Email *</label><input type="email" id="edAdminEmail" value="${escapeHtml(a.email)}"></div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">Username @${escapeHtml(a.username)} stays the same. A new email is also applied to the exams they created.</div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button type="button" class="btn small outline" onclick="reloadAdmins()">Cancel</button>
+      <button type="button" class="btn small" onclick="saveAdmin(${id})">Save</button>
+    </div>`;
+  document.getElementById('edAdminFirst').focus();
+}
+function reloadAdmins(){
+  openAdminsModal(document.getElementById('adminSchoolId').value, document.getElementById('adminsModalTitle').textContent.replace('Admins — ', ''));
+}
+async function saveAdmin(id){
+  const schoolId = document.getElementById('adminSchoolId').value;
+  try{
+    await apiCall(`/superadmin/api/schools/${schoolId}/admins/${id}/update/`, {
+      first_name: document.getElementById('edAdminFirst').value.trim(),
+      last_name: document.getElementById('edAdminLast').value.trim(),
+      email: document.getElementById('edAdminEmail').value.trim(),
+    });
+    showToast('Admin updated.');
+    reloadAdmins();
+  }catch(err){
+    showToast(err.message, true);
   }
 }
 
@@ -612,5 +654,6 @@ function escapeHtml(str){
 }
 </script>
 
+{% include "_password_toggle.html" %}
 </body>
 </html>

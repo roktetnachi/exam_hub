@@ -33,15 +33,15 @@
 <div class="page-head">
   <div>
     <h1>Activity</h1>
-    <p class="sub">{% if can_manage_classes %}Everything teachers and pupils have done in ExamHub, newest first.{% else %}Your own actions, plus anything involving the classes you teach.{% endif %}</p>
+    <p class="sub">{% if can_manage_classes %}Everything teachers and pupils have done in ExamHub, newest first.{% else %}Your own actions, plus anything involving the year groups you teach.{% endif %}</p>
   </div>
-  <a class="btn outline small" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if can_manage_classes %}Manage classes{% else %}My classes{% endif %}</a>
+  <a class="btn outline small" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if can_manage_classes %}Manage year groups{% else %}My year groups{% endif %}</a>
 </div>
 
 <div class="filters">
   <div class="f-class">
-    <label class="lbl" for="classFilter">Class</label>
-    <select id="classFilter"><option value="">All {% if not can_manage_classes %}my {% endif %}classes</option></select>
+    <label class="lbl" for="classFilter">Year group</label>
+    <select id="classFilter"><option value="">All {% if not can_manage_classes %}my {% endif %}year groups</option></select>
   </div>
   <div>
     <label class="lbl">Type</label>
@@ -50,7 +50,7 @@
       <button type="button" data-cat="assignments">Exams</button>
       <button type="button" data-cat="submissions">Submissions</button>
       <button type="button" data-cat="grading">Grading</button>
-      <button type="button" data-cat="classes">Classes</button>
+      <button type="button" data-cat="classes">Year groups &amp; subjects</button>
       {% if can_manage_classes %}<button type="button" data-cat="roles">Roles</button>{% endif %}
     </div>
   </div>
@@ -66,7 +66,7 @@
   <div style="text-align:center;margin-top:14px;"><button class="btn outline small hidden" id="loadMore" type="button">Load more</button></div>
   <div class="legend">
     <span><i class="dot assignments"></i>Exams</span><span><i class="dot submissions"></i>Submissions</span>
-    <span><i class="dot grading"></i>Grading</span><span><i class="dot classes"></i>Classes</span>{% if can_manage_classes %}<span><i class="dot roles"></i>Roles</span>{% endif %}
+    <span><i class="dot grading"></i>Grading</span><span><i class="dot classes"></i>Year groups &amp; subjects</span>{% if can_manage_classes %}<span><i class="dot roles"></i>Roles</span>{% endif %}
   </div>
 </div>
 {% endblock %}
@@ -138,7 +138,7 @@ async function load(reset){
     const scope = document.getElementById('scope');
     if(res.selectedClass){
       scope.innerHTML = `<span>Showing activity for <strong>${escapeHtml(res.selectedClass.name)}</strong> — roster changes plus anything about exams set for its pupils.</span>
-        <span><a href="${SCHOOL_PREFIX}/classes/?class=${res.selectedClass.id}">Open class</a> · <a href="#" id="clearClass">Show all classes</a></span>`;
+        <span><a href="${SCHOOL_PREFIX}/classes/?class=${res.selectedClass.id}">Open year group</a> · <a href="#" id="clearClass">Show all year groups</a></span>`;
       scope.classList.remove('hidden');
       document.getElementById('clearClass').addEventListener('click', (ev)=>{ ev.preventDefault(); setFilter('class', ''); document.getElementById('classFilter').value = ''; });
     } else {
