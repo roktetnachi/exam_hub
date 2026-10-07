@@ -3,7 +3,7 @@
 A living checklist for verifying that ExamHub is healthy before (and after) every deployment or significant change.
 Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through it.
 
-> **Version coverage:** migrations `0001` – `0026` · v0.22.0+ (exams, sign-in codes, invites, notifications)
+> **Version coverage:** migrations `0001` – `0029` · v0.22.0 + Unreleased (year groups & subjects, exam privacy, teacher marking, submission notices, exam resources, zoom, new invite email)
 
 ---
 
@@ -16,14 +16,16 @@ Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through i
 | 1.3 | `.env` file exists at project root | Present | |
 | 1.4 | `SECRET_KEY` is set (and not the insecure default in production) | Non-default value in prod | |
 | 1.5 | `DEBUG` is `False` in production | `False` | |
-| 1.6 | `ALLOWED_HOSTS` contains the production domain | `examhub-production-57c2.up.railway.app` | |
-| 1.7 | `CSRF_TRUSTED_ORIGINS` covers the Railway domain | `https://*.railway.app` present | |
+| 1.6 | `ALLOWED_HOSTS` accepts the production domain: `.railway.app` (any Railway domain) + `RAILWAY_PUBLIC_DOMAIN` + anything in the `ALLOWED_HOSTS` env var (comma-separated, for a custom domain) | `digitalexamhub.up.railway.app` (or custom domain) not refused with 400 | |
+| 1.7 | `CSRF_TRUSTED_ORIGINS` covers the same hosts (`https://*.railway.app` + each extra host) | Sign-in and form posts accepted on the live domain | |
 | 1.8 | `SchoolTenantMiddleware` is listed in `MIDDLEWARE` (after Session/Auth) | Present and correctly ordered | |
 | 1.9 | `TENANT_EXEMPT_PATHS` (optional) does not accidentally expose school routes | Only safe paths listed | |
 | 1.10 | `digitalexams.accounts.ForcePasswordChangeMiddleware` is listed **after** `SchoolTenantMiddleware` | Present, last in `MIDDLEWARE` | |
 | 1.11 | Email configured: `EMAIL_HOST_USER` + `EMAIL_HOST_PASSWORD` (App Password) set in `.env` / Railway | `EMAIL_BACKEND` resolves to SMTP in production | |
 | 1.12 | Test email actually arrives (not in spam) from the configured account | Delivered | |
 | 1.13 | ⚠️ Database credentials are **not** hard-coded in `settings.py` | Read from env (currently hard-coded — move to `.env` and rotate) | |
+| 1.14 | `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")` is set | Links and `.seb` files built with `https://` | |
+| 1.15 | `SITE_URL` env var (optional) matches the public address used in invite emails | Unset = `https://digitalexamhub.up.railway.app` | |
 
 ### How to verify
 ```bash
@@ -32,6 +34,10 @@ pip freeze | diff - requirements.txt
 
 # Check DEBUG value
 python manage.py shell -c "from django.conf import settings; print('DEBUG:', settings.DEBUG)"
+
+# Check hosts and the address used in invites
+python manage.py shell -c "from django.conf import settings; print(settings.ALLOWED_HOSTS, settings.CSRF_TRUSTED_ORIGINS)"
+python manage.py shell -c "from digitalexams.accounts import site_url; print(site_url())"
 
 # Check email backend + send a test message
 python manage.py shell -c "from django.conf import settings; print(settings.EMAIL_BACKEND, settings.DEFAULT_FROM_EMAIL)"
@@ -60,7 +66,7 @@ python manage.py showmigrations           # all rows show [X]
 
 ## 3. Migrations Integrity
 
-All 26 migrations must be present and applied in order:
+All 29 migrations must be present and applied in order:
 
 | Migration | Description |
 |-----------|-------------|
@@ -90,6 +96,9 @@ All 26 migrations must be present and applied in order:
 | `0024` | `Assignment.is_hidden` + `Assignment.closed_at` (visibility / manual close); `duration_minutes` no longer used |
 | `0025` | `User.must_change_password`, `User.invited_at`, `User.activated_at` (invites + first-login password) |
 | `0026` | `StoredFile` (uploaded files kept in the database as well as on disk) |
+| `0027` | `Subject` model (school, name, teachers M2M, pupils M2M) + "Year group" labels on `SchoolClass` |
+| `0028` | `Submission.teacher_marks` (teacher's marking JSON) + `Submission.teacher_seen_at` (new-submission notices) |
+| `0029` | `ExamResource` (guide PDFs / images / text attached to an exam) |
 
 ```bash
 python manage.py showmigrations digitalexams
@@ -134,6 +143,8 @@ ls staticfiles/
 | 5.11 | "Forgot password?" → code sign-in → change-password dialog opens without old password (once, 15 min) | Password changed | |
 | 5.12 | Sign out works from the Exams page and teacher pages | HTTP 302 → login | |
 | 5.13 | Pupil sign-in goes straight to "Loading your exams…" → their task list (no teacher dashboard, role switch or "Preview as a pupil" page flashes) | Pupil layout from first paint | |
+| 5.14 | Every password box has a show / hide (eye) button (sign-in, first password, change password, Roles, superadmin) | Toggles between dots and text | |
+| 5.15 | Same pupil email at two schools: each school's sign-in page (`/s/<slug>/login/`) signs in that school's account; username always works on the main sign-in page | Correct account | |
 
 ---
 
@@ -141,7 +152,7 @@ ls staticfiles/
 
 | # | Check | Expected | Status |
 |---|-------|----------|--------|
-| 6.1 | `POST /api/assignments/create/` creates exam + items + recipients (`visibility`, `opens_at`, `due_at`; no duration) | HTTP 201 | |
+| 6.1 | `POST /api/assignments/create/` creates exam + items + recipients (`visibility`, `opens_at`, `due_at`; no duration), plus any resources (`resources_meta` + `resource_files`) | HTTP 201 | |
 | 6.2 | Recipient can start a submission (`/api/submissions/<id>/start/`) | HTTP 200, `started_at` set | |
 | 6.3 | Autosave (`/api/submissions/<id>/save/`, every ~8 s on change) persists responses; no "Save draft" button for pupils | HTTP 200, `responses` updated | |
 | 6.4 | Final submit (`/api/submissions/<id>/submit/`) sets status `submitted` | HTTP 200, `submitted_at` set | |
@@ -150,7 +161,9 @@ ls staticfiles/
 | 6.7 | Grade publish (`/api/submissions/<id>/publish/`) sets `published=True` | HTTP 200 | |
 | 6.8 | Bulk publish (`/api/assignments/<id>/publish-grades/`) covers all submissions | HTTP 200 | |
 | 6.9 | Pupil opening **submitted** work: no fullscreen / exit lock / copy guard; Lockdown files load outside SEB; "read-only" notice shown | Normal browser view | |
-| 6.10 | Submission email failure does not break the submit | HTTP 200 even if SMTP fails | |
+| 6.10 | Submitting sends **no** email to the teacher; it shows as a new submission instead (see 20.8) | `mail.outbox` empty, `newSubmission: true` | |
+| 6.11 | Edit exam → *Assigned to*: ticking adds pupils, unticking removes them; removing a pupil who started asks for confirmation (409 `remove_started` → `confirmRemoveStarted`) | Recipients updated | |
+| 6.12 | Exams dashboard: "Created from / to", "Last 7 days", "Last 30 days", "Clear" filter the list (Manila dates); "select all" only selects filtered exams | Filtered rows only | |
 
 ---
 
@@ -166,6 +179,11 @@ ls staticfiles/
 | 7.6 | Teacher can unlock a pupil via `/api/submissions/<id>/unlock/` | `locked_at` cleared | |
 | 7.7 | Pupil can resume with a one-word code via `/api/submissions/<id>/resume/` | `locked_at` cleared | |
 | 7.8 | CSRF protection active on all POST/PUT/DELETE endpoints | 403 on missing CSRF | |
+| 7.9 | After a domain change: `.seb` file downloaded again and old Allowed Browser Exam Keys replaced; a Lockdown exam opens in SEB on the new domain | Exam opens | |
+| 7.10 | In a Lockdown exam the Resources window and its files load inside SEB, and are refused outside it | 200 in SEB / SEB-required outside | |
+| 7.11 | Inside SEB, a Lockdown exam opens straight into the paper (no "Open in Safe Exam Browser" dialog): `/s/<slug>/api/seb/check/` returns `ok: true` — the hash is checked against the full `/s/<slug>/…` URL | Exam opens, timer starts | |
+| 7.12 | Newer SEB (macOS / iPad) without hash headers: the page verifies via `POST /api/seb/verify/` (SEB JavaScript API) and the exam opens; in a normal browser it stays blocked | Opens in SEB only | |
+| 7.13 | One-time launch (`/seb/enter/<token>/`): works with headers (redirect) and with the JavaScript API (small "Opening your exam…" page); an expired / used link says so | Pupil signed in inside SEB | |
 
 ---
 
@@ -192,6 +210,11 @@ ls staticfiles/
 | 9.6 | Activity is **admin-only**: plain teachers get no Activity tab, `/activity/` redirects, `/api/activity-log/` → 403 | HTTP 302 / 403 | |
 | 9.7 | Data is scoped to the school in the URL: a superuser on `/s/<new-school>/` sees only that school's pupils, classes and teachers | No other school's data | |
 | 9.8 | Pupils cannot call `/api/assignments/<id>/state/`, `/api/accounts/invite/` or `/api/accounts/pupils/` | HTTP 403 | |
+| 9.9 | **Teachers only see their own exams**: dashboard, notifications and every exam action (status, edit, open/close, delete, messages, grading, publishing, unlock, files) refuse another teacher's exam; admins see all in the school | "This exam belongs to another teacher." (403) | |
+| 9.10 | Plain teachers assign **by subject only**: "Assign to" shows their subjects, no year groups; assigning a pupil outside their subjects is refused | HTTP 403 | |
+| 9.11 | Plain teachers: no "Teacher view / Pupil preview" switch, no "Preview as a pupil", no Year groups tab (`/classes/` → `/subjects/`) | Teacher view only | |
+| 9.12 | Teacher marks (`/api/submissions/<id>/marks/`) and "seen" endpoints: exam's own teacher or admins only | HTTP 403 for others | |
+| 9.13 | Exam resources: add / delete only by the exam's teacher or admins; files (`/api/resources/<id>/file/`) only for assigned pupils, the exam's teacher and admins | HTTP 403 for others | |
 
 ---
 
@@ -215,7 +238,7 @@ ls staticfiles/
 |---|-------|----------|--------|
 | 11.1 | `Procfile` specifies the correct `web` process | `gunicorn examhub.wsgi` | |
 | 11.2 | Railway build succeeds (no pip install errors) | Build log clean | |
-| 11.3 | Production URL responds with HTTP 200 | `https://examhub-production-57c2.up.railway.app/` | |
+| 11.3 | Production URL responds with HTTP 200 | `https://digitalexamhub.up.railway.app/` | |
 | 11.4 | Migrations run automatically on deploy (or via release command) | No unapplied migrations on live DB | |
 | 11.5 | SSL/TLS active on the Railway domain | HTTPS, valid cert | |
 | 11.6 | `sslmode=require` in DB `OPTIONS` | Encrypted connection | |
@@ -263,6 +286,7 @@ python manage.py check --deploy
 | 14.6 | `POST /superadmin/api/schools/<id>/toggle-active/` flips `is_active` | Bool toggled, HTTP 200 | |
 | 14.7 | `GET /superadmin/api/schools/<id>/admins/` lists school admins | Returns list, superuser only | |
 | 14.8 | `POST /superadmin/api/schools/<id>/create-admin/` adds an `is_school_admin` user | User created and scoped to school | |
+| 14.9 | Admins dialog → *Edit* changes an admin's first name, last name and email (`POST /superadmin/api/schools/<id>/admins/<user_id>/update/`); a new email follows to the exams they created | Saved, exams kept | |
 
 ---
 
@@ -286,6 +310,10 @@ python manage.py check --deploy
 | 15.14 | *Edit* changes name / email; duplicate emails rejected; pupil's exams and teacher's owned exams follow the new email | HTTP 200, links kept | |
 | 15.15 | *Delete* (one) and *Delete selected* (bulk, must type DELETE) remove pupil accounts after a confirmation dialog; submitted work stays | Accounts gone, submissions kept | |
 | 15.16 | Only admins can edit/delete; only pupils of this school can be deleted | HTTP 403 / 400 otherwise | |
+| 15.17 | *Edit* with only the name changed saves, even if another account elsewhere shares the email (duplicate check only runs when the email changes) | HTTP 200 | |
+| 15.18 | Pupil emails are unique **within a school**: the same email can be added at another school; staff emails stay unique everywhere | Allowed / refused per rule | |
+| 15.19 | *Delete* staff (single, or bulk after typing DELETE) — not yourself, not a main admin; their exams stay (`POST /api/accounts/staff/delete/`) | Accounts gone, exams kept | |
+| 15.20 | Lists sort by Last name A–Z (default) / Z–A / First name A–Z / Z–A on Roles, Year groups, Subjects and "Assign to"; choice remembered across pages | Order changes, ticks kept | |
 
 ---
 
@@ -294,7 +322,7 @@ python manage.py check --deploy
 | # | Check | Expected | Status |
 |---|-------|----------|--------|
 | 16.1 | New accounts (Roles page, bulk import, superadmin) have `must_change_password=True` | Field set | |
-| 16.2 | Invite (single / selected / "everyone not yet invited") emails username, temporary password and `/s/<slug>/login/?as=…` link | Email received | |
+| 16.2 | Invite (single / selected / "everyone not yet invited") email: subject "Your ExamHub account at <school>"; "Hi <first name>", username, temporary password, how to change the password, forgot-password steps ("Email me a code" with their username), then **Website: https://digitalexamhub.up.railway.app/** (no "Sign in here" link) | Email received, reads correctly | |
 | 16.3 | Invite sets a **new** temporary password and `invited_at`; status shows "Invited" | Status chip updated | |
 | 16.4 | Re-inviting an Active account warns first, then resets their password | Confirmation shown | |
 | 16.5 | Invite email failure → "Download logins (.csv)" offered | CSV has name, email, username, temp password, link | |
@@ -317,6 +345,12 @@ python manage.py check --deploy
 | 17.5 | Roles → Pupils → "Bulk add pupils": Class column optional; unknown class = error row | Preview counts correct | |
 | 17.6 | "Email invites to new accounts when I import" sends invites (`invite=1`) and reports sent / failed | Invite emails received | |
 | 17.7 | Nothing is saved on preview; errors block import unless skipped | DB unchanged before confirm | |
+| 17.8 | Teachers and pupils templates: "Blank template" or "Template with current staff / pupils" (`?prefill=1`); re-uploading the pre-filled file unchanged changes nothing | Both download; no-op import | |
+| 17.9 | Every template has separate **First name** and **Last name** columns; pre-filled lists are last name A–Z | Columns present | |
+| 17.10 | Teachers template uses **Subjects** (with a "Subject list" tab), no year-group column; older files with a Sections column still import | Subjects assigned | |
+| 17.11 | Several year groups / subjects / emails in one cell are separated by **commas** (`;` still accepted; a name that itself contains a comma is kept whole) | Split correctly | |
+| 17.12 | Year groups page: *Bulk import year groups* and *Bulk add pupils to year groups*; Subjects page: *Bulk import subjects* and *Bulk add pupils to subjects* | Preview then import | |
+| 17.13 | Headers "Year group", "Section" and "Class" are all accepted | Imports | |
 
 ---
 
@@ -350,6 +384,11 @@ python manage.py check --deploy
 | 19.4 | Clicking an annotation in the list opens its page and flashes it | Jump + flash | |
 | 19.5 | Grade tab: every item has a review button opening that item's section; "Back to grading" returns to the same pupil | Same pupil selected | |
 | 19.6 | Pupil *View grade*: total, %, per-item score and feedback; opening it clears the grade notification | `grade_seen_at` set | |
+| 19.7 | "✎ Mark this answer": select words → **Underline / Highlight / Comment** (no Circle); numbered margin comments; style change / delete from the list; autosaves ("Marks saved") | Saved to `teacher_marks.answers` | |
+| 19.8 | PDF "Mark:" toolbar: select, **Highlight** (drag), **Underline** (drag), **Comment pin** (click) — no Circle / Box; older circles and boxes still display | Saved to `teacher_marks.pdf` | |
+| 19.9 | Select tool → click a pupil's highlight / note → comment on it; shows as "💬 You: …" in the annotation list | Saved to `teacher_marks.annComments` | |
+| 19.10 | Pupil sees marks and comments **only after the grade is released** (on their answer, on the PDF, in *View grade*) | Hidden before publish | |
+| 19.11 | Review screen: − / + / Fit and Ctrl + scroll also zoom **image** items | Image resizes | |
 
 ---
 
@@ -364,6 +403,48 @@ python manage.py check --deploy
 | 20.5 | Plain teachers only get alerts for their own exams; admins for the whole school | Scoped correctly | |
 | 20.6 | Grade released → pupil pop-up + bell (never during an unsubmitted exam); re-grade notifies again | Pop-up shown | |
 | 20.7 | Each alert pops up only once per event (per browser) | No repeats | |
+| 20.8 | Pupil submits → teacher sees "N new" on the exam row, a "New" chip in Monitor and a 📥 bell item ("Open their work"); all clear once the teacher opens that pupil's work | Indicators appear, then clear | |
+| 20.9 | Monitor → *Mark all as seen* clears every new-submission indicator for that exam (`POST /api/submissions/seen/`) | Count drops to 0 | |
+
+---
+
+## 21. Year Groups & Subjects
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 21.1 | UI says **Year group(s)** everywhere (nav, pages, dialogs, tour, Roles, templates); `/classes/`, `/sections/` and `/year-groups/` all open the page | No "class" / "section" wording for year groups | |
+| 21.2 | Subjects page (`/subjects/`): create, rename, delete; assign teachers; add pupils from **any** year group with the grouped picker (ticks survive search / filter) | Saved | |
+| 21.3 | A subject's teachers can assign exams to its pupils; plain teachers see "My subjects" read-only | Per role | |
+| 21.4 | "Assign to" picker: a pupil in several groups is ticked everywhere at once and counted once | One recipient per pupil | |
+| 21.5 | Subject changes appear in Activity under "Year groups & subjects" | Logged | |
+
+---
+
+## 22. Pupil Exam Screen
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 22.1 | Long answers scroll inside the answer box; pupil can scroll back to the top; toolbar and Submit stay visible | Scrolls both ways | |
+| 22.2 | Navigator "‹ Question n of N ›" + grid of numbered squares grouped by section, answered vs not answered | Grid matches answers | |
+| 22.3 | Contents panel: bar headings with points, current item highlighted, Expand all / Collapse all; 7+ items start collapsed except the current one | As described | |
+| 22.4 | PDF zoom: − / % / + / Fit and Ctrl + scroll (trackpad pinch); page stays sharp when zoomed in; wide pages scroll instead of being cut off on the left | Zooms 30%–400% | |
+| 22.5 | Highlights, highlight notes, image notes and sticky-note dragging made **while zoomed** land on the right text and stay in place at every zoom (stored in unzoomed page coordinates) | Aligned at 100% and zoomed | |
+| 22.6 | Image items: − / % / + / Fit / 100% and Ctrl + scroll; big images start fitted to the screen | Zooms | |
+
+---
+
+## 23. Exam Resources
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 23.1 | Builder step 1 → "Resources for pupils": **+ PDF**, **+ Image**, **+ Text**, each with a title; a missing file / empty text is caught before saving | Exam created with resources | |
+| 23.2 | Edit exam (Settings) → Resources: add and remove take effect immediately, even during a live exam (`POST /api/assignments/<id>/resources/add/`, `POST /api/resources/<id>/delete/`) | Pupils see the change on next open | |
+| 23.3 | Exam's Content tab lists the resources (Open link for PDF / image, text shown) | Listed | |
+| 23.4 | Pupil toolbar shows **Resources (n)** only when the exam has resources | Hidden otherwise | |
+| 23.5 | Resources window floats like the Notepad: drag by the header, resize from the corner, minimise (– or double-click header), close; one tab per resource | Works without covering the exam permanently | |
+| 23.6 | PDF resources render page by page with − / % / + / Fit; images zoom; text keeps its line breaks | Readable | |
+| 23.7 | Resources aren't questions: no points, not in the navigator or grading | Totals unchanged | |
+| 23.8 | Wrong file types rejected (PDF slot needs a PDF, Image slot an image); text limited to 20,000 characters | HTTP 400 | |
 
 ---
 
@@ -386,7 +467,12 @@ python manage.py test digitalexams.tests.MultiTenancyAndSuperAdminTests
 # v0.22.0 test modules
 python manage.py test digitalexams.test_email_login digitalexams.test_tour digitalexams.test_school_scoping
 python manage.py test digitalexams.test_notifications digitalexams.test_exam_window digitalexams.test_invites digitalexams.test_people_and_files
+
+# Unreleased: year groups & subjects, marking + submission notices, exam resources
+python manage.py test digitalexams.test_sections_subjects digitalexams.test_marking digitalexams.test_resources digitalexams.test_seb
 ```
+
+> **Last full run (2026-10-07):** 122 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 
@@ -394,4 +480,4 @@ python manage.py test digitalexams.test_notifications digitalexams.test_exam_win
 
 ---
 
-*Last reviewed: 2026-10-06 (v0.22.0)*
+*Last reviewed: 2026-10-07 (v0.22.0 + Unreleased, migrations up to 0029)*

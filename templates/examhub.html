@@ -4770,8 +4770,33 @@ function sebProtocolLink(){
 // (sebDetected) isn't reliable — some SEB versions/configs don't advertise "SEB" in it, and
 // trusting it wrongly used to bounce pupils who were already inside SEB straight back out
 // via the seb:// relaunch below.
+// Newer SEB versions (notably macOS / iPadOS) don't put the hash headers on the page's own
+// background requests, but expose the same hashes (of this page's URL) to JavaScript. When the
+// header check fails, those are posted once to /api/seb/verify/, which marks this SEB session as
+// verified. SEB_PAGE_URL is the address the page was loaded with (before ?open=… is tidied away),
+// since SEB may have hashed that one.
+const SEB_PAGE_URL = location.href.split('#')[0];
+function sebJsApi(){ return (window.SafeExamBrowser && window.SafeExamBrowser.security) || null; }
+async function verifySebJsKeys(){
+  const sec = sebJsApi();
+  if(!sec || !sec.configKey) return null;
+  if(typeof sec.updateKeys === 'function'){
+    await new Promise(done=>{ try { sec.updateKeys(done); } catch(_) { done(); } setTimeout(done, 1500); });
+  }
+  try {
+    const res = await request('/api/seb/verify/', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({urls: [location.href.split('#')[0], SEB_PAGE_URL], configKey: sec.configKey, browserExamKey: sec.browserExamKey || ''})});
+    return !!(res && res.ok);
+  } catch(_) { return false; }
+}
 async function checkSebWithServer(){
-  try { return await request('/api/seb/check/'); } catch(_) { return null; }
+  let res = null;
+  try { res = await request('/api/seb/check/'); } catch(_) { res = null; }
+  if(res && res.ok) return res;
+  const viaJs = await verifySebJsKeys();
+  if(viaJs) return {ok: true, sebHeaders: true};
+  if(viaJs === false) return {ok: false, sebHeaders: true};
+  return res;
 }
 function gateWithSeb(a){
   return new Promise(async (resolve)=>{

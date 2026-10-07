@@ -7,6 +7,7 @@ import mimetypes
 import plistlib
 import secrets
 import string
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from django.core import signing
@@ -23,7 +24,8 @@ from django.db.models import Count, F, Max, Prefetch, Q
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from . import email_login
 
@@ -314,10 +316,45 @@ def seb_config_key(host, scheme, start_path=None):
     return hashlib.sha256(_seb_json(seb_config_settings(host, scheme, start_path)).encode('utf-8')).hexdigest()
 
 
+def _accepted_seb_keys(request, extra_keys=()):
+    """Every key a valid SEB hash may be built from: ExamHub's own config's Config Key (for both
+    schemes, since the file may have been downloaded over http or https), anything an admin added
+    by hand, the per-launch keys remembered on this SEB session, and any extra keys given."""
+    host = request.get_host()
+    keys = {seb_config_key(host, 'https'), seb_config_key(host, 'http')}
+    seb_keys_qs = AllowedBrowserExamKey.objects.all()
+    if getattr(request, 'school', None):
+        seb_keys_qs = seb_keys_qs.filter(school=request.school)
+    keys.update((k or '').strip().lower() for k in seb_keys_qs.values_list('key_hash', flat=True))
+    keys.update(extra_keys)
+    if hasattr(request, 'session'):
+        keys.update(request.session.get('seb_config_keys', []))
+    keys.discard('')
+    return keys
+
+
+def _seb_request_paths(request):
+    """The path + query exactly as the pupil's browser asked for it. The school middleware strips
+    `/s/<slug>` from request.path before the view runs, but SEB hashes the URL it actually
+    requested — so the prefix has to go back on, or no school page ever matches."""
+    full = request.get_full_path()
+    prefix = getattr(request, 'school_url_prefix', '') or ''
+    return [prefix + full if prefix and not full.startswith(prefix + '/') else full]
+
+
+def _hash_matches(url, keys, received):
+    for key in keys:
+        expected = hashlib.sha256((url + key).encode('utf-8')).hexdigest()
+        if any(hmac.compare_digest(expected, r) for r in received):
+            return True
+    return False
+
+
 def seb_lockdown_ok(request, extra_keys=()):
-    """True if this request carries a valid Browser Exam Key hash for any key we've been
-    given. There's deliberately no soft fallback (User-Agent, etc.) here — those are shown
-    client-side as a friendly hint, but this is the actual enforcement."""
+    """True if this request carries a valid Browser Exam Key / Config Key hash, or this SEB
+    session already proved itself through SEB's JavaScript API (see seb_js_keys_ok). There's
+    deliberately no soft fallback (User-Agent, etc.) here — those are shown client-side as a
+    friendly hint, but this is the actual enforcement."""
     # SEB sends two hashes: one built from the Browser Exam Key (changes with the SEB version
     # installed) and one from the Config Key (depends only on the .seb file, so it's the same
     # on every pupil's device). Either one matching a stored key is accepted, so an admin can
@@ -326,32 +363,39 @@ def seb_lockdown_ok(request, extra_keys=()):
         request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH', ''),
         request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH', ''),
     ) if h and h.strip()]
+    if received:
+        # SEB hashes the URL exactly as the pupil's browser sees it. Behind Railway's proxy Django
+        # sees the request as plain http:// even though the pupil is on https://, so both schemes
+        # are tried — the stored key is still required either way.
+        host = request.get_host()
+        keys = _accepted_seb_keys(request, extra_keys)
+        for path in _seb_request_paths(request):
+            for scheme in ('https', 'http'):
+                if _hash_matches(f'{scheme}://{host}{path}', keys, received):
+                    return True
+    # Newer SEB versions (notably macOS / iPadOS) don't add the headers to the page's own
+    # background requests; they expose the same hashes to JavaScript instead, which the exam
+    # page verifies once per SEB session via /api/seb/verify/.
+    return bool(hasattr(request, 'session') and request.session.get('seb_js_verified'))
+
+
+def seb_js_keys_ok(request, urls, values, extra_keys=()):
+    """Checks the values from SEB's JavaScript API (SafeExamBrowser.security.configKey /
+    .browserExamKey), which are SHA256(page URL + key) — the same as the request headers, just
+    for the page's own URL. `urls` are the page addresses to try (current and as first loaded);
+    only addresses on this site count."""
+    received = [str(v).strip().lower() for v in values if v and str(v).strip()]
     if not received:
         return False
-    # SEB hashes the URL exactly as the pupil's browser sees it. Behind Railway's proxy Django
-    # sees the request as plain http:// even though the pupil is on https://, so both schemes
-    # are tried — the stored key is still required either way.
-    path_and_query = request.get_full_path()
     host = request.get_host()
-    # Keys to accept: ExamHub's own config's Config Key (computed, for both schemes since the
-    # file may have been downloaded over http or https), plus anything an admin added by hand.
-    keys = {seb_config_key(host, 'https'), seb_config_key(host, 'http')}
-    seb_keys_qs = AllowedBrowserExamKey.objects.all()
-    if getattr(request, 'school', None):
-        seb_keys_qs = seb_keys_qs.filter(school=request.school)
-    keys.update((k or '').strip().lower() for k in seb_keys_qs.values_list('key_hash', flat=True))
-    # A pupil who arrived via a one-time launch link is running a per-launch config (its start
-    # page differs), so its Config Key differs too — remembered on their SEB session at sign-in.
-    keys.update(extra_keys)
-    if hasattr(request, 'session'):
-        keys.update(request.session.get('seb_config_keys', []))
-    keys.discard('')
-    for scheme in ('https', 'http'):
-        url = f'{scheme}://{host}{path_and_query}'
-        for key in keys:
-            expected = hashlib.sha256((url + key).encode('utf-8')).hexdigest()
-            if any(hmac.compare_digest(expected, r) for r in received):
-                return True
+    keys = _accepted_seb_keys(request, extra_keys)
+    for url in urls:
+        url = str(url or '').split('#', 1)[0]
+        parts = urlsplit(url)
+        if parts.scheme not in ('http', 'https') or parts.netloc != host:
+            continue
+        if _hash_matches(url, keys, received):
+            return True
     return False
 
 
@@ -2662,7 +2706,33 @@ def seb_launch_config(request, token):
     return response
 
 
-@require_GET
+SEB_ENTER_PAGE = '''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opening your exam…</title></head><body style="font-family:system-ui,sans-serif;padding:32px;color:#1f2328">
+<p id="m">Opening your exam…</p>
+<script>
+(function(){
+  var m = document.getElementById('m'), done = false;
+  function fail(t){ if(!done){ done = true; m.textContent = t; } }
+  function send(){
+    if(done) return;
+    var s = window.SafeExamBrowser && window.SafeExamBrowser.security;
+    if(!s || !s.configKey){ fail('This link only works inside Safe Exam Browser. Go back to ExamHub and click Open again.'); return; }
+    done = true;
+    fetch(location.pathname, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: location.href.split('#')[0], configKey: s.configKey, browserExamKey: s.browserExamKey || ''})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(d.ok){ location.replace(d.redirect); } else { done = false; fail(d.detail || 'This exam link could not be verified.'); } })
+      .catch(function(){ done = false; fail('Could not reach ExamHub. Check the connection and try again.'); });
+  }
+  var s = window.SafeExamBrowser && window.SafeExamBrowser.security;
+  if(s && typeof s.updateKeys === 'function'){ try { s.updateKeys(send); } catch(e) {} setTimeout(send, 1500); }
+  else { setTimeout(send, window.SafeExamBrowser ? 0 : 700); }
+})();
+</script></body></html>'''
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
 def seb_enter(request, token):
     """SEB's start page for a one-time launch: sign the pupil in and open their paper."""
     user, aid = read_seb_launch_token(token, require_unused=False)
@@ -2671,19 +2741,55 @@ def seb_enter(request, token):
     # SEB reloading this page after it already signed the pupil in: just carry on.
     if (user and request.user.is_authenticated and request.user.pk == user.pk
             and request.session.get('seb_config_keys')):
-        return redirect(open_url(aid))
+        return JsonResponse({'ok': True, 'redirect': open_url(aid)}) if request.method == 'POST' else redirect(open_url(aid))
     user, aid = read_seb_launch_token(token)
+    if not user and request.method == 'POST':
+        return JsonResponse({'ok': False, 'detail': 'This exam link has expired or was already used. '
+                                                     'Go back to ExamHub and click Open again.'}, status=403)
     if not user:
         return HttpResponse('<p style="font-family:sans-serif;padding:24px">This exam link has expired or was already used. '
                             f'<a href="{reverse("login")}">Sign in</a> and open the paper again.</p>', status=403)
     host = request.get_host()
     start_path = reverse('seb-enter', args=[token])
     token_keys = [seb_config_key(host, s, start_path) for s in ('https', 'http')]
-    if not seb_lockdown_ok(request, extra_keys=token_keys):
-        return HttpResponseForbidden('This link only works inside Safe Exam Browser.')
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-    request.session['seb_config_keys'] = token_keys
-    return redirect(open_url(aid))
+    if request.method == 'POST':
+        # The page below, inside a newer SEB that only exposes its keys to JavaScript.
+        try:
+            payload = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            payload = {}
+        if not seb_js_keys_ok(request, [payload.get('url')], [payload.get('configKey'), payload.get('browserExamKey')],
+                              extra_keys=token_keys):
+            return JsonResponse({'ok': False, 'detail': 'This link only works inside Safe Exam Browser, opened from ExamHub.'}, status=403)
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        request.session['seb_config_keys'] = token_keys
+        request.session['seb_js_verified'] = True
+        return JsonResponse({'ok': True, 'redirect': open_url(aid)})
+    if seb_lockdown_ok(request, extra_keys=token_keys):
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        request.session['seb_config_keys'] = token_keys
+        return redirect(open_url(aid))
+    # No SEB headers on this request. Newer SEB versions only expose their keys to JavaScript,
+    # so hand back a tiny page that reads them and posts them here; in any other browser it
+    # just says the link only works in SEB.
+    return HttpResponse(SEB_ENTER_PAGE)
+
+
+@login_required
+@require_POST
+def seb_verify_api(request):
+    """The exam page inside a newer SEB that doesn't send the hash headers on background requests:
+    it posts SafeExamBrowser.security.configKey / .browserExamKey (hashes of the page URL) and,
+    if they match, this SEB session counts as verified for the rest of the sign-in."""
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid data.')
+    urls = payload.get('urls') if isinstance(payload.get('urls'), list) else [payload.get('url')]
+    ok = seb_js_keys_ok(request, urls[:4], [payload.get('configKey'), payload.get('browserExamKey')])
+    if ok:
+        request.session['seb_js_verified'] = True
+    return JsonResponse({'ok': ok})
 
 
 @login_required
