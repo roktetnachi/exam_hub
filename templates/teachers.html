@@ -423,6 +423,7 @@ async function addPerson(){
     await load();
     result.innerHTML = `<strong>${escapeHtml(created.name)}</strong> added${tab === 'staff' ? ` as ${created.isAdmin ? 'an Admin' : 'a Teacher'}` : ''}.<br>
       ${created.emailed ? '✓ Invite emailed to ' + escapeHtml(created.email) + '.<br>' : (inviteNow ? "⚠ The invite email couldn't be sent — share these details yourself.<br>" : '')}
+      Website: <a href="${escapeHtml(created.loginUrl || created.website || '')}" target="_blank" rel="noopener">${escapeHtml(created.website || '')}</a><br>
       Username: <code>${escapeHtml(created.username)}</code><br>Temporary password: <code>${escapeHtml(created.tempPassword)}</code><br>
       <span style="color:var(--muted);">Shown only once. They'll choose their own password when they first sign in.</span>`;
     result.classList.remove('hidden');

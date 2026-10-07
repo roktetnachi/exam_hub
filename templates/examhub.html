@@ -66,6 +66,85 @@
   .roster-pupil-row{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:5px 0;border-bottom:1px solid var(--border);}
   .roster-pupil-row:last-child{border-bottom:none;}
   .link-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0;}
+  /* ---- teacher marking ("pen on paper") ---- */
+  .tm{border-radius:2px;}
+  .tm-underline{text-decoration:underline;text-decoration-color:#d9231a;text-decoration-thickness:2px;text-underline-offset:3px;}
+  .tm-circle{border:2px solid #d9231a;border-radius:999px;padding:0 3px;margin:0 -1px;-webkit-box-decoration-break:clone;box-decoration-break:clone;}
+  .tm-highlight{background:rgba(255,214,0,.5);-webkit-box-decoration-break:clone;box-decoration-break:clone;}
+  .tm.tm-hot,.tm-flash.tm{background:rgba(217,35,26,.14);}
+  .tm-num{color:#fff;background:#d9231a;border-radius:999px;font-size:10px;font-weight:800;padding:0 5px;margin-left:2px;cursor:pointer;vertical-align:super;line-height:1.4;}
+  .tm-block{margin:2px 0;}
+  .tm-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .tm-toggle{border:1.5px solid #d9231a;color:#a91c15;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .tm-toggle:hover{background:#fbeae9;}
+  .tm-block.marking .tm-toggle{background:#d9231a;color:#fff;}
+  .tm-hint{display:none;font-size:12px;color:var(--muted);}
+  .tm-block.marking .tm-hint{display:inline;}
+  .tm-status{font-size:12px;color:var(--muted);margin-left:auto;}
+  .tm-block.marking .tm-answer{outline:2px dashed rgba(217,35,26,.45);outline-offset:2px;background:#fff;cursor:text;}
+  .tm-block .tm-answer{max-height:60vh;overflow-y:auto;}  /* long answers scroll, so the comments stay close by */
+  .tm-block{container-type:inline-size;}
+  .tm-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;}
+  @container (min-width: 620px){ .tm-grid{grid-template-columns:minmax(0,1fr) 220px;} }
+  .tm-comments{display:flex;flex-direction:column;gap:6px;}
+  .tm-comments-head{font-size:11px;font-weight:700;color:#a91c15;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 2px;}
+  .tm-c{display:flex;gap:8px;align-items:flex-start;border:1px solid #f1d6d4;background:#fffafa;border-radius:10px;padding:7px 9px;font-size:13px;}
+  .tm-c.lost{opacity:.7;}
+  .tm-c.tm-flash{animation:rvFlash 1.2s ease-out 2;}
+  .tm-c-num{min-width:20px;height:20px;border-radius:999px;background:#d9231a;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 4px;}
+  .tm-c-body{flex:1;min-width:0;}
+  .tm-c-quote{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .tm-c-quote .q{font-style:italic;overflow-wrap:anywhere;}
+  .tm-c-tag{font-size:10.5px;font-weight:800;color:#a91c15;text-transform:uppercase;letter-spacing:.03em;}
+  .tm-c-style{font-size:11.5px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;}
+  .tm-c-input{width:100%;box-sizing:border-box;margin-top:5px;border:1px solid #e8c6c3;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;resize:vertical;}
+  .tm-c-text{margin-top:3px;white-space:pre-wrap;color:var(--text);}
+  .tm-c-del{border:none;background:none;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:0 2px;}
+  .tm-c-del:hover{color:#d9231a;}
+  .tm-empty{font-size:12.5px;color:var(--muted);margin:2px 0;}
+  .tm-pop{position:absolute;z-index:90;display:flex;gap:4px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 10px 30px -10px rgba(30,41,59,.4);}
+  .tm-pop button{border:none;background:#f6f7fa;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;gap:6px;align-items:center;white-space:nowrap;}
+  .tm-pop button:hover{background:#fbeae9;}
+  .tm-pdf-list{display:flex;flex-direction:column;gap:6px;}
+  .tm-pdf-row{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid #f1d6d4;background:#fffafa;border-radius:9px;padding:6px 9px;font-size:13px;cursor:pointer;font-family:inherit;width:100%;}
+  .tm-pdf-row .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tm-pdf-row .pg{color:var(--muted);font-size:11.5px;white-space:nowrap;}
+  .rv-ann-tc{display:block;color:#a91c15;font-size:12.5px;margin-top:2px;}
+  .rv-label-hint{text-transform:none;letter-spacing:0;font-weight:500;}
+  .tm-tools{display:flex;align-items:center;gap:3px;border:1px solid #f1d6d4;background:#fffafa;border-radius:10px;padding:3px 5px;}
+  .tm-tools-label{font-size:11.5px;font-weight:800;color:#a91c15;margin:0 3px;}
+  .tm-tools button{min-width:30px;height:28px;border:none;background:none;border-radius:7px;font-size:15px;cursor:pointer;color:#a91c15;}
+  .tm-tools button.active{background:#d9231a;color:#fff;}
+  .tm-tools .tm-status{margin-left:6px;}
+  .tm-pdf-layer{position:absolute;left:0;top:0;z-index:8;pointer-events:none;}
+  .tm-pdf-layer.drawing{pointer-events:auto;cursor:crosshair;}
+  .tm-pdf-layer svg{position:absolute;left:0;top:0;overflow:visible;}
+  .tm-shape{fill:none;stroke:#d9231a;stroke-width:2.5;stroke-linecap:round;}
+  .tm-badge{position:absolute;pointer-events:auto;min-width:22px;height:22px;border-radius:999px;border:2px solid #fff;background:#d9231a;color:#fff;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);padding:0 5px;line-height:1;}
+  .tm-badge.pin{min-width:26px;height:26px;border-radius:50% 50% 50% 4px;font-size:12px;}
+  .tm-badge.ann{background:#fff;border-color:#d9231a;font-size:12px;}
+  .tm-badge.tm-flash{animation:rvFlash 1.2s ease-out 2;}
+  .tm-ghost{position:absolute;border:2.5px dashed #d9231a;pointer-events:none;}
+  .tm-ghost.circle{border-radius:50%;} .tm-ghost.highlight{border:none;background:rgba(255,214,0,.4);}
+  .tm-shape.hl{fill:rgba(255,214,0,.38);stroke:none;mix-blend-mode:multiply;} .tm-ghost.underline{border-width:0 0 3px 0;border-style:solid;}
+  .tm-commentable{cursor:pointer;}
+  .rv-scroll .pdf-stage .hl-box.tm-commentable,.rv-scroll .pdf-stage .note.tm-commentable{pointer-events:auto;}
+  .rv-scroll .pdf-stage .rv-hl-note.tm-commentable{pointer-events:auto;}
+  .tm-spot{position:absolute;z-index:20;width:260px;background:#fff;border:1px solid #f1d6d4;border-top:3px solid #d9231a;border-radius:10px;box-shadow:0 12px 30px -10px rgba(30,41,59,.45);padding:9px 10px;font-size:13px;}
+  .tm-spot-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:#a91c15;font-size:12.5px;margin-bottom:6px;}
+  .tm-spot-x{border:none;background:none;font-size:17px;color:var(--muted);cursor:pointer;line-height:1;}
+  .tm-spot-pupil{background:#fafbfd;border-radius:7px;padding:5px 7px;margin-bottom:6px;font-size:12.5px;}
+  .tm-spot-pupil span{color:var(--muted);font-weight:700;}
+  .tm-spot textarea{width:100%;box-sizing:border-box;border:1px solid #e8c6c3;border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;resize:vertical;}
+  .tm-spot-actions{display:flex;justify-content:space-between;margin-top:6px;}
+  .tm-spot-actions button{border:none;border-radius:8px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .tm-spot-del{background:none;color:var(--muted);} .tm-spot-del:hover{color:#d9231a;}
+  .tm-spot-ok{background:#d9231a;color:#fff;}
+  .tm-spot-text{white-space:pre-wrap;}
+  .tm-comments.pupil-inline{padding:10px 16px 14px;border-top:1px dashed #f1d6d4;}
+  .tm-grid.pupil{margin-top:8px;}
+  .tm-pupil-pdf{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+  .new-sub-badge{display:inline-block;margin-left:8px;background:#28186f;color:#fff;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;vertical-align:middle;letter-spacing:.01em;}
   .exam-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 12px;margin-bottom:6px;border-bottom:1px solid var(--border);font-size:13px;}
   .exam-filter-label{font-weight:700;color:var(--text);}
   .exam-filter label{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;margin:0;}
@@ -265,6 +344,45 @@
   .answer-readonly-note{color:var(--muted);font-size:13px;margin-top:10px;}
   .pdf-stage{position:relative;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);}
   .pdf-stage canvas{display:block;position:relative;z-index:1;}
+  /* Zoom (pupil PDF viewer, images, resources) */
+  .zoom-ctl{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .zoom-ctl button{min-width:28px;height:28px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;color:var(--text);padding:0 6px;}
+  .zoom-ctl button:hover{border-color:var(--blue);color:var(--blue);}
+  .zoom-ctl button.txt{font-size:12px;font-weight:600;}
+  .zoom-ctl .zl{min-width:42px;text-align:center;}
+  #pdfScroll{justify-content:flex-start;align-items:flex-start;}
+  .pdf-zoom-box{position:relative;flex-shrink:0;margin:0 auto;}
+  .pdf-zoom-box > .pdf-stage{transform-origin:0 0;}
+  .zimg{display:flex;flex-direction:column;gap:8px;min-height:0;}
+  .zimg-bar{display:flex;justify-content:flex-end;}
+  .zimg-scroll{overflow:auto;max-height:70vh;background:#eceff2;border-radius:10px;padding:10px;display:flex;align-items:flex-start;}
+  .zimg-scroll img{display:block;margin:0 auto;border-radius:6px;max-width:none;flex-shrink:0;}
+  /* Exam resources: builder rows, edit dialog, pupil's floating panel */
+  .res-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#fff;}
+  .res-row .res-kind{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--page-bg);border-radius:6px;padding:4px 7px;margin-top:6px;white-space:nowrap;}
+  .res-row .res-fields{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .res-row input[type=text],.res-row textarea{width:100%;}
+  .res-row textarea{min-height:90px;font-size:13.5px;}
+  .res-row .res-x{border:none;background:none;font-size:20px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 4px;}
+  .res-row .res-x:hover{color:var(--danger);}
+  .res-add{display:flex;gap:8px;flex-wrap:wrap;}
+  .res-existing{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:13px;}
+  .res-existing .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .notepad-modal.res-modal{left:40px;right:auto;width:500px;height:560px;min-width:300px;min-height:200px;resize:both;max-height:90vh;}
+  .notepad-modal.res-modal.minimized{height:auto !important;min-height:0;resize:none;}
+  .res-modal.minimized .res-tabs,.res-modal.minimized .res-body{display:none;}
+  .res-modal .notepad-modal-header .res-head-btns{display:flex;gap:4px;}
+  .res-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border);background:#fafbfc;}
+  .res-tabs button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .res-tabs button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .res-body{flex:1;min-height:0;display:flex;flex-direction:column;}
+  .res-text{flex:1;overflow:auto;padding:14px 16px;white-space:pre-wrap;font-size:14.5px;line-height:1.6;}
+  .res-pdf-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--muted);}
+  .res-pdf-scroll{flex:1;overflow:auto;background:#eceff2;padding:10px;}
+  .res-pdf-scroll canvas{display:block;margin:0 auto 10px;box-shadow:0 1px 4px rgba(0,0,0,.15);background:#fff;}
+  .res-body .zimg{flex:1;padding:8px 10px;}
+  .res-body .zimg-scroll{max-height:none;flex:1;}
+  .res-count{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--blue);color:#fff;font-size:11px;font-weight:700;margin-left:2px;line-height:18px;text-align:center;}
 
   .hl-layer{position:absolute;top:0;left:0;z-index:2;pointer-events:none;}
   .hl-box{position:absolute;opacity:.45;border-radius:1px;pointer-events:none;}
@@ -334,6 +452,7 @@
   .rv-toggle{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);cursor:pointer;}
   .rv-scroll{flex:1;overflow:auto;background:#e9edf2;padding:18px;display:flex;justify-content:center;align-items:flex-start;}
   .rv-scroll .pdf-stage{flex-shrink:0;}
+  #reviewScroll{justify-content:flex-start;} #reviewStage{margin:0 auto;}   /* zoomed past the width: scroll, don't clip the left edge */
   .rv-scroll .pdf-stage.no-annotations .hl-box,.rv-scroll .pdf-stage.no-annotations .note,.rv-scroll .pdf-stage.no-annotations .rv-hl-note{display:none;}
   .rv-hl-note{position:absolute;max-width:220px;background:#fff;border:1px solid var(--border);border-left:3px solid #e2b500;border-radius:6px;box-shadow:0 3px 10px rgba(0,0,0,.14);padding:6px 8px;font-size:12.5px;line-height:1.4;z-index:6;pointer-events:none;}
   .rv-hl-note .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}
@@ -376,6 +495,29 @@
   .resp-top{padding:14px 16px 8px 16px;}
   .resp-top .prompt{font-size:14px;color:var(--text);}
   .response-tabs{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}
+  /* The answer area scrolls by itself (toolbar stays put), so a long answer can always be
+     scrolled back up — previously the box just grew past the bottom of the panel. */
+  .resp-top{max-height:38%;overflow-y:auto;flex-shrink:0;}
+  #responseEditables{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  #responseEditables > .response-item{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;}
+  #responseEditables > .response-item > .editable{flex:1 0 auto;overflow:visible;min-height:100%;}
+  /* Question navigator: "‹ Question 7 of 30 ›" + a grid to jump anywhere (replaces one button per item). */
+  .qnav{display:flex;align-items:center;gap:6px;}
+  .qnav-arrow{width:38px;height:38px;border:1px solid var(--border);background:#fff;border-radius:10px;font-size:20px;line-height:1;color:var(--blue-dark);display:flex;align-items:center;justify-content:center;}
+  .qnav-arrow:disabled{opacity:.35;cursor:default;}
+  .qnav-current{flex:1;min-width:0;height:38px;border:1px solid var(--border);background:#f5f8fc;border-radius:10px;padding:0 12px;font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;text-align:left;}
+  .qnav-current .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .qnav-current .pos{margin-left:auto;font-weight:600;color:var(--muted);font-size:13px;white-space:nowrap;}
+  .qnav-current .caret{font-size:11px;color:var(--muted);}
+  .qnav-grid{margin-top:8px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px -12px rgba(30,41,59,.25);}
+  .qnav-grid .qg-sec{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:6px 0 6px;}
+  .qnav-grid .qg-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+  .qnav-grid .qg-cell{width:38px;height:38px;border-radius:9px;border:1px solid #d3dae6;background:#fff;font-size:13.5px;font-weight:700;color:var(--text);}
+  .qnav-grid .qg-cell.done{background:#e5f6ea;border-color:#9fd6b0;color:#11793a;}
+  .qnav-grid .qg-cell.current{outline:3px solid var(--blue);outline-offset:1px;}
+  .qnav-grid .qg-legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:4px;}
+  .qnav-grid .qg-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #d3dae6;vertical-align:-2px;margin-right:4px;}
+  .qnav-grid .qg-legend i.done{background:#e5f6ea;border-color:#9fd6b0;}
   .rich-toolbar{display:flex;flex-wrap:wrap;gap:3px;padding:6px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);align-items:center;}
   .rich-toolbar button{min-width:26px;height:26px;border:none;background:none;border-radius:4px;font-size:13px;color:#3c4552;display:flex;align-items:center;justify-content:center;}
   .rich-toolbar button:hover{background:#eef1f4;}
@@ -459,6 +601,18 @@
   .resources-panel{width:176px;}
   .resources-head{font-size:12.5px;padding:12px 12px 6px;}
   .resource-group-label,.resource-section summary{font-size:13.5px;}
+  /* Collapsible headings in the Contents panel: full-width bars with a clear chevron. */
+  .resource-group{padding:3px 8px 6px;}
+  .resource-group-label{background:#eef3f9;border-radius:8px;padding:7px 8px;margin:4px 0;color:var(--blue-dark);line-height:1.25;}
+  .resource-group-label:hover{background:#e2ebf6;}
+  .resource-group-label::before,.resource-section summary::before{content:'›';font-size:16px;font-weight:700;color:var(--blue);width:10px;}
+  .resource-group-label .rg-meta{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;}
+  .resource-group.current > .resource-group-label{background:var(--blue);color:#fff;}
+  .resource-group.current > .resource-group-label::before,.resource-group.current > .resource-group-label .rg-meta{color:#fff;}
+  .resource-section{padding:4px 8px;}
+  .resource-section summary{background:#f3f0fb;border-radius:8px;padding:8px;color:var(--blue-dark);}
+  .resources-tools{display:flex;gap:8px;padding:0 12px 6px;}
+  .resources-tools button{background:none;border:none;padding:2px 0;font-size:11.5px;font-weight:700;color:var(--blue);cursor:pointer;}
   .resource-thumb .thumb-label{font-size:12px;padding:3px 0;}
   .itemtype-tiles{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
   .itemtype-tile{padding:16px 10px;min-height:92px;border-radius:14px;transition:border-color .15s,background .15s,transform .05s;}
@@ -832,6 +986,16 @@
             </div>
           </div>
         </div>
+        <div class="field" id="builderResourcesField">
+          <label>Resources for pupils <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
+          <p class="sub" style="margin:0 0 8px;">Guide material pupils can open any time during the exam from a floating <strong>Resources</strong> window — a source text, formula sheet, map or instructions. Resources aren't questions and aren't marked.</p>
+          <div id="builderResources"></div>
+          <div class="res-add">
+            <button type="button" class="btn small outline" data-add-resource="pdf">+ PDF</button>
+            <button type="button" class="btn small outline" data-add-resource="image">+ Image</button>
+            <button type="button" class="btn small outline" data-add-resource="text">+ Text</button>
+          </div>
+        </div>
         <div class="row" style="justify-content:flex-end;margin-top:6px;">
             <button type="button" class="btn small" id="createNextToDelivery">Next: Delivery mode &rarr;</button>
           </div>
@@ -945,7 +1109,10 @@
         <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
           <input type="search" id="monitorSearch" placeholder="Search pupils by name or email…" autocomplete="off"
             style="flex:1;min-width:200px;max-width:340px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:13.5px;">
-          <button class="btn small outline" id="btnBroadcastMessage">Message all pupils</button>
+          <span style="display:flex;gap:8px;align-items:center;">
+            <button class="link-btn hidden" id="btnMarkAllSeen" type="button" style="color:var(--blue);">Mark all as seen</button>
+            <button class="btn small outline" id="btnBroadcastMessage">Message all pupils</button>
+          </span>
         </div>
         <div class="card">
           <table>
@@ -1012,6 +1179,14 @@
               <button class="mode-btn small" id="reviewZoomFit" type="button" title="Fit to width">Fit</button>
             </div>
             <label class="rv-toggle"><input type="checkbox" id="reviewShowAnnotations" checked> Annotations</label>
+            <div class="tm-tools" id="tmTools" role="toolbar" aria-label="Mark the PDF">
+              <span class="tm-tools-label">Mark:</span>
+              <button type="button" class="active" data-tool="select" title="Select — click a mark, or one of the pupil's highlights/notes, to comment on it">↖</button>
+              <button type="button" data-tool="highlight" title="Highlight — drag over the words"><span style="background:rgba(255,214,0,.55);padding:0 4px;border-radius:2px;">H</span></button>
+              <button type="button" data-tool="underline" title="Underline — drag along a line">⎯</button>
+              <button type="button" data-tool="pin" title="Comment — click where it should go">💬</button>
+              <span class="tm-status" aria-live="polite"></span>
+            </div>
             <button class="mode-btn small" id="reviewExpandViewer" type="button" title="Give the document more room" aria-label="Wider viewer">&#x2922;</button>
           </div>
           <div class="rv-scroll" id="reviewScroll"><div class="pdf-stage" id="reviewStage"></div></div>
@@ -1075,6 +1250,7 @@
       <div class="viewer">
         <div class="resources-panel" id="resourcesPanel">
           <div class="resources-head">Contents</div>
+          <div class="resources-tools"><button type="button" id="expandAllRes">Expand all</button><button type="button" id="collapseAllRes">Collapse all</button></div>
           <div id="resourcesList"></div>
         </div>
         <div class="pdf-pane">
@@ -1094,6 +1270,10 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Notepad
             </button>
+            <button class="icon-btn hidden" id="openResourcesBtn" title="Resources from your teacher — open them any time">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Resources <span class="res-count" id="resourcesCount"></span>
+            </button>
             <button class="icon-btn hidden" id="openCalculatorBtn" title="Calculator">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/><line x1="8" y1="19" x2="8" y2="19.01"/><line x1="12" y1="19" x2="12" y2="19.01"/></svg>
               Calculator
@@ -1106,6 +1286,12 @@
             </span>
             <div class="grow"></div>
             <span class="timer-chip" id="examTimer" title="Time remaining in this exam">--:--</span>
+            <div class="zoom-ctl" id="pdfZoomControls" title="Zoom (or hold Ctrl and scroll)">
+              <button type="button" id="pdfZoomOut" aria-label="Zoom out">&minus;</button>
+              <span class="zl" id="pdfZoomLabel">100%</span>
+              <button type="button" id="pdfZoomIn" aria-label="Zoom in">+</button>
+              <button type="button" class="txt" id="pdfZoomFit" title="Fit to width">Fit</button>
+            </div>
             <div class="page-nav" id="pageNavControls">
               <button class="mode-btn small" id="prevPage" aria-label="Previous page" title="Previous page" style="min-width:40px;font-size:18px;">&lsaquo;</button>
               <span id="pageLabel">Page 1</span>
@@ -1113,7 +1299,7 @@
             </div>
             <span id="textLayerDiag" class="hidden" style="font-size:11px;color:var(--muted);margin-left:8px;" title="Diagnostic: how many selectable text spans pdf.js rendered on this page"></span>
           </div>
-          <div class="pdf-scroll" id="pdfScroll"><div class="pdf-stage" id="pdfStage"></div></div>
+          <div class="pdf-scroll" id="pdfScroll"><div class="pdf-zoom-box" id="pdfZoomBox"><div class="pdf-stage" id="pdfStage"></div></div></div>
           <div class="question-prompt-pane hidden" id="questionPromptPane">
             <div class="question-prompt-label" id="questionPromptLabel"></div>
             <div class="question-prompt-text" id="questionPromptText"></div>
@@ -1270,6 +1456,18 @@
       <div class="editable" id="notepadEditable" contenteditable="true" style="min-height:180px;max-height:320px;"></div>
     </div>
 
+    <div class="notepad-modal res-modal hidden" id="resourcesModal" role="dialog" aria-label="Resources">
+      <div class="notepad-modal-header" id="resourcesHeader">
+        <span>Resources</span>
+        <span class="res-head-btns">
+          <button type="button" id="minResourcesBtn" title="Minimise">&ndash;</button>
+          <button type="button" id="closeResourcesBtn" title="Close">&times;</button>
+        </span>
+      </div>
+      <div class="res-tabs" id="resourcesTabs"></div>
+      <div class="res-body" id="resourcesBody"></div>
+    </div>
+
     <div class="notepad-modal hidden" id="calculatorModal" style="width:230px;">
       <div class="notepad-modal-header" id="calculatorHeader">
         <span>Calculator</span>
@@ -1354,7 +1552,7 @@
           <h2 style="margin:0;">Edit exam</h2>
           <button type="button" class="btn outline small" id="closeEditAssignmentBtn">Close</button>
         </div>
-        <p class="sub">Change the settings and who the exam is assigned to. To change the PDFs or questions themselves, delete and recreate the exam for now.</p>
+        <p class="sub">Change the settings, the resources and who the exam is assigned to. To change the PDFs or questions themselves, delete and recreate the exam for now.</p>
         <div class="field">
           <label>Title</label>
           <input type="text" id="editAssignmentTitle">
@@ -1409,6 +1607,17 @@
         <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
           <input type="checkbox" id="editAssignmentGraphingCalculator"> Allow graphing calculator
         </label>
+        <div class="field" style="margin-top:6px;">
+          <label>Resources for pupils</label>
+          <p class="sub" style="margin:2px 0 6px;font-size:12.5px;">Guide material pupils open from the floating Resources window. Adding or removing one takes effect straight away — even during the exam.</p>
+          <div id="editResourcesList"></div>
+          <div id="editResourceNew"></div>
+          <div class="res-add">
+            <button type="button" class="btn small outline" data-edit-add-resource="pdf">+ PDF</button>
+            <button type="button" class="btn small outline" data-edit-add-resource="image">+ Image</button>
+            <button type="button" class="btn small outline" data-edit-add-resource="text">+ Text</button>
+          </div>
+        </div>
         <div class="field" style="margin-top:6px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
             <label style="margin:0;">Assigned to</label>
@@ -1600,11 +1809,13 @@ function apiAssignment(a){
     itemScores:r.itemScores||{}, totalScore:r.totalScore ?? null, maxScore:r.maxScore ?? null,
     gradedAt:r.gradedAt||null, published:!!r.published,
     locked:!!r.locked, lockReason:r.lockReason||'', lockCount:r.lockCount||0, resumeCode:r.resumeCode||null,
-    hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher}; });
+    hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher,
+    teacherMarks:r.teacherMarks||{}, newSubmission:!!r.newSubmission}; });
   return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt, isHidden:!!a.isHidden, closedAt:a.closedAt||null, state:a.state||'live', items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'', createdAt:a.createdAt||null,
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
-    allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator};
+    allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator,
+    resources:a.resources||[]};
 }
 async function loadAssignments(pupilEmail=''){
   const result=await request('/api/assignments/' + (pupilEmail ? '?pupil_email='+encodeURIComponent(pupilEmail) : ''));
@@ -1683,10 +1894,12 @@ function renderAssignmentTable(){
     const hasUnread = Object.values(a.submissions).some(s=>s.hasUnreadFromPupil);
     const unreadDot = hasUnread
       ? `<span title="Unread pupil message" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
+    const newCount = Object.values(a.submissions).filter(s=>s.newSubmission).length;
+    const newBadge = newCount ? `<span class="new-sub-badge" title="${newCount} submission${newCount === 1 ? '' : 's'} you haven't opened yet">${newCount} new</span>` : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
-      <td><button type="button" class="title-link" data-action="view" data-id="${a.id}">${escapeHtml(a.title)}</button>${unreadDot}</td>
+      <td><button type="button" class="title-link" data-action="view" data-id="${a.id}">${escapeHtml(a.title)}</button>${unreadDot}${newBadge}</td>
       <td style="white-space:nowrap;color:var(--muted);font-size:13px;">${a.createdAt ? formatManilaDate(a.createdAt) : '—'}</td>
       <td>${examStateHtml(a)}</td>
       <td>${a.assignedTo.length} pupil${a.assignedTo.length === 1 ? '' : 's'}</td>
@@ -1837,6 +2050,7 @@ function openEditAssignmentModal(id){
   const errorEl = document.getElementById('editAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   document.getElementById('editAssignmentModal').classList.remove('hidden');
+  renderEditResources(a);
   loadEditPupils(a);
 }
 // Fill the Edit dialog's "Assigned to" list with the teacher's subjects (and, for admins, year
@@ -2473,6 +2687,14 @@ window.ExamHubNotifActions = {
     openChatModal(it.recipientId, `${it.pupilName} — ${it.assignmentTitle}`, false);
   },
   openGrade(it){ openGradeSummary(it.assignmentId); },
+  openReview(it){
+    if(document.body.dataset.role === 'pupil') return;
+    const a = state.assignments.find(x=>x.id===it.assignmentId);
+    const pupil = a && Object.keys(a.submissions).find(n=>a.submissions[n].recipientId===it.recipientId);
+    if(!pupil){ location.href = `${SCHOOL_PREFIX}/?review=${it.recipientId}`; return; }
+    if(document.getElementById('teacherView').classList.contains('hidden')) switchRole('teacher');
+    showReview(a.id, pupil);
+  },
   // A pupil mid-attempt is never interrupted by a pop-up; reading back submitted work is fine.
   pupilBusy(){
     if(document.getElementById('studentTask').classList.contains('hidden')) return false;
@@ -2811,7 +3033,7 @@ document.getElementById('createPupilBtn')?.addEventListener('click', async ()=>{
     document.getElementById('newPupilFirstName').value = '';
     document.getElementById('newPupilLastName').value = '';
     document.getElementById('newPupilEmail').value = '';
-    successEl.textContent = `Added ${pupil.name}. Temporary password: ${pupil.tempPassword} — share this with them so they can sign in (username: ${pupil.username}).`;
+    successEl.textContent = `Added ${pupil.name}. Temporary password: ${pupil.tempPassword} — share this with them so they can sign in at ${pupil.website || 'the ExamHub website'} (username: ${pupil.username}).`;
     successEl.classList.remove('hidden');
     await refreshRosterAndChecklist();
     renderRosterModal();
@@ -2853,6 +3075,7 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
   });
   applyVisibilityPicker('now'); applyClosePicker('scheduled');
   document.getElementById('builderSections').innerHTML = '';
+  document.getElementById('builderResources').innerHTML = '';
   const firstSection = addBuilderSection('Section 1');
   addItemRow('pdf', 'Text 1', firstSection);
   const checklist = document.getElementById('pupilChecklist');
@@ -2873,7 +3096,11 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   const assignedTo = picked.map(p=>p.name);
 
   const {items, pdfFiles, imageFiles, videoFiles} = collectItemsForSubmit();
+  const resources = collectResourcesForSubmit();
+  if(resources.error){ switchCreateStep('content'); showToast(resources.error, 'error'); return; }
   const form = new FormData();
+  resources.files.forEach(f=>form.append('resource_files', f));
+  form.append('resources_meta', JSON.stringify(resources.meta));
   pdfFiles.forEach(f=>form.append('pdfs', f));
   imageFiles.forEach(f=>form.append('images', f));
   videoFiles.forEach(f=>form.append('videos', f));
@@ -2981,10 +3208,26 @@ function gradeScoreCellHtml(item, existing){
   }
   return `<div data-mode="manual"><input type="number" class="grade-score-input" min="0" max="${item.points}" step="0.5" value="${existing.score != null ? existing.score : ''}"> <span class="sub">/ ${item.points}</span></div>`;
 }
+// Opening a pupil's submitted work clears its "new" badge / bell item (it replaced the old email).
+function markSubmissionSeen(sub){
+  if(!sub || !sub.newSubmission || document.body.dataset.role === 'pupil') return;
+  sub.newSubmission = false;
+  request(`/api/submissions/${sub.recipientId}/seen/`, {method:'POST'}).then(()=>window.ExamHubNotify?.refresh?.()).catch(()=>{});
+}
+document.getElementById('btnMarkAllSeen')?.addEventListener('click', async ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a) return;
+  try {
+    await request('/api/submissions/seen/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({assignmentId: a.id})});
+    a.assignedTo.forEach(p=>{ a.submissions[p].newSubmission = false; });
+    renderMonitorPanel(a); window.ExamHubNotify?.refresh?.();
+  } catch(error){ showToast(apiErrorMessage(error), 'error'); }
+});
 function renderGradeBody(a, pupil){
   const body = document.getElementById('gradeBody');
   if(!pupil){ body.innerHTML = '<div class="empty">No pupils assigned yet.</div>'; return; }
   const sub = a.submissions[pupil];
+  if(sub && sub.status === 'submitted') markSubmissionSeen(sub);
   if(!sub || sub.status !== 'submitted'){
     body.innerHTML = `<div class="phase-placeholder"><strong>Not submitted yet</strong>${escapeHtml(pupil)} hasn't submitted this exam.</div>`;
     return;
@@ -3004,7 +3247,7 @@ function renderGradeBody(a, pupil){
     const caption = item.prompt ? `<div class="sub" style="font-size:11px;margin-top:2px;">${escapeHtml(item.label)}</div>` : '';
     const annCount = (sub.annotations || []).filter(an=>an.textId===item.id).length;
     const reviewBtn = `<button type="button" class="link-btn review-item-btn" data-item-id="${item.id}" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:var(--blue);">${
-      item.type==='pdf' ? `Review PDF & annotations${annCount ? ` (${annCount})` : ''}` : (isMedia ? 'Review media' : 'Review this answer')} →</button>`;
+      item.type==='pdf' ? `Review & mark up PDF and answer${annCount ? ` (${annCount} annotation${annCount === 1 ? '' : 's'})` : ''}` : (isMedia ? 'Review media' : (item.type === 'long_answer' ? 'Review & mark up this answer' : 'Review this answer'))} →</button>`;
     return `<div class="card grade-item-card" data-item-id="${item.id}">
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="flex:1;min-width:0;">
@@ -3138,7 +3381,17 @@ function renderContentTab(a){
     </div>
     ${a.prompt ? `<div class="submit-summary" style="margin:14px 0 6px;"><strong>Instructions for pupils:</strong> ${escapeHtml(a.prompt)}</div>` : ''}
     ${rows || '<p class="sub">This exam has no items.</p>'}
-    <p class="sub" style="margin:16px 0 0;font-size:13px;">To change the title, instructions, schedule or delivery mode, use <strong>Settings</strong> on the dashboard. Items and questions can't be changed once an exam is created — if they need changing, create a new assignment.</p>`;
+    ${(a.resources || []).length ? `<div class="content-section-title">Resources for pupils</div>` + a.resources.map(r=>`<div class="content-item">
+      <div class="ci-icon">${RES_ICONS[r.kind] || ''}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+          <strong>${escapeHtml(r.title)}</strong>
+          ${r.url ? `<a class="btn outline small" href="${SCHOOL_PREFIX}${r.url}" target="_blank" rel="noopener">Open</a>` : `<span class="sub" style="margin:0;">Text</span>`}
+        </div>
+        ${r.kind === 'text' ? `<div style="margin-top:4px;font-size:14px;white-space:pre-wrap;max-height:160px;overflow:auto;">${escapeHtml(r.text || '')}</div>` : ''}
+      </div>
+    </div>`).join('') : ''}
+    <p class="sub" style="margin:16px 0 0;font-size:13px;">Resources can be added or removed any time from <strong>Settings</strong> on the dashboard. To change the title, instructions, schedule or delivery mode, use <strong>Settings</strong> on the dashboard. Items and questions can't be changed once an exam is created — if they need changing, create a new assignment.</p>`;
   document.getElementById('contentPreviewBtn')?.addEventListener('click', ()=>{
     const pupil = a.assignedTo[0];
     if(!pupil){ showToast('Assign at least one pupil to preview this assignment.', 'info'); return; }
@@ -3436,6 +3689,7 @@ function renderMonitorPanel(a){
     ${a.deliveryMode === 'browser_secure' ? `<div class="stat-tile"><div class="num" style="color:var(--danger);">${a.assignedTo.filter(p=>a.submissions[p].locked && a.submissions[p].status!=='submitted').length}</div><div class="label">Locked</div></div>` : ''}
   `;
 
+  document.getElementById('btnMarkAllSeen').classList.toggle('hidden', !a.assignedTo.some(p=>a.submissions[p].newSubmission));
   const tbody = document.getElementById('detailTbody');
   tbody.innerHTML = '';
   const query = (document.getElementById('monitorSearch').value || '').trim().toLowerCase();
@@ -3461,9 +3715,10 @@ function renderMonitorPanel(a){
       : (sub.lockCount ? `<div class="sub" style="margin-top:2px;font-size:11.5px;">Left the exam ${sub.lockCount}×</div>` : '');
     const unreadDot = sub.hasUnreadFromPupil
       ? `<span title="Unread message from ${escapeHtml(p)}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
+    const newChip = sub.newSubmission ? '<span class="new-sub-badge" title="Submitted — you haven\'t opened it yet">New</span>' : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHtml(p)}${unreadDot}${lockInfo}</td>
+      <td>${escapeHtml(p)}${unreadDot}${newChip}${lockInfo}</td>
       <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
       <td>${monitorTimeCellHtml(a, sub)}</td>
       <td>${sub.submittedAt || '—'}</td>
@@ -3514,6 +3769,7 @@ async function pollMonitorOnce(assignmentId){
     if(r.extraMinutes != null) sub.extraMinutes = r.extraMinutes;
     sub.closesAt = r.closesAt || null;
     if(r.hasUnreadFromPupil != null) sub.hasUnreadFromPupil = !!r.hasUnreadFromPupil;
+    if(r.newSubmission != null) sub.newSubmission = !!r.newSubmission;
     if(r.locked != null){ sub.locked = !!r.locked; sub.lockReason = r.lockReason || ''; sub.lockCount = r.lockCount || 0; sub.resumeCode = r.resumeCode || null; }
   });
   // The exam itself can change state while you watch (its time arrives, it ends, another teacher closes it).
@@ -3607,6 +3863,7 @@ async function showReview(assignmentId, pupil, focusItemId){
   const a = state.assignments.find(x=>x.id===assignmentId);
   const sub = a.submissions[pupil];
   Object.assign(reviewState, {a, sub, pupil, doc:null, page:1, itemId:null});
+  markSubmissionSeen(sub);
   document.getElementById('reviewHeading').textContent = `${pupil} — ${a.title}`;
   document.getElementById('reviewMeta').textContent = sub.status === 'submitted'
     ? `Submitted ${sub.submittedAt || ''}` : 'Not submitted yet — showing their work so far.';
@@ -3641,6 +3898,489 @@ async function showReview(assignmentId, pupil, focusItemId){
   }
 }
 
+// ================= Teacher marking — "pen on paper" =================
+// The teacher underlines / highlights words in a pupil's written answer and writes numbered
+// margin comments, and marks the PDF (highlight, underline, comment pin) or comments
+// on the pupil's own PDF annotations. Stored separately in Submission.teacher_marks — the
+// pupil's work itself is never touched — and shown to the pupil only with the released grade.
+const TM = {timer: null, sub: null, tool: 'select', pop: null};
+const TM_STYLE_NAMES = {underline: 'Underline', circle: 'Circle', highlight: 'Highlight'};
+const TM_SHAPE_NAMES = {highlight: 'Highlight', underline: 'Underline', pin: 'Comment', circle: 'Circle', box: 'Box'};  // circle/box: older marks only
+
+function tmMarks(sub){
+  sub.teacherMarks = sub.teacherMarks || {};
+  const m = sub.teacherMarks;
+  m.answers = m.answers || {}; m.pdf = m.pdf || {}; m.annComments = m.annComments || {};
+  return m;
+}
+function tmHasAny(sub){
+  const m = (sub && sub.teacherMarks) || {};
+  return Object.values(m.answers || {}).some(l=>l.length) || Object.values(m.pdf || {}).some(l=>l.length)
+    || Object.keys(m.annComments || {}).length > 0;
+}
+function tmId(){ return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+// Text nodes of an answer, ignoring the little comment numbers we add ourselves.
+function tmTextNodes(root){
+  const out = [];
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: n=>
+    (n.parentElement && n.parentElement.closest('.tm-num')) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+  let n; while((n = w.nextNode())) out.push(n);
+  return out;
+}
+function tmPlainText(root){ return tmTextNodes(root).map(n=>n.nodeValue).join(''); }
+// Where a mark sits in the text now: its saved offsets if the words still match, otherwise wherever
+// the quoted words are found (in case the answer changed after it was marked).
+function tmResolve(text, m){
+  if(!m.quote || text.slice(m.start, m.end) === m.quote) return m.end <= text.length ? [m.start, m.end] : null;
+  const i = text.indexOf(m.quote);
+  return i >= 0 ? [i, i + m.quote.length] : null;
+}
+function tmOrdered(marks){ return (marks || []).slice().sort((x, y)=>x.start - y.start || x.end - y.end); }
+function tmWrapRange(root, start, end, make){
+  let pos = 0;
+  const spans = [];
+  for(const node of tmTextNodes(root)){
+    const len = node.nodeValue.length, nStart = pos, nEnd = pos + len;
+    pos = nEnd;
+    if(!len || nEnd <= start || nStart >= end) continue;
+    const a = Math.max(start, nStart) - nStart, b = Math.min(end, nEnd) - nStart;
+    let target = node;
+    if(a > 0) target = target.splitText(a);
+    if(b - a < target.nodeValue.length) target.splitText(b - a);
+    if(!target.nodeValue.trim()) continue;   // don't draw over bare line breaks / table gaps
+    const span = make();
+    target.parentNode.insertBefore(span, target);
+    span.appendChild(target);
+    spans.push(span);
+  }
+  return spans;
+}
+// Draw marks onto a freshly rendered answer. Returns [{m, num, lost}] in reading order.
+function tmApply(root, marks){
+  const text = tmPlainText(root);
+  const shown = [];
+  const tails = [];
+  tmOrdered(marks).forEach((m, i)=>{
+    const r = tmResolve(text, m);
+    shown.push({m, num: i + 1, lost: !r});
+    if(!r) return;
+    const spans = tmWrapRange(root, r[0], r[1], ()=>{
+      const s = document.createElement('span');
+      s.className = `tm tm-${m.style}`; s.dataset.mark = m.id;
+      return s;
+    });
+    if(spans.length) tails.push([spans[spans.length - 1], m, i + 1]);
+  });
+  // Numbers go in last so they never shift the offsets used above.
+  tails.forEach(([span, m, num])=>{
+    const sup = document.createElement('sup');
+    sup.className = 'tm-num'; sup.dataset.mark = m.id; sup.textContent = num;
+    span.after(sup);
+  });
+  return shown;
+}
+function tmSelectionIn(root){
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount || sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  if(!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+  const offsetOf = (container, offset)=>{
+    const pre = document.createRange();
+    pre.selectNodeContents(root); pre.setEnd(container, offset);
+    const tmp = document.createElement('div');
+    tmp.appendChild(pre.cloneContents());
+    tmp.querySelectorAll('.tm-num').forEach(e=>e.remove());
+    return tmp.textContent.length;
+  };
+  const text = tmPlainText(root);
+  let start = offsetOf(range.startContainer, range.startOffset), end = offsetOf(range.endContainer, range.endOffset);
+  while(start < end && /\s/.test(text[start])) start++;
+  while(end > start && /\s/.test(text[end - 1])) end--;
+  if(end <= start) return null;
+  return {start, end, quote: text.slice(start, end), rect: range.getBoundingClientRect()};
+}
+
+// ---------- saving ----------
+function tmSetStatus(text){ document.querySelectorAll('.tm-status').forEach(el=>{ el.textContent = text; }); }
+function tmQueueSave(sub){
+  TM.sub = sub;
+  tmSetStatus('Saving…');
+  clearTimeout(TM.timer);
+  TM.timer = setTimeout(()=>tmSaveNow(sub), 650);
+}
+async function tmSaveNow(sub){
+  clearTimeout(TM.timer); TM.timer = null;
+  try {
+    await request(`/api/submissions/${sub.recipientId}/marks/`, {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({teacherMarks: tmMarks(sub)})});
+    tmSetStatus('Marks saved');
+  } catch(error){ tmSetStatus("Couldn't save — check your connection"); showToast(apiErrorMessage(error), 'error'); }
+}
+window.addEventListener('beforeunload', ()=>{ if(TM.timer && TM.sub) tmSaveNow(TM.sub); });
+
+// ---------- comment list (margin) ----------
+function tmCommentListHtml(shown, editable, emptyText){
+  if(!shown.length) return emptyText ? `<p class="tm-empty">${emptyText}</p>` : '';
+  return shown.map(({m, num, lost})=>`<div class="tm-c${lost ? ' lost' : ''}" data-mark="${m.id}">
+      <span class="tm-c-num">${num}</span>
+      <div class="tm-c-body">
+        <div class="tm-c-quote">${editable
+          ? `<select class="tm-c-style" aria-label="Mark style">${Object.entries(TM_STYLE_NAMES).filter(([k])=>k !== 'circle' || m.style === 'circle').map(([k, v])=>`<option value="${k}"${k === m.style ? ' selected' : ''}>${v}</option>`).join('')}</select>`
+          : `<span class="tm-c-tag">${TM_STYLE_NAMES[m.style] || ''}</span>`}
+          <span class="q">“${escapeHtml((m.quote || '').length > 90 ? m.quote.slice(0, 90) + '…' : m.quote || '')}”</span>${lost ? ' <em>(text changed)</em>' : ''}</div>
+        ${editable ? `<textarea class="tm-c-input" rows="2" placeholder="Add a comment (optional)">${escapeHtml(m.comment || '')}</textarea>`
+          : (m.comment ? `<div class="tm-c-text">${escapeHtml(m.comment)}</div>` : '')}
+      </div>
+      ${editable ? `<button type="button" class="tm-c-del" title="Remove this mark" aria-label="Remove mark ${num}">&times;</button>` : ''}
+    </div>`).join('');
+}
+function tmFlash(container, markId){
+  container.querySelectorAll(`[data-mark="${markId}"]`).forEach(el=>{ el.classList.remove('tm-flash'); void el.offsetWidth; el.classList.add('tm-flash'); });
+}
+
+// ---------- written answers: the review screen block ----------
+const TM_ANSWER_SOURCE = {};   // itemId -> the pupil's answer HTML, as submitted
+function tmAnswerBlockHtml(item){
+  return `<div class="tm-block" data-item="${item.id}">
+    <div class="tm-bar">
+      <button type="button" class="tm-toggle" aria-pressed="false">✎ Mark this answer</button>
+      <span class="tm-hint">Select words in the answer, then pick Underline, Highlight or Comment.</span>
+      <span class="tm-status"></span>
+    </div>
+    <div class="tm-grid"><div class="rv-answer tm-answer"></div><div class="tm-comments"></div></div>
+  </div>`;
+}
+function tmDrawAnswer(block, sub){
+  const itemId = block.dataset.item;
+  const editable = block.classList.contains('marking');
+  const answer = block.querySelector('.tm-answer');
+  answer.innerHTML = TM_ANSWER_SOURCE[itemId] || '<em>No response written.</em>';
+  const marks = tmMarks(sub).answers[itemId] || [];
+  const shown = tmApply(answer, marks);
+  const list = block.querySelector('.tm-comments');
+  list.innerHTML = tmCommentListHtml(shown, editable, editable ? 'No marks yet — select some words in the answer.' : '');
+  list.classList.toggle('hidden', !shown.length && !editable);
+  block.classList.toggle('has-marks', shown.length > 0);
+  const toggle = block.querySelector('.tm-toggle');
+  toggle.textContent = editable ? '✓ Done marking' : (shown.length ? `✎ Edit marks (${shown.length})` : '✎ Mark this answer');
+  toggle.setAttribute('aria-pressed', String(editable));
+  // Wire the list
+  list.querySelectorAll('.tm-c').forEach(row=>{
+    const id = row.dataset.mark;
+    const mark = ()=> (tmMarks(sub).answers[itemId] || []).find(x=>x.id === id);
+    row.addEventListener('mouseenter', ()=>answer.querySelectorAll(`[data-mark="${id}"]`).forEach(el=>el.classList.add('tm-hot')));
+    row.addEventListener('mouseleave', ()=>answer.querySelectorAll('.tm-hot').forEach(el=>el.classList.remove('tm-hot')));
+    row.querySelector('.tm-c-input')?.addEventListener('input', e=>{ const m = mark(); if(m){ m.comment = e.target.value; tmQueueSave(sub); } });
+    row.querySelector('.tm-c-style')?.addEventListener('change', e=>{ const m = mark(); if(m){ m.style = e.target.value; tmQueueSave(sub); tmDrawAnswer(block, sub); } });
+    row.querySelector('.tm-c-del')?.addEventListener('click', ()=>{
+      tmMarks(sub).answers[itemId] = (tmMarks(sub).answers[itemId] || []).filter(x=>x.id !== id);
+      tmQueueSave(sub); tmDrawAnswer(block, sub);
+    });
+  });
+  answer.querySelectorAll('.tm[data-mark], .tm-num').forEach(el=>el.addEventListener('click', ()=>{
+    tmFlash(list, el.dataset.mark);
+    const input = list.querySelector(`.tm-c[data-mark="${el.dataset.mark}"] .tm-c-input`);
+    if(input) input.focus();
+    else list.querySelector(`.tm-c[data-mark="${el.dataset.mark}"]`)?.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  }));
+}
+function tmClosePop(){ if(TM.pop){ TM.pop.remove(); TM.pop = null; } }
+function tmInitAnswerBlocks(container, a, sub){
+  container.querySelectorAll('.tm-block').forEach(block=>{
+    tmDrawAnswer(block, sub);
+    block.querySelector('.tm-toggle').addEventListener('click', ()=>{
+      block.classList.toggle('marking');
+      tmClosePop();
+      tmDrawAnswer(block, sub);
+    });
+    const answer = block.querySelector('.tm-answer');
+    answer.addEventListener('mouseup', ()=>setTimeout(()=>{
+      if(!block.classList.contains('marking')) return;
+      const picked = tmSelectionIn(answer);
+      tmClosePop();
+      if(!picked) return;
+      const pop = document.createElement('div');
+      pop.className = 'tm-pop';
+      pop.innerHTML = `<button type="button" data-s="underline"><span class="tm tm-underline">U</span> Underline</button>
+        <button type="button" data-s="highlight"><span class="tm tm-highlight">H</span> Highlight</button>
+        <button type="button" data-s="comment">💬 Comment</button>`;
+      pop.style.left = Math.max(8, Math.min(window.innerWidth - 380, picked.rect.left + window.scrollX)) + 'px';
+      pop.style.top = (picked.rect.bottom + window.scrollY + 8) + 'px';
+      document.body.appendChild(pop);
+      TM.pop = pop;
+      pop.addEventListener('mousedown', e=>e.preventDefault());
+      pop.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+        const style = b.dataset.s === 'comment' ? 'underline' : b.dataset.s;
+        const m = {id: tmId(), start: picked.start, end: picked.end, quote: picked.quote, style, comment: ''};
+        const marks = tmMarks(sub);
+        (marks.answers[block.dataset.item] = marks.answers[block.dataset.item] || []).push(m);
+        tmClosePop();
+        window.getSelection().removeAllRanges();
+        tmQueueSave(sub);
+        tmDrawAnswer(block, sub);
+        const input = block.querySelector(`.tm-c[data-mark="${m.id}"] .tm-c-input`);
+        if(input && b.dataset.s === 'comment') input.focus();
+        tmFlash(block, m.id);
+      }));
+    }, 0));
+  });
+}
+document.addEventListener('mousedown', e=>{ if(TM.pop && !TM.pop.contains(e.target)) tmClosePop(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') { tmClosePop(); tmCloseSpot(); } });
+
+// ---------- PDF: the teacher's own marks + comments on the pupil's annotations ----------
+function tmAnnFingerprint(an){
+  if(!an) return '';
+  const r = (an.rects || [])[0] || {x: an.x, y: an.y};
+  return [an.textId, an.page, an.type, Math.round(r.x || 0), Math.round(r.y || 0)].join('|');
+}
+function tmAnnComment(sub, idx){
+  const c = tmMarks(sub).annComments[String(idx)];
+  const an = (sub.annotations || [])[idx];
+  return c && an && c.fp === tmAnnFingerprint(an) ? c : null;
+}
+function tmPdfMarks(sub, itemId){ return tmMarks(sub).pdf[String(itemId)] || []; }
+function tmCloseSpot(){ document.querySelectorAll('.tm-spot').forEach(el=>el.remove()); }
+// Draws the teacher layer on a rendered page. f = pixels per annotation unit (1 for the pupil's own viewer).
+function tmRenderPdfLayer(stage, f, sub, itemId, page, editable){
+  stage.querySelectorAll('.tm-pdf-layer').forEach(el=>el.remove());
+  const W = parseFloat(stage.style.width) || stage.clientWidth, H = parseFloat(stage.style.height) || stage.clientHeight;
+  const layer = document.createElement('div');
+  layer.className = 'tm-pdf-layer' + (editable && TM.tool !== 'select' ? ' drawing' : '');
+  layer.style.width = W + 'px'; layer.style.height = H + 'px';
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  layer.appendChild(svg);
+  const all = tmPdfMarks(sub, itemId);
+  all.forEach((m, i)=>{
+    if(m.page !== page) return;
+    const x = m.x * f, y = m.y * f, w = m.w * f, h = m.h * f, num = i + 1;
+    let shape = null;
+    if(m.shape === 'circle'){
+      shape = document.createElementNS(NS, 'ellipse');
+      shape.setAttribute('cx', x + w / 2); shape.setAttribute('cy', y + h / 2);
+      shape.setAttribute('rx', Math.max(6, w / 2)); shape.setAttribute('ry', Math.max(6, h / 2));
+    } else if(m.shape === 'highlight'){
+      shape = document.createElementNS(NS, 'rect');
+      shape.setAttribute('x', x); shape.setAttribute('y', y); shape.setAttribute('width', Math.max(6, w)); shape.setAttribute('height', Math.max(6, h)); shape.setAttribute('rx', 2);
+    } else if(m.shape === 'box'){
+      shape = document.createElementNS(NS, 'rect');
+      shape.setAttribute('x', x); shape.setAttribute('y', y); shape.setAttribute('width', Math.max(6, w)); shape.setAttribute('height', Math.max(6, h)); shape.setAttribute('rx', 3);
+    } else if(m.shape === 'underline'){
+      shape = document.createElementNS(NS, 'line');
+      shape.setAttribute('x1', x); shape.setAttribute('x2', x + Math.max(10, w)); shape.setAttribute('y1', y + h); shape.setAttribute('y2', y + h);
+    }
+    if(shape){
+      shape.setAttribute('class', 'tm-shape' + (m.shape === 'highlight' ? ' hl' : '')); shape.dataset.mark = m.id;
+      svg.appendChild(shape);
+    }
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = 'tm-badge' + (m.shape === 'pin' ? ' pin' : '') + (m.comment ? ' has-comment' : '');
+    badge.dataset.mark = m.id;
+    badge.textContent = num;
+    badge.title = m.comment || `${TM_SHAPE_NAMES[m.shape]} ${num}`;
+    const bx = m.shape === 'pin' ? x - 12 : x + Math.max(10, w) - 4, by = m.shape === 'pin' ? y - 12 : y - 14;
+    badge.style.left = bx + 'px'; badge.style.top = by + 'px';
+    badge.addEventListener('click', e=>{ e.stopPropagation(); tmOpenSpot(stage, f, sub, itemId, {mark: m, num}, editable, bx, by + 26); });
+    layer.appendChild(badge);
+  });
+  // Comment bubbles on the pupil's own annotations.
+  (sub.annotations || []).forEach((an, idx)=>{
+    if(an.textId !== itemId || an.page !== page) return;
+    const c = tmAnnComment(sub, idx);
+    if(!c) return;
+    const r = an.type === 'highlight' ? ((an.rects || [])[(an.rects || []).length - 1] || {x: 0, y: 0, w: 0}) : {x: an.x, y: an.y, w: 24};
+    const badge = document.createElement('button');
+    badge.type = 'button'; badge.className = 'tm-badge ann'; badge.textContent = '💬';
+    badge.title = c.comment;
+    const bx = (r.x + (r.w || 0)) * f + 2, by = r.y * f - 16;
+    badge.style.left = bx + 'px'; badge.style.top = by + 'px';
+    badge.addEventListener('click', e=>{ e.stopPropagation(); tmOpenSpot(stage, f, sub, itemId, {annIdx: idx}, editable, bx, by + 26); });
+    layer.appendChild(badge);
+  });
+  stage.appendChild(layer);
+  if(editable) tmWireDrawing(stage, layer, f, sub, itemId, page);
+  return layer;
+}
+function tmWireDrawing(stage, layer, f, sub, itemId, page){
+  // Clicking one of the pupil's annotations (select tool) opens a comment box for it.
+  stage.querySelectorAll('[data-ann]').forEach(el=>{
+    el.classList.add('tm-commentable');
+    el.addEventListener('click', e=>{
+      if(TM.tool !== 'select') return;
+      e.stopPropagation();
+      const box = el.getBoundingClientRect(), sb = stage.getBoundingClientRect();
+      tmOpenSpot(stage, f, sub, itemId, {annIdx: Number(el.dataset.ann)}, true, box.left - sb.left, box.bottom - sb.top + 6);
+    });
+  });
+  let start = null, ghost = null;
+  const pt = e=>{ const r = layer.getBoundingClientRect(); return {x: e.clientX - r.left, y: e.clientY - r.top}; };
+  layer.addEventListener('mousedown', e=>{
+    if(TM.tool === 'select' || e.button !== 0 || e.target.closest('.tm-badge')) return;
+    e.preventDefault();
+    tmCloseSpot();
+    start = pt(e);
+    if(TM.tool === 'pin') return;
+    ghost = document.createElement('div');
+    ghost.className = 'tm-ghost ' + TM.tool;
+    layer.appendChild(ghost);
+  });
+  layer.addEventListener('mousemove', e=>{
+    if(!start || !ghost) return;
+    const p = pt(e);
+    ghost.style.left = Math.min(start.x, p.x) + 'px'; ghost.style.top = Math.min(start.y, p.y) + 'px';
+    ghost.style.width = Math.abs(p.x - start.x) + 'px'; ghost.style.height = (TM.tool === 'underline' ? 3 : Math.abs(p.y - start.y)) + 'px';
+  });
+  const finish = e=>{
+    if(!start) return;
+    const p = pt(e);
+    if(ghost){ ghost.remove(); ghost = null; }
+    const x0 = Math.min(start.x, p.x), y0 = Math.min(start.y, p.y);
+    let w = Math.abs(p.x - start.x), h = Math.abs(p.y - start.y);
+    const tool = TM.tool;
+    start = null;
+    if(tool !== 'pin' && w < 8 && (tool === 'underline' || h < 8)) return;   // a click, not a drag
+    if(tool === 'underline'){ h = 4; }
+    const m = {id: tmId(), page, shape: tool, x: +(x0 / f).toFixed(2), y: +((tool === 'underline' ? y0 - 4 : y0) / f).toFixed(2),
+      w: +((tool === 'pin' ? 0 : w) / f).toFixed(2), h: +((tool === 'pin' ? 0 : h) / f).toFixed(2), comment: ''};
+    const marks = tmMarks(sub);
+    (marks.pdf[String(itemId)] = marks.pdf[String(itemId)] || []).push(m);
+    tmQueueSave(sub);
+    tmRenderPdfLayer(stage, f, sub, itemId, page, true);
+    tmRefreshPdfLists(sub, itemId);
+    const num = marks.pdf[String(itemId)].length;
+    const bx = tool === 'pin' ? x0 - 12 : x0 + Math.max(10, w) - 4, by = tool === 'pin' ? y0 - 12 : y0 - 14;
+    tmOpenSpot(stage, f, sub, itemId, {mark: m, num}, true, bx, by + 26, true);
+  };
+  layer.addEventListener('mouseup', finish);
+  layer.addEventListener('mouseleave', e=>{ if(start && ghost) finish(e); });
+}
+// Little comment card on the PDF (edit when marking, read-only for the pupil).
+function tmOpenSpot(stage, f, sub, itemId, target, editable, x, y, isNew){
+  tmCloseSpot();
+  const spot = document.createElement('div');
+  spot.className = 'tm-spot';
+  spot.style.left = Math.max(4, Math.min(x, (parseFloat(stage.style.width) || 600) - 270)) + 'px';
+  spot.style.top = Math.max(4, y) + 'px';
+  let title, comment, pupilText = '';
+  if(target.mark){
+    title = `${TM_SHAPE_NAMES[target.mark.shape]} ${target.num}${editable ? '' : ' — from your teacher'}`;
+    comment = target.mark.comment || '';
+  } else {
+    const an = (sub.annotations || [])[target.annIdx];
+    const c = tmAnnComment(sub, target.annIdx);
+    title = editable ? `Comment on the pupil's ${an && an.type === 'image-note' ? 'note' : 'highlight'}` : "Your teacher's comment";
+    comment = c ? c.comment : '';
+    pupilText = an ? (an.type === 'image-note' ? (an.text || '') : (an.note || '')) : '';
+  }
+  spot.innerHTML = `<div class="tm-spot-head">${escapeHtml(title)}<button type="button" class="tm-spot-x" aria-label="Close">&times;</button></div>
+    ${pupilText ? `<div class="tm-spot-pupil"><span>${editable ? "Pupil's note" : 'Your note'}:</span> ${escapeHtml(pupilText)}</div>` : ''}
+    ${editable ? `<textarea rows="3" placeholder="${target.mark ? 'Comment (optional)' : 'Your comment'}">${escapeHtml(comment)}</textarea>
+      <div class="tm-spot-actions"><button type="button" class="tm-spot-del">${target.mark ? 'Delete mark' : 'Remove comment'}</button><button type="button" class="tm-spot-ok">Done</button></div>`
+      : `<div class="tm-spot-text">${comment ? escapeHtml(comment) : '<em>No comment.</em>'}</div>`}`;
+  stage.appendChild(spot);
+  spot.addEventListener('mousedown', e=>e.stopPropagation());
+  spot.querySelector('.tm-spot-x').addEventListener('click', tmCloseSpot);
+  if(!editable) return;
+  const ta = spot.querySelector('textarea');
+  const commit = ()=>{
+    const text = ta.value.trim();
+    const marks = tmMarks(sub);
+    if(target.mark){ target.mark.comment = text; }
+    else if(text){ marks.annComments[String(target.annIdx)] = {fp: tmAnnFingerprint((sub.annotations || [])[target.annIdx]), comment: text}; }
+    else { delete marks.annComments[String(target.annIdx)]; }
+    tmQueueSave(sub);
+  };
+  ta.addEventListener('input', commit);
+  spot.querySelector('.tm-spot-ok').addEventListener('click', ()=>{ commit(); tmCloseSpot(); tmRerenderPdf(); tmRefreshPdfLists(sub, itemId); });
+  spot.querySelector('.tm-spot-del').addEventListener('click', ()=>{
+    const marks = tmMarks(sub);
+    if(target.mark) marks.pdf[String(itemId)] = tmPdfMarks(sub, itemId).filter(m=>m.id !== target.mark.id);
+    else delete marks.annComments[String(target.annIdx)];
+    tmQueueSave(sub); tmCloseSpot(); tmRerenderPdf(); tmRefreshPdfLists(sub, itemId);
+  });
+  setTimeout(()=>ta.focus(), 20);
+}
+// Re-draw just the teacher layer on whichever viewer is showing.
+function tmRerenderPdf(){
+  if(!document.getElementById('teacherReview').classList.contains('hidden') && reviewState.doc){
+    const stage = document.getElementById('reviewStage');
+    tmRenderPdfLayer(stage, (reviewState.zoom || ANNOTATION_SCALE) / ANNOTATION_SCALE, reviewState.sub, reviewState.itemId, reviewState.page, true);
+  }
+}
+// Lists of PDF marks / annotation comments under each PDF item on the review screen.
+function tmPdfListHtml(sub, item, editable){
+  const marks = tmPdfMarks(sub, item.id);
+  if(!marks.length) return editable ? '<p class="tm-empty">No marks on this PDF yet — pick a tool above the PDF (Highlight, Underline or Comment) and draw on the page.</p>' : '';
+  return marks.map((m, i)=>`<button type="button" class="tm-pdf-row" data-item="${item.id}" data-mark="${m.id}" data-page="${m.page}">
+      <span class="tm-c-num">${i + 1}</span><span class="tm-c-tag">${TM_SHAPE_NAMES[m.shape]}</span>
+      <span class="t">${m.comment ? escapeHtml(m.comment) : '<em>No comment</em>'}</span><span class="pg">p. ${m.page}</span></button>`).join('');
+}
+function tmRefreshPdfLists(sub, itemId){
+  const a = reviewState.a;
+  if(!a) return;
+  const item = a.items.find(i=>i.id === Number(itemId));
+  const box = document.querySelector(`#reviewResponse .tm-pdf-list[data-item="${itemId}"]`);
+  if(box && item){ box.innerHTML = tmPdfListHtml(sub, item, true); tmWirePdfRows(box); }
+  const anns = document.querySelector(`#reviewResponse .rv-ann-list[data-item="${itemId}"]`);
+  if(anns && item) { anns.innerHTML = reviewAnnListInner(sub, item); wireReviewAnnRows(anns, sub); }
+}
+function tmWirePdfRows(box){
+  box.querySelectorAll('.tm-pdf-row').forEach(b=>b.addEventListener('click', async ()=>{
+    await loadReviewSource(Number(b.dataset.item), Number(b.dataset.page));
+    const el = document.querySelector(`#reviewStage .tm-badge[data-mark="${b.dataset.mark}"]`);
+    if(el){ el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.remove('tm-flash'); void el.offsetWidth; el.classList.add('tm-flash'); }
+  }));
+}
+function tmSetTool(tool){
+  TM.tool = tool;
+  document.querySelectorAll('#tmTools [data-tool]').forEach(b=>b.classList.toggle('active', b.dataset.tool === tool));
+  tmCloseSpot();
+  tmRerenderPdf();
+}
+
+// ---------- pupil side (after the grade is released) ----------
+function tmPupilPdfSummary(item, sub){
+  if(item.type !== 'pdf') return '';
+  const marks = tmPdfMarks(sub, item.id);
+  const annNotes = (sub.annotations || []).map((an, idx)=>[an, tmAnnComment(sub, idx)]).filter(([an, c])=>an.textId === item.id && c);
+  if(!marks.length && !annNotes.length) return '';
+  return `<div class="tm-pupil-pdf"><div class="tm-comments-head">On the PDF${marks.length ? ` · ${marks.length} mark${marks.length === 1 ? '' : 's'}` : ''} — open your paper to see them in place</div>
+    ${marks.map((m, i)=>`<div class="tm-c"><span class="tm-c-num">${i + 1}</span><div class="tm-c-body"><div class="tm-c-quote"><span class="tm-c-tag">${TM_SHAPE_NAMES[m.shape]}</span> <span class="q">page ${m.page}</span></div>${m.comment ? `<div class="tm-c-text">${escapeHtml(m.comment)}</div>` : ''}</div></div>`).join('')}
+    ${annNotes.map(([an, c])=>`<div class="tm-c"><span class="tm-c-num">💬</span><div class="tm-c-body"><div class="tm-c-quote"><span class="q">On your ${an.type === 'image-note' ? 'note' : 'highlight'}${(an.note || an.text) ? ` “${escapeHtml((an.note || an.text).slice(0, 60))}”` : ''} · page ${an.page}</span></div><div class="tm-c-text">${escapeHtml(c.comment)}</div></div></div>`).join('')}</div>`;
+}
+function tmPupilAnswerHtml(item, sub, answerHtml){
+  const marks = tmMarks(sub).answers[String(item.id)] || [];
+  if(!marks.length) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = answerHtml || '';
+  const shown = tmApply(tmp, marks);
+  return `<div class="tm-grid pupil"><div class="rv-answer tm-answer">${tmp.innerHTML}</div><div class="tm-comments">${tmCommentListHtml(shown, false)}</div></div>`;
+}
+
+// The pupil's PDF annotations listed under an item, each with the teacher's comment on it (if any).
+function reviewAnnListInner(sub, item){
+  return annotationsFor(sub, item.id).map(an=>{
+    const idx = (sub.annotations || []).indexOf(an);
+    const isNote = an.type === 'image-note';
+    const text = isNote ? (an.text || '(empty note)') : (an.note || 'Highlight');
+    const c = tmAnnComment(sub, idx);
+    return `<button type="button" class="rv-ann" data-item="${item.id}" data-ann="${idx}">
+      <span class="sw ${isNote ? 'sw-note' : (an.color || 'y')}"></span><span style="min-width:0;">${escapeHtml(text)}${c ? `<span class="rv-ann-tc">💬 You: ${escapeHtml(c.comment)}</span>` : ''}</span><span class="pg">p. ${an.page}</span></button>`;
+  }).join('');
+}
+function wireReviewAnnRows(container, sub){
+  container.querySelectorAll('.rv-ann').forEach(b=>b.addEventListener('click', async ()=>{
+    const an = (sub.annotations||[])[Number(b.dataset.ann)];
+    if(!an) return;
+    await loadReviewSource(Number(b.dataset.item), an.page);
+    document.getElementById('reviewShowAnnotations').checked = true;
+    document.getElementById('reviewStage').classList.remove('no-annotations');
+    flashAnnotation(an);
+  }));
+}
 function renderReviewSections(a, sub){
   const scores = sub.itemScores || {};
   let n = 0;
@@ -3663,21 +4403,18 @@ function renderReviewSections(a, sub){
     }
     if(anns.length) chips += `<span class="rv-chip notes">${anns.length} annotation${anns.length === 1 ? '' : 's'}</span>`;
     const title = item.prompt ? item.prompt : item.label;
-    const annList = anns.length ? `<div class="rv-label">Annotations</div><div class="rv-ann-list">${anns.map((an, i)=>{
-        const isNote = an.type === 'image-note';
-        const text = isNote ? (an.text || '(empty note)') : (an.note || 'Highlight');
-        return `<button type="button" class="rv-ann" data-item="${item.id}" data-ann="${(sub.annotations||[]).indexOf(an)}">
-          <span class="sw ${isNote ? 'sw-note' : (an.color || 'y')}"></span><span>${escapeHtml(text)}</span><span class="pg">p. ${an.page}</span></button>`;
-      }).join('')}</div>` : '';
+    const annList = anns.length ? `<div class="rv-label">Pupil's annotations <span class="rv-label-hint">— click one on the PDF to comment on it</span></div><div class="rv-ann-list" data-item="${item.id}">${reviewAnnListInner(sub, item)}</div>` : '';
+    const pdfMarks = item.type === 'pdf' ? `<div class="rv-label">Your marks on the PDF</div><div class="tm-pdf-list" data-item="${item.id}">${tmPdfListHtml(sub, item, true)}</div>` : '';
     return `<details class="rv-sec" data-item-id="${item.id}">
       <summary><span class="rv-num">${n}</span><span class="rv-sum-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>${chips}</summary>
       <div class="rv-body">
         ${item.prompt ? `<div class="rv-label">${escapeHtml(item.label)} · ${ANSWER_TYPE_NAMES[item.type] || ''}</div><div style="white-space:pre-wrap;">${escapeHtml(item.prompt)}</div>` : ''}
         <div class="rv-label">${isMedia ? "Pupil's written response" : "Pupil's answer"}</div>
-        <div class="rv-answer">${answerHtml}</div>
+        ${(isHtml && !blank && !(item.type === 'image' || item.type === 'video')) ? ((TM_ANSWER_SOURCE[item.id] = raw), tmAnswerBlockHtml(item)) : `<div class="rv-answer">${answerHtml}</div>`}
         ${correct ? `<div class="rv-label">Correct answer</div><div>${escapeHtml(correct)}</div>` : ''}
         ${score.feedback ? `<div class="rv-label">Your feedback</div><div class="rv-feedback">${escapeHtml(score.feedback)}</div>` : ''}
         ${annList}
+        ${pdfMarks}
         ${isMedia ? `<button type="button" class="btn small outline rv-show-btn" data-show-item="${item.id}">Show this ${item.type === 'pdf' ? 'PDF' : item.type} in the viewer</button>` : ''}
       </div>
     </details>`;
@@ -3695,14 +4432,10 @@ function renderReviewSections(a, sub){
     });
   });
   box.querySelectorAll('[data-show-item]').forEach(b=>b.addEventListener('click', ()=>loadReviewSource(Number(b.dataset.showItem))));
-  box.querySelectorAll('.rv-ann').forEach(b=>b.addEventListener('click', async ()=>{
-    const an = (sub.annotations||[])[Number(b.dataset.ann)];
-    if(!an) return;
-    await loadReviewSource(Number(b.dataset.item), an.page);
-    document.getElementById('reviewShowAnnotations').checked = true;
-    document.getElementById('reviewStage').classList.remove('no-annotations');
-    flashAnnotation(an);
-  }));
+  wireReviewAnnRows(box, sub);
+  box.querySelectorAll('.tm-pdf-list').forEach(tmWirePdfRows);
+  tmInitAnswerBlocks(box, a, sub);
+  tmSetStatus(tmHasAny(sub) ? (sub.published ? 'Marks saved · visible to the pupil' : 'Marks saved · pupil sees them when you release the grade') : '');
 }
 
 function focusReviewSection(itemId){
@@ -3727,10 +4460,14 @@ async function loadReviewSource(itemId, page){
     reviewState.page = page || 1;
     if(item.type !== 'pdf'){
       document.getElementById('reviewPageLabel').textContent = '';
+      document.getElementById('reviewZoomLabel').textContent = item.type === 'image' ? 'Fit' : '';
       stage.style.width = ''; stage.style.height = '';
+      reviewState.imgZoom = null;
       stage.innerHTML = item.type === 'image'
-        ? `<img src="${SCHOOL_PREFIX}${item.imageUrl}" style="display:block;max-width:100%;border-radius:8px;" alt="${escapeHtml(item.label)}">`
+        ? `<img class="rv-img" src="${SCHOOL_PREFIX}${item.imageUrl}" style="display:block;max-width:none;border-radius:8px;" alt="${escAttr(item.label)}">`
         : `<video src="${SCHOOL_PREFIX}${item.videoUrl}" controls style="display:block;max-width:100%;border-radius:8px;"></video>`;
+      const img = stage.querySelector('img.rv-img');
+      if(img) img.addEventListener('load', applyReviewImageZoom);
       return;
     }
     stage.innerHTML = '<div class="sub" style="padding:30px 40px;">Loading PDF…</div>';
@@ -3823,6 +4560,7 @@ async function renderReviewPage(){
       overlay.appendChild(note);
     }
   });
+  tmRenderPdfLayer(stage, f, sub, reviewState.itemId, reviewState.page, true);
 }
 
 function flashAnnotation(an){
@@ -3835,9 +4573,33 @@ function flashAnnotation(an){
 
 document.getElementById('reviewPrevPage').addEventListener('click', ()=>{ if(reviewState.doc && reviewState.page > 1){ reviewState.page--; renderReviewPage(); document.getElementById('reviewScroll').scrollTop = 0; } });
 document.getElementById('reviewNextPage').addEventListener('click', ()=>{ if(reviewState.doc && reviewState.page < reviewState.doc.numPages){ reviewState.page++; renderReviewPage(); document.getElementById('reviewScroll').scrollTop = 0; } });
-document.getElementById('reviewZoomIn').addEventListener('click', ()=>{ reviewState.zoom = Math.min(4, (reviewState.zoom || ANNOTATION_SCALE) * 1.2); renderReviewPage(); });
-document.getElementById('reviewZoomOut').addEventListener('click', ()=>{ reviewState.zoom = Math.max(0.4, (reviewState.zoom || ANNOTATION_SCALE) / 1.2); renderReviewPage(); });
-document.getElementById('reviewZoomFit').addEventListener('click', ()=>{ reviewState.zoom = null; renderReviewPage(); });
+// Images on the review screen use the same −/+/Fit buttons as PDFs.
+function reviewImage(){ return reviewState.doc ? null : document.querySelector('#reviewStage img.rv-img'); }
+function reviewImageFit(img){ return Math.min(1, (document.getElementById('reviewScroll').clientWidth - 40) / (img.naturalWidth || 1)); }
+function applyReviewImageZoom(){
+  const img = reviewImage();
+  if(!img || !img.naturalWidth) return;
+  const z = reviewState.imgZoom == null ? reviewImageFit(img) : reviewState.imgZoom;
+  img.style.width = Math.max(20, img.naturalWidth * z) + 'px';
+  document.getElementById('reviewZoomLabel').textContent = Math.round(z * 100) + '%';
+}
+function zoomReviewImage(f){
+  const img = reviewImage();
+  if(!img) return false;
+  if(f === null) reviewState.imgZoom = null;
+  else reviewState.imgZoom = Math.max(0.05, Math.min(8, (reviewState.imgZoom == null ? reviewImageFit(img) : reviewState.imgZoom) * f));
+  applyReviewImageZoom();
+  return true;
+}
+document.getElementById('reviewZoomIn').addEventListener('click', ()=>{ if(zoomReviewImage(1.2)) return; reviewState.zoom = Math.min(4, (reviewState.zoom || ANNOTATION_SCALE) * 1.2); renderReviewPage(); });
+document.getElementById('reviewZoomOut').addEventListener('click', ()=>{ if(zoomReviewImage(1 / 1.2)) return; reviewState.zoom = Math.max(0.4, (reviewState.zoom || ANNOTATION_SCALE) / 1.2); renderReviewPage(); });
+document.getElementById('reviewZoomFit').addEventListener('click', ()=>{ if(zoomReviewImage(null)) return; reviewState.zoom = null; renderReviewPage(); });
+document.getElementById('reviewScroll').addEventListener('wheel', e=>{
+  if(!e.ctrlKey) return;
+  e.preventDefault();
+  document.getElementById(e.deltaY < 0 ? 'reviewZoomIn' : 'reviewZoomOut').click();
+}, {passive: false});
+document.querySelectorAll('#tmTools [data-tool]').forEach(b=>b.addEventListener('click', ()=>tmSetTool(b.dataset.tool)));
 document.getElementById('reviewShowAnnotations').addEventListener('change', (e)=>{
   document.getElementById('reviewStage').classList.toggle('no-annotations', !e.target.checked);
 });
@@ -3857,7 +4619,7 @@ let reviewResizeTimer = null;
 window.addEventListener('resize', ()=>{
   if(document.getElementById('teacherReview').classList.contains('hidden')) return;
   clearTimeout(reviewResizeTimer);
-  reviewResizeTimer = setTimeout(()=>{ reviewState.zoom = null; renderReviewPage(); }, 200);
+  reviewResizeTimer = setTimeout(()=>{ reviewState.zoom = null; renderReviewPage(); if(reviewState.imgZoom == null) applyReviewImageZoom(); }, 200);
 });
 document.getElementById('backFromReview').addEventListener('click', ()=>{
   const returnTab = state.reviewReturnTab, returnPupil = state.reviewReturnPupil;
@@ -4342,38 +5104,105 @@ function buildAnswerWidget(item, existingValue, readOnly, onChange){
   return holder;
 }
 
-// ---------------- per-item response tabs (one answer/response per item; one shared notepad) ----------------
+// ---------------- per-item answers (one answer/response per item; one shared notepad) ----------------
+// One answer box per item, but only the current one is shown. Moving between items uses the
+// question navigator ("‹ Question 7 of 30 ›" + a jump grid) instead of one button per item,
+// which got unmanageable for long exams. The navigator and the Contents panel stay in step.
+function answerIsFilled(item, value){
+  if(value == null) return false;
+  if(typeof value === 'string') return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+  if(item.type === 'mcq_single') return !!value.optionId;
+  if(item.type === 'mcq_multiple') return (value.optionIds || []).length > 0;
+  if(item.type === 'true_false') return value.value === true || value.value === false;
+  if(item.type === 'fill_text') return !!String(value.text || '').trim();
+  if(item.type === 'table') return JSON.stringify(value.cells || value).replace(/[\[\]",{}:]|cells/g, '').trim().length > 0;
+  return JSON.stringify(value).length > 2;
+}
 function buildResponseTabs(a, sub){
   sub.responses = sub.responses || {};
   const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
-  const tabs = document.getElementById('responseTabs');
   const holder = document.getElementById('responseEditables');
-  tabs.innerHTML = '';
   holder.innerHTML = '';
+  state.qnav = {a, sub, open: false};
   a.items.forEach((item, i)=>{
-    const tabBtn = document.createElement('button');
-    tabBtn.className = 'mode-btn' + (i===0 ? ' active' : '');
-    tabBtn.textContent = a.items.length > 1 ? item.label : (item.type === 'pdf' || item.type === 'long_answer' ? 'Response' : 'Answer');
-    tabBtn.dataset.textId = item.id;
-    tabBtn.addEventListener('click', ()=>switchResponseTab(item.id));
-    tabs.appendChild(tabBtn);
-
     const wrap = buildAnswerWidget(item, sub.responses[item.id] ?? sub.responses[String(item.id)], readOnly, ()=>{
       sub.responses[item.id] = collectAnswerFromWidget(item, wrap);
       markInProgress(sub);
+      refreshQNavStatus();
     });
     wrap.className = (wrap.className ? wrap.className + ' ' : '') + 'response-item' + (i===0 ? '' : ' hidden');
     wrap.id = 'responseEditable_' + item.id;
+    // Released grade: show the teacher's underlines / highlights / comments on the pupil's answer.
+    const tmList = (readOnly && sub.published) ? (tmMarks(sub).answers[String(item.id)] || []) : [];
+    const ed = wrap.querySelector('.editable');
+    if(tmList.length && ed){
+      const shown = tmApply(ed, tmList);
+      const box = document.createElement('div');
+      box.className = 'tm-comments pupil-inline';
+      box.innerHTML = `<div class="tm-comments-head">Your teacher's comments</div>${tmCommentListHtml(shown, false)}`;
+      wrap.appendChild(box);
+    }
     holder.appendChild(wrap);
   });
   state.activeResponseTextId = a.items[0] ? a.items[0].id : null;
+  renderQNav();
+}
+function renderQNav(){
+  const box = document.getElementById('responseTabs');
+  const q = state.qnav;
+  if(!box || !q) return;
+  const items = q.a.items;
+  if(items.length <= 1){ box.innerHTML = ''; return; }
+  const idx = Math.max(0, items.findIndex(it=>it.id === state.activeResponseTextId));
+  const cur = items[idx];
+  box.innerHTML = `<div class="qnav">
+      <button type="button" class="qnav-arrow" id="qnavPrev" aria-label="Previous question" ${idx === 0 ? 'disabled' : ''}>&lsaquo;</button>
+      <button type="button" class="qnav-current" id="qnavCurrent" aria-expanded="${q.open}" title="Show all questions">
+        <span class="lbl">${escapeHtml(cur.label)}</span><span class="pos">${idx + 1} of ${items.length}</span><span class="caret">${q.open ? '▲' : '▼'}</span></button>
+      <button type="button" class="qnav-arrow" id="qnavNext" aria-label="Next question" ${idx === items.length - 1 ? 'disabled' : ''}>&rsaquo;</button>
+    </div>
+    <div class="qnav-grid${q.open ? '' : ' hidden'}" id="qnavGrid"></div>`;
+  document.getElementById('qnavPrev').addEventListener('click', ()=>goToItem(items[idx - 1].id));
+  document.getElementById('qnavNext').addEventListener('click', ()=>goToItem(items[idx + 1].id));
+  document.getElementById('qnavCurrent').addEventListener('click', ()=>{ q.open = !q.open; renderQNav(); });
+  if(q.open) renderQNavGrid();
+}
+function renderQNavGrid(){
+  const grid = document.getElementById('qnavGrid');
+  const q = state.qnav;
+  if(!grid || !q) return;
+  const blocks = [];
+  q.a.items.forEach((item, i)=>{
+    const sec = (item.section || '').trim();
+    const last = blocks[blocks.length - 1];
+    if(last && last.sec === sec) last.cells.push([item, i]); else blocks.push({sec, cells: [[item, i]]});
+  });
+  const done = q.a.items.filter(it=>answerIsFilled(it, q.sub.responses[it.id] ?? q.sub.responses[String(it.id)])).length;
+  grid.innerHTML = blocks.map(b=>`${b.sec ? `<div class="qg-sec">${escapeHtml(b.sec)}</div>` : ''}<div class="qg-row">${b.cells.map(([it, i])=>{
+      const filled = answerIsFilled(it, q.sub.responses[it.id] ?? q.sub.responses[String(it.id)]);
+      return `<button type="button" class="qg-cell${filled ? ' done' : ''}${it.id === state.activeResponseTextId ? ' current' : ''}" data-item="${it.id}" title="${escapeHtml(it.label)}${filled ? ' — answered' : ''}">${i + 1}</button>`;
+    }).join('')}</div>`).join('')
+    + `<div class="qg-legend"><span><i class="done"></i>Answered (${done})</span><span><i></i>Not answered yet (${q.a.items.length - done})</span></div>`;
+  grid.querySelectorAll('.qg-cell').forEach(b=>b.addEventListener('click', ()=>{ q.open = false; goToItem(Number(b.dataset.item)); }));
+}
+function refreshQNavStatus(){ if(state.qnav && state.qnav.open) renderQNavGrid(); }
+// Show an item everywhere at once: its answer box, its content (PDF page / question) and the
+// Contents panel.
+function goToItem(itemId, opts={}){
+  switchResponseTab(itemId);
+  if(!opts.answerOnly && state.currentTextId !== itemId){
+    state.currentTextId = itemId;
+    state.currentPage = 1;
+    renderCurrentItem();
+  }
 }
 function switchResponseTab(textId){
-  document.querySelectorAll('#responseTabs button').forEach(b=>b.classList.toggle('active', Number(b.dataset.textId)===textId));
   document.querySelectorAll('#responseEditables .response-item').forEach(ed=>{
     ed.classList.toggle('hidden', ed.id !== 'responseEditable_' + textId);
   });
   state.activeResponseTextId = textId;
+  renderQNav();
+  syncContentsPanel();
 }
 
 function renderTaskGradeBanner(sub){
@@ -4399,19 +5228,24 @@ function openGradeSummary(assignmentId){
   document.getElementById('gradeSummaryMeta').textContent = `Graded${sub.gradedAt ? ' ' + new Date(sub.gradedAt).toLocaleString() : ''}${a.teacherName ? ' by ' + a.teacherName : ''}`;
   document.getElementById('gradeSummaryTotal').innerHTML = `<div class="n">${sub.totalScore} / ${sub.maxScore}</div>${pct != null ? `<div class="p">${pct}%</div>` : ''}`;
   let n = 0;
+  const tmAll = tmMarks(sub);
+  const hasTm = item=>(tmAll.answers[String(item.id)] || []).length || (tmAll.pdf[String(item.id)] || []).length
+    || (sub.annotations || []).some((an, idx)=>an.textId === item.id && tmAnnComment(sub, idx));
   const graded = a.items.filter(item=>scores[String(item.id)] && (scores[String(item.id)].score != null || scores[String(item.id)].feedback));
   const withFeedback = graded.filter(item=>scores[String(item.id)].feedback).length;
   document.getElementById('gradeSummaryOverall').innerHTML = `<div class="gs-overall">${graded.length} item${graded.length === 1 ? '' : 's'} marked · ${withFeedback ? `${withFeedback} with feedback from your teacher` : 'no written feedback this time'}.</div>`;
   document.getElementById('gradeSummaryItems').innerHTML = a.items.map(item=>{
-    const sc = scores[String(item.id)];
-    if(!sc || (sc.score == null && !sc.feedback)) return '';
+    const sc = scores[String(item.id)] || {};
+    if(sc.score == null && !sc.feedback && !hasTm(item)) return '';
     n++;
     const max = sc.maxScore ?? item.points;
     const cls = sc.score == null ? '' : (Number(sc.score) >= Number(max) ? 'full' : (Number(sc.score) === 0 ? 'zero' : ''));
     const title = item.prompt || item.label;
     return `<div class="gs-item"><div class="gs-item-head"><span class="rv-num">${n}</span><span class="t">${escapeHtml(title)}</span>
       ${sc.score != null ? `<span class="s ${cls}">${sc.score} / ${max}</span>` : ''}</div>
-      <div class="gs-fb${sc.feedback ? '' : ' none'}">${sc.feedback ? escapeHtml(sc.feedback) : 'No feedback for this item.'}</div></div>`;
+      <div class="gs-fb${sc.feedback ? '' : ' none'}">${sc.feedback ? escapeHtml(sc.feedback) : 'No feedback for this item.'}</div>
+      ${tmPupilAnswerHtml(item, sub, responseOf(sub, item))}
+      ${tmPupilPdfSummary(item, sub)}</div>`;
   }).join('') || '<p class="sub">Your teacher released your total without item-by-item marks.</p>';
   document.getElementById('gradeSummaryBackdrop').classList.remove('hidden');
   document.getElementById('gradeSummaryOpenWork').classList.toggle('hidden',
@@ -4478,6 +5312,7 @@ async function openStudentTask(assignmentId){
   document.getElementById('taskPrompt').textContent = a.prompt;
   document.getElementById('openChatFromTaskDot').classList.toggle('hidden', !sub.hasUnreadFromTeacher);
   document.getElementById('openCalculatorBtn').classList.toggle('hidden', !a.allowCalculator);
+  setupExamResources(a);
   renderTaskGradeBanner(sub);
   document.getElementById('submittedNotice').classList.toggle('hidden', !(document.body.dataset.role === 'pupil' && sub.status === 'submitted'));
   document.getElementById('previewNotice').classList.toggle('hidden',
@@ -4566,8 +5401,11 @@ async function buildResourcesPanel(a, sub){
       // having to scroll past every page thumbnail to reach it.
       const group = document.createElement('details');
       group.className = 'resource-group';
-      group.open = true;
-      group.innerHTML = `<summary class="resource-group-label">${item.label}</summary>`;
+      group.dataset.itemId = item.id;
+      // Long exams start tidy: only the item being worked on is expanded.
+      group.open = a.items.length <= 6 || item.id === state.currentTextId;
+      const pts = Number(item.points) || 0;
+      group.innerHTML = `<summary class="resource-group-label"><span>${escapeHtml(item.label)}</span><span class="rg-meta">${pts ? `${pts} pt${pts === 1 ? '' : 's'}` : ''}</span></summary>`;
       if(item.type === 'pdf'){
         try {
           const doc = await pdfjsLib.getDocument(SCHOOL_PREFIX + item.pdfUrl).promise;
@@ -4582,6 +5420,7 @@ async function buildResourcesPanel(a, sub){
               state.currentTextId = item.id;
               state.currentPage = p;
               renderCurrentItem();
+              if(state.activeResponseTextId !== item.id) switchResponseTab(item.id);
             });
             group.appendChild(thumb);
             // Thumbnail canvases are rendered lazily just below, in parallel with each other —
@@ -4602,6 +5441,7 @@ async function buildResourcesPanel(a, sub){
           state.currentTextId = item.id;
           state.currentPage = 1;
           renderCurrentItem();
+          if(state.activeResponseTextId !== item.id) switchResponseTab(item.id);
         });
         group.appendChild(thumb);
       }
@@ -4622,7 +5462,19 @@ function highlightActiveThumb(){
   document.querySelectorAll('.resource-thumb').forEach(el=>{
     el.classList.toggle('active', Number(el.dataset.textId)===state.currentTextId && Number(el.dataset.page)===state.currentPage);
   });
+  syncContentsPanel();
 }
+// Mark (and open) the current item's bar in the Contents panel, and keep it in view.
+function syncContentsPanel(){
+  const id = state.activeResponseTextId ?? state.currentTextId;
+  document.querySelectorAll('#resourcesList .resource-group').forEach(g=>{
+    const isCur = Number(g.dataset.itemId) === id;
+    g.classList.toggle('current', isCur);
+    if(isCur && !g.open){ g.open = true; const sec = g.closest('details.resource-section'); if(sec) sec.open = true; }
+  });
+}
+document.getElementById('expandAllRes')?.addEventListener('click', ()=>document.querySelectorAll('#resourcesList details').forEach(d=>{ d.open = true; }));
+document.getElementById('collapseAllRes')?.addEventListener('click', ()=>document.querySelectorAll('#resourcesList details').forEach(d=>{ d.open = false; }));
 function currentItem(){
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   return a ? a.items.find(it=>it.id===state.currentTextId) : null;
@@ -4638,6 +5490,7 @@ async function renderCurrentItem(){
   document.getElementById('pdfOnlyControls').classList.toggle('hidden', !isPdf);
   document.getElementById('pdfOnlyControls2').classList.toggle('hidden', !isPdf);
   document.getElementById('pageNavControls').classList.toggle('hidden', !isPdf);
+  document.getElementById('pdfZoomControls').classList.toggle('hidden', !isPdf);
   document.getElementById('textLayerDiag').classList.toggle('hidden', !isPdf);
   if(isPdf){
     await renderPdfPage();
@@ -4658,7 +5511,7 @@ function renderMediaItem(item){
   if(!item){ body.innerHTML = ''; return; }
   const safeLabel = (item.label || '').replace(/"/g,'&quot;');
   if(item.type === 'image'){
-    body.innerHTML = `<img src="${SCHOOL_PREFIX}${item.imageUrl}" alt="${safeLabel}" style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;">`;
+    mountZoomableImage(body, SCHOOL_PREFIX + item.imageUrl, item.label || '');
   } else if(item.type === 'video'){
     body.innerHTML = `<video src="${SCHOOL_PREFIX}${item.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;"></video>`;
   }
@@ -4714,6 +5567,7 @@ function withTimeout(promise, ms, timeoutMessage){
 function showPdfRenderError(stage, message){
   stage.innerHTML = '';
   stage.style.width = ''; stage.style.height = '';
+  applyPdfZoom();
   const box = document.createElement('div');
   box.className = 'pdf-render-error';
   box.style.cssText = 'padding:32px;max-width:360px;text-align:center;color:#5b6470;';
@@ -4749,10 +5603,15 @@ async function renderPdfPage(){
   }
   if(myGen !== renderGeneration) return; // a newer render started while we were waiting on this one
 
-  const viewport = page.getViewport({scale:1.2});
+  const viewport = page.getViewport({scale:ANNOTATION_SCALE});
+  // Drawn at a higher resolution when zoomed in / on high-DPI screens, then shown at page size.
+  const res = pdfCanvasScale();
+  const drawViewport = page.getViewport({scale:ANNOTATION_SCALE * res});
   const canvas = document.createElement('canvas');
-  canvas.width = viewport.width; canvas.height = viewport.height;
-  const renderTask = page.render({canvasContext:canvas.getContext('2d'), viewport});
+  canvas.width = drawViewport.width; canvas.height = drawViewport.height;
+  canvas.style.width = viewport.width + 'px'; canvas.style.height = viewport.height + 'px';
+  canvas.dataset.res = res;
+  const renderTask = page.render({canvasContext:canvas.getContext('2d'), viewport: drawViewport});
   try {
     await withTimeout(renderTask.promise, 15000, "This page is taking too long to render. Try again, or reload if it keeps happening.");
   } catch(error) {
@@ -4767,6 +5626,8 @@ async function renderPdfPage(){
   stage.classList.toggle('notes-hidden', state.notesHidden);
   stage.classList.toggle('erase-mode', state.mode==='erase');
   stage.style.width = viewport.width+'px'; stage.style.height = viewport.height+'px';
+  state.pdfPageObj = page;
+  applyPdfZoom();
   // pdf.js's text-layer CSS (width/height/font-size of every span) is expressed with calc(var(--scale-factor)*...).
   // Without this custom property set on an ancestor, the whole text layer collapses to 0x0 and every
   // span reports the same coordinates — text is 'there' (pointer-events:auto, N spans) but unclickable
@@ -4854,6 +5715,8 @@ function renderAnnotationLayers(){
       renderStickyNote(noteLayer, an, sub);
     }
   });
+  // Released grade: the teacher's marks and comments on this page.
+  if(sub.published && sub.status === 'submitted' && tmHasAny(sub)) tmRenderPdfLayer(stage, 1, sub, state.currentTextId, state.currentPage, false);
 }
 
 function renderHighlightNoteButton(overlay, an, sub){
@@ -4910,11 +5773,13 @@ function renderStickyNote(overlay, an, sub){
   const head = note.querySelector('.note-head');
   let dragging=false, offX=0, offY=0;
   head.addEventListener('mousedown', (e)=>{
-    dragging=true; offX = e.clientX - note.offsetLeft; offY = e.clientY - note.offsetTop;
+    const z = pdfZoom();
+    dragging=true; offX = e.clientX / z - note.offsetLeft; offY = e.clientY / z - note.offsetTop;
   });
   window.addEventListener('mousemove', (e)=>{
     if(!dragging) return;
-    const nx = e.clientX-offX, ny = e.clientY-offY;
+    const z = pdfZoom();
+    const nx = e.clientX / z - offX, ny = e.clientY / z - offY;
     note.style.left = nx+'px'; note.style.top = ny+'px';
     an.x = nx; an.y = ny;
   });
@@ -4983,8 +5848,8 @@ function attachTextLayerInteractions(textLayerDiv, stage, sub, imageRects){
   });
   textLayerDiv.addEventListener('mouseup', (e)=>{
     isDown = false;
-    const stageRect = stage.getBoundingClientRect();
-    const px = e.clientX - stageRect.left, py = e.clientY - stageRect.top;
+    const stageRect = stage.getBoundingClientRect(), z = pdfZoom();
+    const px = (e.clientX - stageRect.left) / z, py = (e.clientY - stageRect.top) / z;
 
     if(dragged){
       tryCreateHighlightFromSelection(textLayerDiv, sub);
@@ -5005,11 +5870,11 @@ function tryCreateHighlightFromSelection(textLayerDiv, sub){
   if(!selection || selection.isCollapsed || selection.rangeCount===0) return;
   if(!textLayerDiv.contains(selection.anchorNode)) return;
   const range = selection.getRangeAt(0);
-  const stageRect = document.getElementById('pdfStage').getBoundingClientRect();
+  const stageRect = document.getElementById('pdfStage').getBoundingClientRect(), z = pdfZoom();
   const clientRects = Array.from(range.getClientRects());
   const rects = clientRects
     .filter(r=>r.width>1 && r.height>1)
-    .map(r=>({x:r.left-stageRect.left, y:r.top-stageRect.top, w:r.width, h:r.height}));
+    .map(r=>({x:(r.left-stageRect.left)/z, y:(r.top-stageRect.top)/z, w:r.width/z, h:r.height/z}));
   selection.removeAllRanges();
   if(!rects.length) return;
   const an = {textId: state.currentTextId, page: state.currentPage, type:'highlight', color: state.highlightColor, rects, note:''};
@@ -5186,7 +6051,7 @@ function makeModalDraggable(modalId, headerId, closeBtnId){
   const header = document.getElementById(headerId);
   let dragging=false, offX=0, offY=0;
   header.addEventListener('mousedown', (e)=>{
-    if(e.target.id===closeBtnId) return;
+    if(e.target.id===closeBtnId || e.target.closest('button')) return;
     dragging=true;
     const rect = modal.getBoundingClientRect();
     offX = e.clientX-rect.left; offY = e.clientY-rect.top;
@@ -5201,6 +6066,311 @@ function makeModalDraggable(modalId, headerId, closeBtnId){
 }
 makeModalDraggable('notepadModal', 'notepadHeader', 'closeNotepadBtn');
 makeModalDraggable('calculatorModal', 'calculatorHeader', 'closeCalculatorBtn');
+
+// ================= Zoom helpers =================
+// A zoomable image: − / % / + / Fit / 100% above a scrollable box. Ctrl + scroll (or a trackpad
+// pinch) zooms too. "Fit" shrinks big images to the box but never blows small ones up.
+function escAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
+function mountZoomableImage(host, src, alt){
+  host.innerHTML = `<div class="zimg">
+      <div class="zimg-bar"><div class="zoom-ctl" title="Zoom (or hold Ctrl and scroll)">
+        <button type="button" data-z="out" aria-label="Zoom out">&minus;</button><span class="zl">Fit</span>
+        <button type="button" data-z="in" aria-label="Zoom in">+</button>
+        <button type="button" class="txt" data-z="fit">Fit</button><button type="button" class="txt" data-z="100">100%</button></div></div>
+      <div class="zimg-scroll"><img alt="${escAttr(alt || '')}"></div></div>`;
+  const img = host.querySelector('img'), box = host.querySelector('.zimg-scroll'), label = host.querySelector('.zl');
+  let z = null;   // null = fit
+  const fitZ = ()=>{
+    if(!img.naturalWidth) return 1;
+    const mh = getComputedStyle(box).maxHeight;
+    const H = (mh && mh !== 'none' ? parseFloat(mh) : box.clientHeight) - 22;
+    return Math.min(1, (box.clientWidth - 22) / img.naturalWidth, H > 40 ? H / img.naturalHeight : 1);
+  };
+  const apply = ()=>{
+    if(!img.naturalWidth) return;
+    const zz = z == null ? fitZ() : z;
+    img.style.width = Math.max(20, img.naturalWidth * zz) + 'px';
+    label.textContent = Math.round(zz * 100) + '%';
+  };
+  const setZ = (nz, anchor)=>{
+    const old = z == null ? fitZ() : z;
+    z = Math.max(0.05, Math.min(8, nz));
+    const ax = anchor ? anchor.x : box.clientWidth / 2, ay = anchor ? anchor.y : box.clientHeight / 2;
+    const rx = (box.scrollLeft + ax) / old, ry = (box.scrollTop + ay) / old;
+    apply();
+    box.scrollLeft = rx * z - ax; box.scrollTop = ry * z - ay;
+  };
+  host.querySelectorAll('[data-z]').forEach(b=>b.addEventListener('click', ()=>{
+    const cur = z == null ? fitZ() : z;
+    if(b.dataset.z === 'in') setZ(cur * 1.25);
+    else if(b.dataset.z === 'out') setZ(cur / 1.25);
+    else if(b.dataset.z === '100') setZ(1);
+    else { z = null; apply(); }
+  }));
+  box.addEventListener('wheel', e=>{
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    const r = box.getBoundingClientRect();
+    setZ((z == null ? fitZ() : z) * (e.deltaY < 0 ? 1.12 : 1 / 1.12), {x: e.clientX - r.left, y: e.clientY - r.top});
+  }, {passive: false});
+  img.addEventListener('load', apply);
+  if(window.ResizeObserver) new ResizeObserver(()=>{ if(z == null) apply(); }).observe(box);
+  img.src = src;
+  return {fit(){ z = null; apply(); }};
+}
+
+// ---- Pupil PDF viewer zoom ----
+// Annotations are stored in page pixels at ANNOTATION_SCALE, so the stage itself never changes
+// size: it is scaled with a CSS transform (and the canvas is drawn at a higher resolution so it
+// stays sharp). Anything that turns a mouse position into page pixels divides by pdfZoom().
+state.pdfZoom = 1;
+function pdfZoom(){ return state.pdfZoom || 1; }
+function applyPdfZoom(){
+  const stage = document.getElementById('pdfStage'), box = document.getElementById('pdfZoomBox');
+  const z = pdfZoom();
+  const W = parseFloat(stage.style.width) || 0, H = parseFloat(stage.style.height) || 0;
+  stage.style.transform = (z === 1 || !W) ? '' : `scale(${z})`;
+  box.style.width = W ? (W * z) + 'px' : ''; box.style.height = H ? (H * z) + 'px' : '';
+  document.getElementById('pdfZoomLabel').textContent = Math.round(z * 100) + '%';
+}
+let pdfSharpenTimer = null;
+function setPdfZoom(nz, anchor){
+  const scroll = document.getElementById('pdfScroll');
+  const old = pdfZoom();
+  const z = Math.max(0.3, Math.min(4, nz));
+  if(Math.abs(z - old) < 0.001) return;
+  const ax = anchor ? anchor.x : scroll.clientWidth / 2, ay = anchor ? anchor.y : scroll.clientHeight / 2;
+  const box = document.getElementById('pdfZoomBox');
+  const rx = (scroll.scrollLeft + ax - box.offsetLeft) / old, ry = (scroll.scrollTop + ay - box.offsetTop) / old;
+  state.pdfZoom = z;
+  applyPdfZoom();
+  scroll.scrollLeft = rx * z + box.offsetLeft - ax; scroll.scrollTop = ry * z + box.offsetTop - ay;
+  clearTimeout(pdfSharpenTimer);
+  pdfSharpenTimer = setTimeout(sharpenPdfCanvas, 250);
+}
+function pdfFitWidthZoom(){
+  const stage = document.getElementById('pdfStage');
+  const W = parseFloat(stage.style.width) || 0;
+  if(!W) return 1;
+  return Math.max(0.3, Math.min(4, (document.getElementById('pdfScroll').clientWidth - 34) / W));
+}
+function pdfCanvasScale(){ return Math.min(4, Math.max(1, pdfZoom()) * (window.devicePixelRatio || 1)); }
+// Redraw just the canvas at the resolution the current zoom needs (the layers stay as they are).
+async function sharpenPdfCanvas(){
+  const page = state.pdfPageObj, stage = document.getElementById('pdfStage');
+  const old = stage.querySelector(':scope > canvas');
+  if(!page || !old || document.getElementById('pdfScroll').classList.contains('hidden')) return;
+  const need = pdfCanvasScale();
+  if(Number(old.dataset.res || 1) >= need - 0.01) return;
+  const gen = renderGeneration;
+  const vp = page.getViewport({scale: ANNOTATION_SCALE * need});
+  const canvas = document.createElement('canvas');
+  canvas.width = vp.width; canvas.height = vp.height;
+  canvas.style.width = old.style.width; canvas.style.height = old.style.height;
+  canvas.dataset.res = need;
+  try { await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise; } catch(_) { return; }
+  if(gen !== renderGeneration || !old.isConnected) return;
+  old.replaceWith(canvas);
+}
+document.getElementById('pdfZoomIn').addEventListener('click', ()=>setPdfZoom(pdfZoom() * 1.2));
+document.getElementById('pdfZoomOut').addEventListener('click', ()=>setPdfZoom(pdfZoom() / 1.2));
+document.getElementById('pdfZoomFit').addEventListener('click', ()=>setPdfZoom(pdfFitWidthZoom()));
+document.getElementById('pdfScroll').addEventListener('wheel', e=>{
+  if(!e.ctrlKey) return;
+  e.preventDefault();
+  const r = document.getElementById('pdfScroll').getBoundingClientRect();
+  setPdfZoom(pdfZoom() * (e.deltaY < 0 ? 1.1 : 1 / 1.1), {x: e.clientX - r.left, y: e.clientY - r.top});
+}, {passive: false});
+
+// ================= Exam resources =================
+const RES_ICONS = {pdf: '📄', image: '🖼️', text: '📝'};
+const RES_KIND_NAMES = {pdf: 'PDF', image: 'Image', text: 'Text'};
+const RES = {idx: 0, docs: {}, pdfZoom: {}, gen: 0};
+function examResources(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  return (a && a.resources) || [];
+}
+// Called whenever an exam is opened.
+function setupExamResources(a){
+  const list = (a && a.resources) || [];
+  document.getElementById('openResourcesBtn').classList.toggle('hidden', !list.length);
+  document.getElementById('resourcesCount').textContent = list.length > 1 ? list.length : '';
+  const modal = document.getElementById('resourcesModal');
+  modal.classList.add('hidden'); modal.classList.remove('minimized');
+  modal.style.left = ''; modal.style.top = ''; modal.style.width = ''; modal.style.height = '';
+  RES.idx = 0;
+}
+function openResourcesPanel(){
+  const list = examResources();
+  if(!list.length) return;
+  const modal = document.getElementById('resourcesModal');
+  modal.classList.remove('hidden', 'minimized');
+  if(RES.idx >= list.length) RES.idx = 0;
+  renderResourceTabs();
+  showResource(RES.idx);
+}
+function renderResourceTabs(){
+  const list = examResources(), tabs = document.getElementById('resourcesTabs');
+  tabs.classList.toggle('hidden', list.length < 2);
+  tabs.innerHTML = list.map((r, i)=>`<button type="button" data-i="${i}" class="${i === RES.idx ? 'active' : ''}" title="${escAttr(r.title)}">${RES_ICONS[r.kind] || ''} ${escapeHtml(r.title)}</button>`).join('');
+  tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{ RES.idx = Number(b.dataset.i); renderResourceTabs(); showResource(RES.idx); }));
+  document.querySelector('#resourcesHeader > span').textContent = list.length === 1 ? `Resource — ${list[0].title}` : 'Resources';
+}
+async function showResource(i){
+  const r = examResources()[i], body = document.getElementById('resourcesBody');
+  const myGen = ++RES.gen;
+  if(!r){ body.innerHTML = ''; return; }
+  if(r.kind === 'text'){ body.innerHTML = `<div class="res-text">${escapeHtml(r.text || '')}</div>`; return; }
+  if(r.kind === 'image'){ mountZoomableImage(body, SCHOOL_PREFIX + r.url, r.title); return; }
+  body.innerHTML = `<div class="res-pdf-bar"><span class="res-pages">Loading…</span>
+      <div class="zoom-ctl"><button type="button" data-z="out" aria-label="Zoom out">&minus;</button><span class="zl">Fit</span>
+      <button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" class="txt" data-z="fit">Fit</button></div></div>
+    <div class="res-pdf-scroll"></div>`;
+  const scroll = body.querySelector('.res-pdf-scroll');
+  let doc = RES.docs[r.id];
+  if(!doc){
+    try { doc = RES.docs[r.id] = await pdfjsLib.getDocument(SCHOOL_PREFIX + r.url).promise; }
+    catch(e){
+      if(myGen !== RES.gen) return;
+      scroll.innerHTML = '<p class="sub" style="padding:20px;text-align:center;">This PDF couldn\'t be opened. Tell your teacher — it may need uploading again.</p>';
+      body.querySelector('.res-pages').textContent = '';
+      return;
+    }
+  }
+  if(myGen !== RES.gen) return;
+  body.querySelector('.res-pages').textContent = `${doc.numPages} page${doc.numPages === 1 ? '' : 's'}`;
+  const first = await doc.getPage(1);
+  const baseW = first.getViewport({scale: 1}).width;
+  const fitZ = ()=>Math.max(0.2, (scroll.clientWidth - 22) / baseW);
+  const label = body.querySelector('.zl');
+  let renderTimer = null;
+  const renderAll = async ()=>{
+    const gen = ++RES.gen;
+    const z = RES.pdfZoom[r.id] || fitZ();
+    label.textContent = Math.round(z / fitZ() * 100) + '%';
+    const dpr = window.devicePixelRatio || 1;
+    const frag = document.createDocumentFragment(), jobs = [];
+    for(let p = 1; p <= Math.min(doc.numPages, 80); p++){
+      const c = document.createElement('canvas'); frag.appendChild(c); jobs.push([p, c]);
+    }
+    const keep = scroll.scrollTop / Math.max(1, scroll.scrollHeight);
+    scroll.innerHTML = ''; scroll.appendChild(frag);
+    for(const [p, c] of jobs){
+      if(gen !== RES.gen) return;
+      const page = await doc.getPage(p);
+      const vp = page.getViewport({scale: z * dpr});
+      c.width = vp.width; c.height = vp.height; c.style.width = (vp.width / dpr) + 'px'; c.style.height = (vp.height / dpr) + 'px';
+      if(p === 1) scroll.scrollTop = keep * scroll.scrollHeight;
+      try { await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise; } catch(_) {}
+    }
+  };
+  const zoomBy = f=>{ RES.pdfZoom[r.id] = Math.max(0.2, Math.min(6, (RES.pdfZoom[r.id] || fitZ()) * f)); clearTimeout(renderTimer); renderTimer = setTimeout(renderAll, 120); };
+  body.querySelectorAll('[data-z]').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.z === 'fit'){ delete RES.pdfZoom[r.id]; renderAll(); } else zoomBy(b.dataset.z === 'in' ? 1.2 : 1 / 1.2);
+  }));
+  scroll.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.1 : 1 / 1.1); }, {passive: false});
+  renderAll();
+}
+document.getElementById('openResourcesBtn').addEventListener('click', ()=>{
+  const modal = document.getElementById('resourcesModal');
+  if(!modal.classList.contains('hidden') && !modal.classList.contains('minimized')){ modal.classList.add('hidden'); return; }
+  openResourcesPanel();
+});
+document.getElementById('closeResourcesBtn').addEventListener('click', ()=>document.getElementById('resourcesModal').classList.add('hidden'));
+document.getElementById('minResourcesBtn').addEventListener('click', ()=>document.getElementById('resourcesModal').classList.toggle('minimized'));
+document.getElementById('resourcesHeader').addEventListener('dblclick', ()=>document.getElementById('resourcesModal').classList.toggle('minimized'));
+makeModalDraggable('resourcesModal', 'resourcesHeader', 'closeResourcesBtn');
+
+// ---- Builder: resource rows ----
+function addResourceRow(kind, host){
+  host = host || document.getElementById('builderResources');
+  const row = document.createElement('div');
+  row.className = 'res-row'; row.dataset.kind = kind;
+  const n = host.querySelectorAll('.res-row').length + 1;
+  row.innerHTML = `<span class="res-kind">${RES_ICONS[kind]} ${RES_KIND_NAMES[kind]}</span>
+    <div class="res-fields">
+      <input type="text" class="res-title" maxlength="120" placeholder="Title pupils will see, e.g. ${kind === 'pdf' ? 'Source A' : kind === 'image' ? 'Map of Asia' : 'Formula sheet'}" value="${kind === 'text' ? 'Note' : RES_KIND_NAMES[kind]} ${n}">
+      ${kind === 'text' ? '<textarea class="res-text-input" placeholder="Type or paste the guide text…"></textarea>'
+        : `<input type="file" class="res-file" accept="${kind === 'pdf' ? 'application/pdf' : 'image/*'}">`}
+    </div>
+    <button type="button" class="res-x" title="Remove" aria-label="Remove">&times;</button>`;
+  row.querySelector('.res-x').addEventListener('click', ()=>row.remove());
+  const file = row.querySelector('.res-file');
+  if(file) file.addEventListener('change', ()=>{
+    const t = row.querySelector('.res-title');
+    if(file.files[0] && /^(PDF|Image) \d+$/.test(t.value.trim())) t.value = file.files[0].name.replace(/\.[^.]+$/, '').slice(0, 120);
+  });
+  host.appendChild(row);
+  (row.querySelector('textarea') || row.querySelector('.res-title')).focus();
+  return row;
+}
+function readResourceRow(row){
+  const kind = row.dataset.kind;
+  const title = row.querySelector('.res-title').value.trim();
+  const file = row.querySelector('.res-file') ? row.querySelector('.res-file').files[0] : null;
+  const text = row.querySelector('.res-text-input') ? row.querySelector('.res-text-input').value : '';
+  if(kind === 'text' && !text.trim()) return {error: `"${title || 'Text resource'}" has no text yet.`};
+  if(kind !== 'text' && !file) return {error: `Choose a file for "${title || RES_KIND_NAMES[kind]}".`};
+  return {kind, title, text, file};
+}
+function collectResourcesForSubmit(){
+  const meta = [], files = [];
+  for(const row of document.querySelectorAll('#builderResources .res-row')){
+    const r = readResourceRow(row);
+    if(r.error) return {error: r.error};
+    meta.push({kind: r.kind, title: r.title, text: r.kind === 'text' ? r.text : ''});
+    if(r.file) files.push(r.file);
+  }
+  return {meta, files};
+}
+document.querySelectorAll('[data-add-resource]').forEach(b=>b.addEventListener('click', ()=>addResourceRow(b.dataset.addResource)));
+
+// ---- Edit dialog: existing resources (add / remove straight away) ----
+function renderEditResources(a){
+  const list = document.getElementById('editResourcesList');
+  const items = a.resources || [];
+  list.innerHTML = items.length ? items.map(r=>`<div class="res-existing" data-id="${r.id}">
+      <span>${RES_ICONS[r.kind] || ''}</span><span class="t" title="${escAttr(r.title)}">${escapeHtml(r.title)}</span>
+      ${r.url ? `<a class="btn small outline" href="${SCHOOL_PREFIX}${r.url}" target="_blank" rel="noopener">Open</a>` : ''}
+      <button type="button" class="btn small outline danger" data-del="${r.id}">Remove</button></div>`).join('')
+    : '<p class="sub" style="margin:0 0 6px;font-size:12.5px;">No resources yet.</p>';
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+    b.disabled = true;
+    try {
+      await request(`/api/resources/${b.dataset.del}/delete/`, {method: 'POST'});
+      a.resources = (a.resources || []).filter(r=>r.id !== Number(b.dataset.del));
+      renderEditResources(a);
+      showToast('Resource removed.', 'success');
+    } catch(error){ b.disabled = false; showToast(apiErrorMessage(error), 'error'); }
+  }));
+  document.getElementById('editResourceNew').innerHTML = '';
+}
+document.querySelectorAll('[data-edit-add-resource]').forEach(b=>b.addEventListener('click', ()=>{
+  const host = document.getElementById('editResourceNew');
+  host.innerHTML = '';
+  const row = addResourceRow(b.dataset.editAddResource, host);
+  const save = document.createElement('div');
+  save.className = 'row'; save.style.cssText = 'justify-content:flex-end;gap:6px;margin:-2px 0 8px;';
+  save.innerHTML = '<button type="button" class="btn small outline" data-cancel>Cancel</button><button type="button" class="btn small" data-save>Add resource</button>';
+  host.appendChild(save);
+  save.querySelector('[data-cancel]').addEventListener('click', ()=>{ host.innerHTML = ''; });
+  row.querySelector('.res-x').addEventListener('click', ()=>{ host.innerHTML = ''; });
+  save.querySelector('[data-save]').addEventListener('click', async (ev)=>{
+    const a = state.assignments.find(x=>x.id===editingAssignmentId);
+    const r = readResourceRow(row);
+    if(r.error){ showToast(r.error, 'error'); return; }
+    const form = new FormData();
+    form.append('kind', r.kind); form.append('title', r.title); form.append('text', r.text);
+    if(r.file) form.append('file', r.file);
+    ev.target.disabled = true;
+    try {
+      const created = await request(`/api/assignments/${editingAssignmentId}/resources/add/`, {method: 'POST', body: form});
+      a.resources = (a.resources || []).concat([created]);
+      renderEditResources(a);
+      showToast('Resource added — pupils can open it now.', 'success');
+    } catch(error){ ev.target.disabled = false; showToast(apiErrorMessage(error), 'error'); }
+  });
+}));
 
 // ---------------- Calculator popup (shown only when the assignment allows it) ----------------
 document.getElementById('openCalculatorBtn').addEventListener('click', ()=>{

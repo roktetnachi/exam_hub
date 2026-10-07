@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import hmac
 import json
+import logging
 import mimetypes
 import plistlib
 import secrets
@@ -15,7 +16,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
-from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.db.models import Count, F, Max, Prefetch, Q
@@ -25,8 +26,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
 from . import email_login
-from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient,
-    School, SchoolClass, Subject, Submission, User)
+
+logger = logging.getLogger(__name__)
+from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, ExamResource, Message,
+    Recipient, School, SchoolClass, Subject, Submission, User)
 
 
 @login_required
@@ -623,7 +626,10 @@ def serialize_assignment(assignment, pupil_email=None):
             'totalScore': sub.total_score if show_grades else None,
             'maxScore': sub.max_score if show_grades else None,
             'gradedAt': sub.graded_at.isoformat() if (sub.graded_at and show_grades) else None,
-            'published': sub.published})
+            'published': sub.published,
+            # Teacher's marking on the work — the pupil only gets it with the released grade.
+            'teacherMarks': (sub.teacher_marks or {}) if show_grades else {},
+            'newSubmission': sub.is_new_for_teacher if is_teacher_view else False})
     def serialize_item(item):
         data = {'id': item.id, 'type': item.item_type, 'label': item.label, 'order': item.order,
             'points': item.points, 'section': item.section}
@@ -644,6 +650,7 @@ def serialize_assignment(assignment, pupil_email=None):
     return {'id': assignment.id, 'title': assignment.title, 'prompt': assignment.instructions,
         'createdAt': manila_isoformat(assignment.created_at),
         'items': items,
+        'resources': [serialize_resource(r) for r in assignment.resources.all()],
         'teacherName': assignment.teacher_name, 'teacherEmail': assignment.teacher_email,
         'opensAt': manila_isoformat(assignment.opens_at), 'dueAt': manila_isoformat(assignment.due_at),
         'isHidden': assignment.is_hidden,
@@ -663,7 +670,7 @@ def serialize_assignment(assignment, pupil_email=None):
 @require_GET
 def assignments_api(request):
     email = request.GET.get('pupil_email')
-    qs = Assignment.objects.prefetch_related(Prefetch('recipients', queryset=annotated_recipients()), 'items').all()
+    qs = Assignment.objects.prefetch_related(Prefetch('recipients', queryset=annotated_recipients()), 'items', 'resources').all()
     if getattr(request, 'school', None):
         qs = qs.filter(school=request.school)
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
@@ -759,6 +766,122 @@ def item_video(request, item_id):
     return _serve_item_media(request, item_id, AssignmentItem.ItemType.VIDEO, 'video')
 
 
+# ---------------- exam resources (reference material in the pupil's floating "Resources" panel) ----------------
+RESOURCE_TEXT_MAX = 20000
+
+
+def serialize_resource(resource):
+    data = {'id': resource.id, 'kind': resource.kind, 'title': resource.title}
+    if resource.kind == ExamResource.Kind.TEXT:
+        data['text'] = resource.text
+    else:
+        data['url'] = reverse('resource-file', args=[resource.id])
+    return data
+
+
+def prepare_resource(kind, title, text, upload, position):
+    """Validate one resource. Returns (fields_dict, None) or (None, error_message)."""
+    if kind not in ExamResource.Kind.values:
+        return None, f'Resource {position}: choose PDF, image or text.'
+    title = (title or '').strip()[:120] or {'pdf': 'PDF', 'image': 'Image', 'text': 'Note'}[kind] + f' {position}'
+    if kind == ExamResource.Kind.TEXT:
+        text = (text or '').strip()
+        if not text:
+            return None, f'"{title}" has no text yet.'
+        if len(text) > RESOURCE_TEXT_MAX:
+            return None, f'"{title}" is too long (keep it under {RESOURCE_TEXT_MAX:,} characters).'
+        return {'kind': kind, 'title': title, 'text': text}, None
+    if not upload:
+        return None, f'"{title}" is missing its file.'
+    content_type = upload.content_type or ''
+    if kind == ExamResource.Kind.PDF and content_type not in ('application/pdf', 'application/x-pdf'):
+        return None, f'"{title}": please upload a PDF file.'
+    if kind == ExamResource.Kind.IMAGE and not content_type.startswith('image/'):
+        return None, f'"{title}": please upload an image file.'
+    return {'kind': kind, 'title': title, 'file': upload}, None
+
+
+def _resource_for_manager(request, resource_id=None, assignment_id=None):
+    """(object, None) when the user may manage this exam's resources, else (None, error_response)."""
+    if request.user.role != User.Role.TEACHER and not request.user.is_superuser:
+        return None, HttpResponseForbidden('Only teachers can change exam resources.')
+    obj = (get_object_or_404(ExamResource.objects.select_related('assignment'), id=resource_id) if resource_id
+           else get_object_or_404(Assignment, id=assignment_id))
+    assignment = obj.assignment if resource_id else obj
+    if getattr(request, 'school', None) and assignment.school_id != request.school.id:
+        return None, HttpResponseForbidden('Forbidden')
+    if not can_manage_exam(request.user, assignment):
+        return None, not_your_exam_response()
+    return obj, None
+
+
+@login_required
+@require_POST
+def add_resource_api(request, assignment_id):
+    """POST (multipart) kind=pdf|image|text, title, text, file — add one resource to an exam."""
+    assignment, error = _resource_for_manager(request, assignment_id=assignment_id)
+    if error:
+        return error
+    order = (assignment.resources.aggregate(m=Max('order'))['m'] or 0) + 1
+    fields, problem = prepare_resource(request.POST.get('kind'), request.POST.get('title'),
+                                       request.POST.get('text'), request.FILES.get('file'), assignment.resources.count() + 1)
+    if problem:
+        return HttpResponseBadRequest(problem)
+    resource = ExamResource.objects.create(assignment=assignment, order=order, **fields)
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'updated',
+                 f'Added the resource "{resource.title}" to "{assignment.title}".', assignment=assignment)
+    return JsonResponse(serialize_resource(resource), status=201)
+
+
+@login_required
+@require_POST
+def delete_resource_api(request, resource_id):
+    resource, error = _resource_for_manager(request, resource_id=resource_id)
+    if error:
+        return error
+    assignment, title = resource.assignment, resource.title
+    if resource.file:
+        try:
+            resource.file.delete(save=False)
+        except Exception:
+            logger.exception('Could not delete the file of resource %s', resource.pk)
+    resource.delete()
+    log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'updated',
+                 f'Removed the resource "{title}" from "{assignment.title}".', assignment=assignment)
+    return JsonResponse({'deleted': True})
+
+
+@login_required
+@require_GET
+def resource_file(request, resource_id):
+    """Serve a PDF/image resource inline, with the same access rules as the exam's own files."""
+    resource = get_object_or_404(ExamResource.objects.select_related('assignment'), id=resource_id)
+    assignment = resource.assignment
+    if not resource.file:
+        raise Http404
+    if getattr(request, 'school', None) and assignment.school_id != request.school.id:
+        return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request) and not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
+    if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
+        if not assignment.recipients.filter(pupil_email__iexact=request.user.email).exists():
+            return HttpResponseForbidden('This file is not assigned to your account.')
+    if _pupil_cannot_see_yet(request, assignment):
+        return exam_not_open_response()
+    if _needs_seb(request, assignment):
+        return seb_required_response(request)
+    filename = resource.file.name.rsplit('/', 1)[-1]
+    content_type = ('application/pdf' if resource.kind == ExamResource.Kind.PDF
+                    else mimetypes.guess_type(filename)[0] or 'application/octet-stream')
+    try:
+        handle = resource.file.open('rb')
+    except (FileNotFoundError, ValueError):
+        return missing_file_response()
+    response = FileResponse(handle, content_type=content_type, as_attachment=False, filename=filename)
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
+
+
 @login_required
 @require_GET
 def assignment_status_api(request, assignment_id):
@@ -786,6 +909,7 @@ def assignment_status_api(request, assignment_id):
             'extraMinutes': recipient.extra_minutes,
             'closesAt': manila_isoformat(exam_closes_at(assignment, recipient)),
             'hasUnreadFromPupil': _unread_since(recipient.last_pupil_msg, recipient.teacher_last_read_at),
+            'newSubmission': sub.is_new_for_teacher,
             'locked': bool(sub.locked_at), 'lockReason': sub.lock_reason, 'lockCount': sub.lock_count,
             'resumeCode': sub.resume_code if sub.locked_at else None,
         })
@@ -888,6 +1012,22 @@ def create_assignment(request):
         prepared_items.append({'item_type': item_type, 'label': label, 'prompt': prompt,
             'options': options, 'correct_answer': correct_answer, 'order': i, 'points': points, 'section': section})
     try:
+        resources_meta = json.loads(request.POST.get('resources_meta', '[]') or '[]')
+        if not isinstance(resources_meta, list):
+            raise ValueError
+    except (ValueError, json.JSONDecodeError):
+        return HttpResponseBadRequest('The resources list is not valid.')
+    resource_files = iter(request.FILES.getlist('resource_files'))
+    prepared_resources = []
+    for i, meta in enumerate(resources_meta):
+        meta = meta if isinstance(meta, dict) else {}
+        kind = meta.get('kind')
+        upload = next(resource_files, None) if kind in (ExamResource.Kind.PDF, ExamResource.Kind.IMAGE) else None
+        fields, problem = prepare_resource(kind, meta.get('title'), meta.get('text'), upload, i + 1)
+        if problem:
+            return HttpResponseBadRequest(problem)
+        prepared_resources.append(dict(fields, order=i))
+    try:
         recipients = json.loads(request.POST.get('recipients', '[]'))
         if not recipients:
             raise ValueError
@@ -929,6 +1069,8 @@ def create_assignment(request):
         allow_calculator=allow_calculator, allow_graphing_calculator=allow_graphing_calculator)
     for prepared in prepared_items:
         AssignmentItem.objects.create(assignment=assignment, **prepared)
+    for prepared in prepared_resources:
+        ExamResource.objects.create(assignment=assignment, **prepared)
     for pupil in recipients:
         if pupil.get('name', '').strip() and pupil.get('email', '').strip():
             Recipient.objects.create(assignment=assignment, pupil_name=pupil['name'].strip(), pupil_email=pupil['email'].strip())
@@ -1232,11 +1374,8 @@ def submit_submission(request, recipient_id):
     assignment = submission.recipient.assignment
     log_activity(submission.recipient.pupil_name, submission.recipient.pupil_email,
         'submitted', f'{submission.recipient.pupil_name} submitted "{assignment.title}".', assignment=assignment)
-    school_prefix = getattr(request, 'school_url_prefix', '')
-    review_url = request.build_absolute_uri(f'{school_prefix}/?review={submission.recipient_id}')
-    send_mail(f'ExamHub submission: {assignment.title}',
-        f'{submission.recipient.pupil_name} submitted their annotated work. Review it at {review_url}',
-        None, [assignment.teacher_email], fail_silently=True)
+    # No email to the teacher any more: the submission shows as "new" on their exam list, in
+    # Monitor and on the bell until they open it (Submission.is_new_for_teacher).
     return JsonResponse({'status': 'submitted', 'submittedAt': submission.submitted_at.isoformat()})
 
 
@@ -1803,7 +1942,9 @@ def create_teacher_api(request):
             subject.teachers.add(user)
     log_activity(request.user.get_full_name() or request.user.username, request.user.email, 'teacher_created',
                  f'Added {name} ({email}) as {"an admin" if role == "admin" else "a teacher"}.')
-    data = {'tempPassword': temp_password, 'emailed': False}
+    from .accounts import login_url, site_url
+    data = {'tempPassword': temp_password, 'emailed': False,
+            'loginUrl': login_url(request, user), 'website': site_url() + '/'}
     if payload.get('invite'):
         from .accounts import invite_user
         cred, emailed = invite_user(request, user)
@@ -1881,7 +2022,9 @@ def create_pupil_api(request):
     pupil.refresh_from_db()
     from .accounts import serialize_person
     data = serialize_person(pupil)
-    data.update({'tempPassword': temp_password, 'emailed': emailed, 'classes': [cls.name] if cls else []})
+    from .accounts import login_url, site_url
+    data.update({'tempPassword': temp_password, 'emailed': emailed, 'classes': [cls.name] if cls else [],
+                 'loginUrl': login_url(request, pupil), 'website': site_url() + '/'})
     return JsonResponse(data, status=201)
 
 
@@ -2108,6 +2251,13 @@ def notifications_api(request):
                 'assignmentId': r.assignment_id, 'assignmentTitle': r.assignment.title, 'recipientId': r.id,
                 'pupilName': r.pupil_name, 'reason': sub.lock_reason, 'resumeCode': sub.resume_code,
                 'at': sub.locked_at.isoformat()})
+        fresh = (recipients.filter(submission__status='submitted', submission__submitted_at__isnull=False)
+                 .filter(Q(submission__teacher_seen_at__isnull=True) | Q(submission__submitted_at__gt=F('submission__teacher_seen_at'))))
+        for r in fresh[:50]:
+            sub = r.submission
+            items.append({'key': f'submitted:{r.id}:{sub.submitted_at.isoformat()}', 'kind': 'submitted',
+                'assignmentId': r.assignment_id, 'assignmentTitle': r.assignment.title, 'recipientId': r.id,
+                'pupilName': r.pupil_name, 'at': sub.submitted_at.isoformat()})
         unread = recipients.filter(last_pupil_msg__isnull=False).filter(
             Q(teacher_last_read_at__isnull=True) | Q(last_pupil_msg__gt=F('teacher_last_read_at')))
         for r in unread:
@@ -2118,6 +2268,114 @@ def notifications_api(request):
                 'at': r.last_pupil_msg.isoformat()})
     items.sort(key=lambda i: i['at'], reverse=True)
     return JsonResponse({'items': items})
+
+
+@login_required
+@require_POST
+def submission_seen_api(request, recipient_id=None):
+    """The teacher opened a pupil's submission (or pressed "Mark all as seen" on an exam):
+    clears its "new" dot / bell item. Body for the bulk form: {"assignmentId": id}."""
+    if is_real_pupil(request):
+        return HttpResponseForbidden('Not allowed.')
+    now = timezone.now()
+    if recipient_id is not None:
+        recipient = get_object_or_404(Recipient, id=recipient_id)
+        if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
+            return HttpResponseForbidden('Forbidden')
+        if not can_manage_exam(request.user, recipient.assignment):
+            return not_your_exam_response()
+        Submission.objects.filter(recipient=recipient).update(teacher_seen_at=now)
+        return JsonResponse({'seen': 1})
+    try:
+        assignment_id = int(json.loads(request.body or '{}').get('assignmentId'))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return HttpResponseBadRequest('Missing exam.')
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    if getattr(request, 'school', None) and assignment.school_id != request.school.id:
+        return HttpResponseForbidden('Forbidden')
+    if not can_manage_exam(request.user, assignment):
+        return not_your_exam_response()
+    n = Submission.objects.filter(recipient__assignment=assignment, status='submitted').update(teacher_seen_at=now)
+    return JsonResponse({'seen': n})
+
+
+MARK_STYLES = {'underline', 'circle', 'highlight'}
+PDF_SHAPES = {'highlight', 'underline', 'pin', 'circle', 'box'}   # circle/box: older marks only
+MAX_MARKS_BYTES = 400_000
+
+
+def _clean_teacher_marks(raw):
+    """Validate and normalise the teacher's marking JSON (see Submission.teacher_marks).
+    Returns (marks, error)."""
+    if not isinstance(raw, dict):
+        return None, 'Invalid marking data.'
+    if len(json.dumps(raw)) > MAX_MARKS_BYTES:
+        return None, 'Too much marking on one paper to save — remove some marks or shorten comments.'
+    text = lambda v, n=2000: str(v or '')[:n]
+    num = lambda v: round(float(v), 2) if isinstance(v, (int, float)) else 0.0
+    out = {'answers': {}, 'pdf': {}, 'annComments': {}}
+    for item_id, marks in (raw.get('answers') or {}).items():
+        if not str(item_id).isdigit() or not isinstance(marks, list):
+            continue
+        cleaned = []
+        for m in marks[:300]:
+            if not isinstance(m, dict) or m.get('style') not in MARK_STYLES:
+                continue
+            try:
+                start, end = int(m.get('start')), int(m.get('end'))
+            except (TypeError, ValueError):
+                continue
+            if start < 0 or end <= start:
+                continue
+            cleaned.append({'id': text(m.get('id'), 40), 'start': start, 'end': end, 'quote': text(m.get('quote'), 500),
+                            'style': m['style'], 'comment': text(m.get('comment'))})
+        if cleaned:
+            out['answers'][str(item_id)] = cleaned
+    for item_id, marks in (raw.get('pdf') or {}).items():
+        if not str(item_id).isdigit() or not isinstance(marks, list):
+            continue
+        cleaned = []
+        for m in marks[:300]:
+            if not isinstance(m, dict) or m.get('shape') not in PDF_SHAPES:
+                continue
+            try:
+                page = int(m.get('page'))
+            except (TypeError, ValueError):
+                continue
+            cleaned.append({'id': text(m.get('id'), 40), 'page': page, 'shape': m['shape'],
+                            'x': num(m.get('x')), 'y': num(m.get('y')), 'w': num(m.get('w')), 'h': num(m.get('h')),
+                            'comment': text(m.get('comment'))})
+        if cleaned:
+            out['pdf'][str(item_id)] = cleaned
+    for key, c in (raw.get('annComments') or {}).items():
+        if str(key).isdigit() and isinstance(c, dict) and text(c.get('comment')).strip():
+            out['annComments'][str(key)] = {'fp': text(c.get('fp'), 200), 'comment': text(c.get('comment'))}
+    return out, None
+
+
+@login_required
+@require_POST
+def save_teacher_marks_api(request, recipient_id):
+    """Save the teacher's underlines / circles / highlights / comments on a pupil's paper."""
+    denied = _require_teacher(request)
+    if denied:
+        return denied
+    recipient = get_object_or_404(Recipient, id=recipient_id)
+    if getattr(request, 'school', None) and recipient.assignment.school_id != request.school.id:
+        return HttpResponseForbidden('Forbidden')
+    if not can_manage_exam(request.user, recipient.assignment):
+        return not_your_exam_response()
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid marking data.')
+    marks, error = _clean_teacher_marks(payload.get('teacherMarks'))
+    if error:
+        return HttpResponseBadRequest(error)
+    submission = _submission_of(recipient)
+    submission.teacher_marks = marks
+    submission.save(update_fields=['teacher_marks', 'updated_at'])
+    return JsonResponse({'teacherMarks': marks, 'savedAt': timezone.now().isoformat()})
 
 
 @login_required

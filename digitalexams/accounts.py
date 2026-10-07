@@ -14,8 +14,10 @@ Flow
 """
 import json
 import logging
+import os
 import secrets
 
+from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
@@ -42,10 +44,37 @@ def temp_password():
     return ''.join(secrets.choice(alphabet) for _ in range(10))
 
 
+# The public address of ExamHub, used in invites so the link always works — even when the
+# invite was sent from a laptop running the site locally. Override with SITE_URL (env or
+# settings) if the site moves to another domain.
+DEFAULT_SITE_URL = 'https://digitalexamhub.up.railway.app'
+
+
+def site_url():
+    return (os.environ.get('SITE_URL') or getattr(settings, 'SITE_URL', '') or DEFAULT_SITE_URL).rstrip('/')
+
+
 def login_url(request, user):
     prefix = f'/s/{user.school.slug}' if user.school else (getattr(request, 'school_url_prefix', '') or '')
     who = 'pupil' if user.role == User.Role.PUPIL and not user.is_superuser else 'teacher'
-    return request.build_absolute_uri(f'{prefix}/login/?as={who}')
+    return f'{site_url()}{prefix}/login/?as={who}'
+
+
+def invite_email_body(user, school, password):
+    site = site_url() + '/'
+    return (f'Hi {user.first_name or user.username},\n\n'
+            f'Here\'s your ExamHub account at {school}.\n\n'
+            f'Username: {user.username}\n'
+            f'Temporary password: {password}\n\n'
+            f'Changing your password\n'
+            f'1. Go to the ExamHub website (link below) and sign in with your username and temporary password.\n'
+            f'2. You\'ll be asked to choose your own password straight away.\n'
+            f'3. You can change it again any time: click your name at the top right, then "Change password".\n\n'
+            f'Forgot your password?\n'
+            f'On the sign-in page, choose "Email me a code" and enter your username. We\'ll send a code to {user.email}. '
+            f'Sign in with that code, then click your name at the top right and choose "Change password" to set a new one.\n\n'
+            f'Website: {site}\n\n'
+            f'— {school} ExamHub')
 
 
 def invite_user(request, user):
@@ -59,20 +88,12 @@ def invite_user(request, user):
     user.save(update_fields=['password', 'must_change_password', 'invited_at', 'activated_at'])
     school = user.school.name if user.school else 'ExamHub'
     url = login_url(request, user)
-    sender = request.user.get_full_name() or request.user.username
     emailed = False
     if user.email:
         try:
             send_mail(
-                subject=f'Your {school} ExamHub account is ready',
-                message=(f'Hi {user.first_name or user.username},\n\n'
-                         f'{sender} has set up your ExamHub account at {school}.\n\n'
-                         f'Sign in here: {url}\n'
-                         f'Username: {user.username}\n'
-                         f'Temporary password: {password}\n\n'
-                         f'The first time you sign in you\'ll be asked to choose your own password.\n'
-                         f'You can also sign in without a password by choosing "Email me a code".\n\n'
-                         f'— {school} ExamHub'),
+                subject=f'Your ExamHub account at {school}',
+                message=invite_email_body(user, school, password),
                 from_email=None, recipient_list=[user.email])
             emailed = True
         except Exception:
@@ -80,6 +101,7 @@ def invite_user(request, user):
     return ({'id': user.id, 'name': user.get_full_name() or user.username, 'firstName': user.first_name,
              'lastName': user.last_name, 'email': user.email,
              'username': user.username, 'tempPassword': password, 'loginUrl': url,
+             'website': site_url() + '/',
              'role': 'pupil' if user.role == User.Role.PUPIL else ('admin' if user.can_manage_classes else 'teacher')},
             emailed)
 

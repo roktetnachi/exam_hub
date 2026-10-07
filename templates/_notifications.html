@@ -9,6 +9,7 @@
   @keyframes nxIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
   .nx-head{display:flex;gap:12px;align-items:flex-start;}
   .nx-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;}
+  .nx-icon.submitted{background:#eef0fb;color:#28186f;}
   .nx-icon.lock{background:#fbeae9;color:#d9231a;} .nx-icon.message{background:#e8f1fb;color:#1f5f99;} .nx-icon.graded{background:#e4f3e4;color:#1f7a35;}
   .nx-title{font-weight:800;font-size:16.5px;margin:1px 0 3px;line-height:1.3;}
   .nx-sub{color:#6b7280;font-size:13px;line-height:1.45;}
@@ -47,7 +48,7 @@
   const PREFIX = "{{ request.school_url_prefix|default:'' }}";
   const ROLE = "{% if request.user.role == 'pupil' and not request.user.is_superuser %}pupil{% else %}teacher{% endif %}";
   const POPPED_KEY = 'examhub-notif-popped-{{ request.user.pk }}';
-  const ICONS = {lock:'🔒', message:'💬', graded:'🏅'};
+  const ICONS = {lock:'🔒', message:'💬', graded:'🏅', submitted:'📥'};
   let items = [], queue = [], showing = null, polling = null;
 
   function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -85,6 +86,10 @@
       body: it.text ? `<div class="nx-quote">${esc(it.text)}</div>` : '',
       bell: `${ROLE === 'pupil' ? it.from : it.pupilName}: ${it.text || 'New message'}`,
       actions: [{label:'Reply', kind:'', run: openChat}]};
+    if(it.kind === 'submitted') return {
+      title: `${it.pupilName} submitted`, sub: it.assignmentTitle, body: '',
+      bell: `${it.pupilName} submitted ${it.assignmentTitle}`,
+      actions: [{label:'Open their work', kind:'', run: openReview}]};
     return {
       title: 'Your work has been graded', sub: it.assignmentTitle,
       body: it.totalScore != null ? `<div class="nx-quote" style="text-align:center;font-size:22px;font-weight:800;color:#1f7a35;">${it.totalScore} / ${it.maxScore}</div>` : '',
@@ -103,6 +108,7 @@
   function openMonitor(it){ const h = hooks(); if(h && h.openMonitor) h.openMonitor(it); else go({open: it.assignmentId, tab: 'monitor'}); }
   function openChat(it){ const h = hooks(); if(h && h.openChat) h.openChat(it); else go({open: it.assignmentId, tab: 'monitor', chat: it.recipientId}); }
   function openGrade(it){ const h = hooks(); if(h && h.openGrade) h.openGrade(it); else go({grade: it.assignmentId}); }
+  function openReview(it){ const h = hooks(); if(h && h.openReview) h.openReview(it); else go({review: it.recipientId}); }
 
   // ---- pop-up modal (one at a time, queued) ----
   function showNext(){

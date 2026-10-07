@@ -822,6 +822,7 @@ def apply_pupils(plans, school, actor):
             credentials.append({'id': user.id, 'name': user.get_full_name() or user.username, 'firstName': user.first_name,
                                 'lastName': user.last_name, 'email': user.email,
                                 'username': user.username, 'tempPassword': temp_password,
+                                'loginUrl': _login_url(user),
                                 'classes': ', '.join(c.name for c in p['classes'] + p.get('subjects', []))})
         elif p.get('rename'):
             user.first_name = p['first'] or user.first_name
@@ -847,6 +848,12 @@ def apply_pupils(plans, school, actor):
     return {'credentials': credentials}
 
 
+def _login_url(user):
+    from .accounts import site_url
+    who = 'pupil' if user.role == User.Role.PUPIL else 'teacher'
+    return f'{site_url()}/s/{user.school.slug}/login/?as={who}' if user.school else f'{site_url()}/login/'
+
+
 def apply_teachers(plans, school, actor):
     actor_name = actor.get_full_name() or actor.username
     credentials, created, updated = [], 0, 0
@@ -863,6 +870,7 @@ def apply_teachers(plans, school, actor):
             credentials.append({'id': user.id, 'name': user.get_full_name() or user.username, 'firstName': user.first_name,
                                 'lastName': user.last_name, 'email': user.email,
                                 'username': user.username, 'tempPassword': temp_password,
+                                'loginUrl': _login_url(user),
                                 'classes': ', '.join(c.name for c in p['classes'] + p.get('subjects', [])),
                                 'role': 'Admin' if p['admin'] else 'Teacher'})
         else:

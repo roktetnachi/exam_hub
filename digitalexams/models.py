@@ -296,6 +296,30 @@ class AssignmentItem(models.Model):
         return f'{self.assignment.title} — {self.label}'
 
 
+class ExamResource(models.Model):
+    """Reference material for an exam — a PDF, an image or a short text — that pupils can open at
+    any time from the floating "Resources" panel while they work. Not a question: no points, no
+    answer, not part of the question navigator."""
+    class Kind(models.TextChoices):
+        PDF = 'pdf', 'PDF'
+        IMAGE = 'image', 'Image'
+        TEXT = 'text', 'Text'
+
+    assignment = models.ForeignKey(Assignment, related_name='resources', on_delete=models.CASCADE)
+    kind = models.CharField(max_length=8, choices=Kind.choices)
+    title = models.CharField(max_length=120)
+    file = models.FileField(upload_to='resources/%Y/%m/', blank=True, null=True)
+    text = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.assignment.title} — {self.title}'
+
+
 class Recipient(models.Model):
     assignment = models.ForeignKey(Assignment, related_name='recipients', on_delete=models.CASCADE)
     pupil_name = models.CharField(max_length=120)
@@ -354,6 +378,22 @@ class Submission(models.Model):
     # When the pupil last opened their released grade ("View grade"). A grade released or
     # re-graded after this shows as a new notification on the pupil's bell.
     grade_seen_at = models.DateTimeField(null=True, blank=True)
+    # Teacher's pen-on-paper marking, kept separate from the pupil's own work (which is never
+    # changed). Shown to the pupil only once the grade is released. Shape:
+    #   {"answers": {"<itemId>": [{"id", "start", "end", "quote", "style": underline|circle|highlight,
+    #                              "comment"}]},           ← character offsets in the answer's text
+    #    "pdf": {"<itemId>": [{"id", "page", "shape": circle|box|underline|pin, "x", "y", "w", "h",
+    #                          "comment"}]},               ← same coordinate space as pupil annotations
+    #    "annComments": {"<annotation index>": {"fp": "<fingerprint>", "comment"}}}
+    teacher_marks = models.JSONField(default=dict, blank=True)
+    # When the teacher last looked at this submission. A submission newer than this shows as
+    # "new" (dot on the exam, bell item) — this replaced the old submission email.
+    teacher_seen_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_new_for_teacher(self):
+        return (self.status == 'submitted' and self.submitted_at is not None
+                and (self.teacher_seen_at is None or self.teacher_seen_at < self.submitted_at))
 
     def __str__(self):
         return f'{self.recipient} ({self.status})'

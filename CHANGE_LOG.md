@@ -10,14 +10,36 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 > Planned / in-progress work. Move items to a versioned section when shipped.
 
 ### Upgrade notes
-- Run `python manage.py migrate` (new migrations `0026_storedfile` and `0027_subject_and_section_labels`).
+- Run `python manage.py migrate` (new migrations `0026_storedfile`, `0027_subject_and_section_labels`, `0028_teacher_marks_and_seen` and `0029_examresource`).
 - Then, **on the computer that holds the uploaded files** (the local copy with the `media/` folder), run `python manage.py sync_media_to_db` once. It copies every exam PDF / image / video / school logo into the database so the Railway site can serve them too.
+
+### Added — Resources for pupils, zoom, simpler marking tools
+- **Exam resources** (migration `0029_examresource`): besides questions, a teacher can attach guide material to an exam — **PDF**, **image** or **text** (e.g. a source, a formula sheet, a map). Add them in the builder ("Resources for pupils", step 1) or any time later from **Settings** (the Edit exam dialog — takes effect straight away, even mid-exam). Pupils open them from a **Resources** button in the exam toolbar: a floating window like the Notepad that can be dragged, resized and minimised, with a tab per resource, page-by-page PDFs with zoom, zoomable images and plain text. Resources aren't marked and don't appear in the question navigator. They're listed on the exam's Content tab. Files are served with the same access rules as the exam's own files (assigned pupils, the exam's teacher, admins).
+- **Zoom** for the pupil's PDF viewer (− / % / + / Fit, or Ctrl + scroll / trackpad pinch). Highlights and notes stay exactly in place at any zoom, and the page is redrawn sharp when zoomed in. Images (pupil exam, review screen, resources) get the same zoom; the review screen's existing − / + / Fit buttons now work on images too. Zooming past the width scrolls instead of cutting off the left edge.
+
+### Changed — Marking tools
+- Marking a written answer: **Underline**, **Highlight** and **Comment** (Circle removed).
+- Marking the PDF: **Highlight** (drag), **Underline** and **Comment pin** (Circle and Box removed). Circles and boxes made before this change still show.
+
+### Changed — New invite email
+- Invite email rewritten (subject "Your ExamHub account at <school>"): greeting, username and temporary password, how to change the password, what to do if they forget it ("Email me a code" with their username, then Change password), and the website (https://digitalexamhub.up.railway.app/) at the end. The separate "Sign in here" link is gone. The address can be changed with the `SITE_URL` environment variable.
+- The "added" confirmation on Roles, the single-pupil confirmation and the downloaded logins CSV show the same address.
 
 ### Fixed
 - **PDFs not opening in the teacher review (and anywhere else) on the live site.** The local copy and Railway share one database but not one disk, and Railway's disk is wiped on every deploy, so files uploaded on one machine (or before a redeploy) were missing elsewhere. Uploads are now stored on disk **and** in the database (`StoredFile` model, `digitalexams/storage.py` `DatabaseBackedStorage`); reads fall back to the database copy and re-cache it to disk.
 - Review page now explains why a PDF can't be opened (e.g. "this file isn't available on the server any more") and points to the annotations still listed on the right, instead of a bare "Couldn't open this PDF".
 - PDF / image / video requests now include the `/s/<slug>` prefix (no redirect hop).
 - **Pupil sign-in flash:** pupils briefly saw the teacher dashboard, the "Teacher view / Pupil preview" switch and the "Preview as a pupil" page before their exams. The page now renders in the pupil layout from the start, with a "Loading your exams…" placeholder (and an error message instead of the teacher dashboard if loading fails).
+
+### Added — Marking like pen on paper, easier exam navigation, submission notices
+- **Teacher marking on written answers** (review screen → "✎ Mark this answer"): select words in the pupil's answer and choose **Underline**, **Circle**, **Highlight** or **Comment**. Each mark gets a number and a margin comment (optional); change its style or delete it from the list; marks save automatically. The pupil's own answer is never changed.
+- **Teacher marking on the PDF**: a "Mark:" toolbar above the review PDF — **Circle**, **Box**, **Underline** (drag) and **Comment pin** (click), each with an optional comment; with the select tool, click one of the pupil's highlights/notes to **comment on their annotation**. Marks and comments are listed under the item ("Your marks on the PDF", and "💬 You: …" on the pupil's annotations).
+- **Pupils see the marking only when the grade is released**: on their paper (marks drawn on their answer with a "Your teacher's comments" list; marks and 💬 badges on the PDF, click to read) and in "View grade".
+- Stored in `Submission.teacher_marks` (migration `0028`); saved with `POST /api/submissions/<id>/marks/` (exam's teacher / admins only, validated and size-limited). Grade tab links now read "Review & mark up…".
+- **Long answers scroll properly**: the answer area scrolls on its own (toolbar and Submit stay in view), so pupils can always scroll back up.
+- **Question navigator** instead of one button per item: "‹ Question 7 of 30 ›" plus a grid of numbered squares (grouped by section) showing answered / not answered; the navigator, the content and the Contents panel stay in step.
+- **Clearer Contents panel**: items and sections are full-width bars with a chevron and points; "Expand all / Collapse all"; long exams (7+ items) start with only the current item open; the current item is highlighted.
+- **No more email to the teacher on submission.** New submissions show as a "N new" badge on the Exams list, a "New" chip in Monitor (with "Mark all as seen") and a 📥 item on the bell, until the teacher opens that pupil's work. (`Submission.teacher_seen_at`, `POST /api/submissions/<id>/seen/`, `POST /api/submissions/seen/`.)
 
 ### Added / changed — Date filter, editing who an exam is for, teacher view
 - **Filter exams by the date they were created**: "Created from / to" on the Exams dashboard, plus "Last 7 days", "Last 30 days" and "Clear". The list gets a "Created" column; bulk "select all" only selects exams in the current filter. Dates are Manila dates. (`createdAt` added to the exam JSON.)
