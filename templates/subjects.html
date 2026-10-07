@@ -1,0 +1,331 @@
+{% extends "teacher_base.html" %}
+{% block title %}{% if can_manage_classes %}Subjects{% else %}My subjects{% endif %}{% endblock %}
+{% block nav_subjects %}class="active" aria-current="page"{% endblock %}
+
+{% block style %}
+  .layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+  .class-list{padding:14px;}
+  .class-list .search{margin-bottom:10px;}
+  .class-item{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:12px;padding:12px 14px;margin-bottom:4px;color:var(--text);}
+  .class-item:hover{background:var(--page-bg);}
+  .class-item.active{background:var(--blue-tint);border-color:#cfe1f0;}
+  .class-item .nm{font-weight:700;font-size:14.5px;}
+  .class-item .meta{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .class-item .warn{color:var(--warn);font-weight:600;}
+  .new-class{border-top:1px solid var(--border);margin-top:10px;padding-top:12px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .section{padding:18px 0;border-top:1px solid var(--border);}
+  .section:first-of-type{border-top:none;}
+  .section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .count{background:var(--page-bg);color:var(--muted);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;margin-left:6px;}
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .name-edit{display:flex;gap:8px;align-items:center;max-width:460px;width:100%;}
+  .name-edit input{font-size:20px;font-weight:700;padding:6px 10px;}
+  .pupil-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .pupil-table th{text-align:left;font-size:12px;color:var(--muted);padding:4px;border-bottom:1px solid var(--border);}
+  .pupil-table td{padding:8px 4px;border-bottom:1px solid var(--border);}
+  .pupil-table tr:last-child td{border-bottom:none;}
+  .pupil-table .em{color:var(--muted);}
+  .sec-tag{display:inline-block;background:var(--page-bg);color:var(--blue-dark);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;margin:1px 3px 1px 0;}
+  .sec-tag.none{color:var(--muted);font-weight:400;}
+  .mix{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px;}
+  .pick-list{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:4px 10px;margin:8px 0;}
+  .pick-group{border-bottom:1px solid var(--border);padding:6px 0;}
+  .pick-group:last-child{border-bottom:none;}
+  .pick-group-head{display:flex;gap:8px;align-items:center;font-weight:700;font-size:13.5px;padding:4px 0;}
+  .pick-group-head .sub{font-weight:400;font-size:12.5px;}
+  .pick-list label.p{display:flex;gap:8px;align-items:center;padding:4px 0 4px 22px;font-size:13.5px;}
+  .pick-list .em{color:var(--muted);font-size:12.5px;}
+  .placeholder{text-align:center;padding:60px 20px;}
+  .callout{background:#fff8e6;border:1px solid #f3dfa6;color:#7a5a00;border-radius:12px;padding:10px 14px;font-size:13px;margin-top:12px;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;}
+  .filters input{flex:1;min-width:180px;}
+  .filters select{max-width:240px;}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} }
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if can_manage_classes %}Subjects{% else %}My subjects{% endif %}</h1>
+    {% if can_manage_classes %}
+    <p class="sub">A subject can mix pupils from different year groups. Its teachers can assign work to all of its pupils.</p>
+    {% else %}
+    <p class="sub">The subjects an admin has assigned you to. You can assign work to any pupil in these subjects.</p>
+    {% endif %}
+  </div>
+  {% if can_manage_classes %}
+  <div class="row" style="flex-wrap:wrap;">
+    <button class="btn small outline" id="bulkSubjectsBtn" type="button">Bulk import subjects</button>
+    <button class="btn small" id="bulkSubjectPupilsBtn" type="button">Bulk add pupils to subjects</button>
+  </div>
+  {% endif %}
+</div>
+
+<div class="layout">
+  <aside class="card class-list">
+    <input type="search" class="search" id="subjectSearch" placeholder="Search subjects…" aria-label="Search subjects">
+    <div id="subjectList"><p class="empty">Loading…</p></div>
+    {% if can_manage_classes %}
+    <div class="new-class">
+      <label class="lbl" for="newSubjectName">New subject</label>
+      <div class="row">
+        <input type="text" id="newSubjectName" placeholder="e.g. Pre-U 1 Economics">
+        <button class="btn small" id="createSubjectBtn" type="button">Add</button>
+      </div>
+      <p class="err hidden" id="subjectFormError"></p>
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="card" id="detail">
+    <div class="placeholder"><p class="sub">Loading subjects…</p></div>
+  </section>
+</div>
+
+{% if can_manage_classes %}{% include "_bulk_import.html" %}{% endif %}
+{% endblock %}
+
+{% block script %}
+<script>
+const state = { subjects: [], teachers: [], sections: [], pupils: [], selectedId: null, filter: '', pick: {q: '', section: '', selected: new Set()} };
+const NO_SECTION = '__none__';
+
+function selectedSubject(){ return state.subjects.find(s=>s.id === state.selectedId) || null; }
+function plural(n, word){ return `${n} ${word}${n===1?'':'s'}`; }
+
+async function loadAll(){
+  const calls = [request('/api/subjects/')];
+  if(CAN_MANAGE) calls.push(request('/api/classes/'), request('/api/pupils/'));
+  const [subjectsRes, sectionsRes, pupilsRes] = await Promise.all(calls);
+  state.subjects = subjectsRes.subjects;
+  state.teachers = subjectsRes.teachers || [];
+  if(CAN_MANAGE){ state.sections = sectionsRes.classes; state.pupils = pupilsRes.pupils; }
+  const fromUrl = Number(new URLSearchParams(location.search).get('subject'));
+  if(!state.subjects.some(s=>s.id === state.selectedId)){
+    state.selectedId = state.subjects.some(s=>s.id === fromUrl) ? fromUrl : (state.subjects[0]?.id ?? null);
+  }
+}
+
+function selectSubject(id){
+  state.selectedId = id;
+  state.pick = {q: '', section: '', selected: new Set()};
+  const url = new URL(location.href);
+  if(id) url.searchParams.set('subject', id); else url.searchParams.delete('subject');
+  history.replaceState(null, '', url);
+  renderList(); renderDetail();
+}
+
+function sectionMix(subject){
+  const counts = {};
+  subject.pupils.forEach(p=>{ (p.sections.length ? p.sections : ['No year group']).forEach(s=>{ counts[s] = (counts[s]||0) + 1; }); });
+  return Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0]));
+}
+
+function renderList(){
+  const list = document.getElementById('subjectList');
+  const q = state.filter.toLowerCase();
+  const shown = state.subjects.filter(s=>!q || s.name.toLowerCase().includes(q));
+  if(!state.subjects.length){
+    list.innerHTML = `<p class="empty">${CAN_MANAGE ? 'No subjects yet — add one below, or use "Bulk import subjects".' : "You haven't been assigned to a subject yet. Ask an admin to add you."}</p>`;
+    return;
+  }
+  if(!shown.length){ list.innerHTML = '<p class="empty">No subjects match.</p>'; return; }
+  list.innerHTML = shown.map(s=>{
+    const teacherText = s.teachers.length ? escapeHtml(s.teachers.map(x=>x.name).join(', ')) : '<span class="warn">No teacher yet</span>';
+    const nSections = sectionMix(s).filter(([n])=>n !== 'No year group').length;
+    return `<button type="button" class="class-item${s.id===state.selectedId?' active':''}" data-id="${s.id}">
+      <div class="nm">${escapeHtml(s.name)}</div>
+      <div class="meta">${plural(s.pupils.length, 'pupil')}${nSections ? ` from ${plural(nSections, 'year group')}` : ''} · ${teacherText}</div>
+    </button>`;
+  }).join('');
+  list.querySelectorAll('.class-item').forEach(b=>b.addEventListener('click', ()=>selectSubject(Number(b.dataset.id))));
+}
+
+function sectionTags(p){
+  return p.sections && p.sections.length ? p.sections.map(n=>`<span class="sec-tag">${escapeHtml(n)}</span>`).join('') : '<span class="sec-tag none">No year group</span>';
+}
+
+function renderDetail(){
+  const el = document.getElementById('detail');
+  const subject = selectedSubject();
+  if(!subject){
+    el.innerHTML = `<div class="placeholder"><h2>${CAN_MANAGE ? 'Create a subject to get started' : 'No subjects yet'}</h2>
+      <p class="sub" style="margin-top:6px;">${CAN_MANAGE ? 'Add a subject on the left (or bulk import them), then pick its teachers and add pupils from any year group.' : 'Once an admin adds you to a subject, its pupils will show up here and in the exam "Assign to" list.'}</p></div>`;
+    return;
+  }
+  const mix = sectionMix(subject);
+  const pupilRows = sortPeople(subject.pupils).map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="em">${escapeHtml(p.email)}</td><td>${sectionTags(p)}</td>
+    ${CAN_MANAGE ? `<td style="text-align:right;"><button type="button" class="icon-x" title="Remove from subject" aria-label="Remove ${escapeHtml(p.name)}" data-remove-pupil="${p.id}">&times;</button></td>` : ''}</tr>`).join('');
+
+  el.innerHTML = `
+    <div class="detail-head">
+      ${CAN_MANAGE
+        ? `<div class="name-edit"><input type="text" id="subjectName" value="${escapeHtml(subject.name)}" aria-label="Subject name"><button class="btn small outline" id="renameBtn" type="button">Save name</button></div>`
+        : `<h2 style="font-size:22px;">${escapeHtml(subject.name)}</h2>`}
+      ${CAN_MANAGE ? '<div class="row"><button class="btn small danger" id="deleteSubjectBtn" type="button">Delete subject</button></div>' : ''}
+    </div>
+    ${CAN_MANAGE && !subject.teachers.length ? '<div class="callout">No teacher is assigned yet, so no teacher can set work for this subject.</div>' : ''}
+
+    <div class="section" style="margin-top:8px;">
+      <div class="section-head"><h3 style="margin:0;">Teachers<span class="count">${subject.teachers.length}</span></h3></div>
+      <div>${subject.teachers.map(t=>`<span class="chip${CAN_MANAGE?'':' plain'}">${escapeHtml(t.name)}${CAN_MANAGE ? ` <button type="button" class="icon-x" title="Remove teacher" aria-label="Remove ${escapeHtml(t.name)}" data-remove-teacher="${t.id}">&times;</button>` : ''}</span>`).join('') || '<p class="empty" style="padding:4px 0;">None yet.</p>'}</div>
+      ${CAN_MANAGE ? `<div class="row" style="margin-top:6px;max-width:420px;">
+        <select id="addTeacherSelect" aria-label="Assign a teacher"><option value="">Assign a teacher…</option>${
+          state.teachers.filter(t=>!subject.teachers.some(x=>x.id===t.id)).map(t=>`<option value="${t.id}">${escapeHtml(t.name)}${t.email?` (${escapeHtml(t.email)})`:''}</option>`).join('')}</select>
+        <button class="btn small" id="addTeacherBtn" type="button">Assign</button></div>` : ''}
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h3 style="margin:0;">Pupils<span class="count">${subject.pupils.length}</span></h3>${nameSortSelect('pupilSort')}</div>
+      ${mix.length ? `<div class="mix">${mix.map(([n, c])=>`<span class="sec-tag${n==='No year group'?' none':''}">${escapeHtml(n)} · ${c}</span>`).join('')}</div>` : ''}
+      ${subject.pupils.length ? `<table class="pupil-table"><thead><tr><th>Name</th><th>Email</th><th>Year group</th>${CAN_MANAGE?'<th></th>':''}</tr></thead><tbody>${pupilRows}</tbody></table>` : '<p class="empty" style="padding:4px 0;">No pupils in this subject yet.</p>'}
+      ${CAN_MANAGE ? `
+        <div style="margin-top:18px;max-width:620px;">
+          <label class="lbl">Add pupils from any year group</label>
+          <div class="filters">
+            <input type="search" id="pickSearch" placeholder="Search pupils…" value="${escapeHtml(state.pick.q)}">
+            <select id="pickSection" aria-label="Show year group"><option value="">All year groups</option>${
+              state.sections.map(s=>`<option value="${s.id}"${String(s.id)===state.pick.section?' selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+              <option value="${NO_SECTION}"${state.pick.section===NO_SECTION?' selected':''}>Not in a year group</option></select>
+          </div>
+          <div class="pick-list" id="pickList"></div>
+          <div class="row" style="justify-content:space-between;flex-wrap:wrap;">
+            <button class="btn small" id="addPupilsBtn" type="button" disabled>Add selected</button>
+            <span class="sub" style="font-size:12.5px;">Tick a year group to take everyone in it who isn't in this subject yet.</span>
+          </div>
+        </div>` : ''}
+    </div>`;
+  wireDetail(subject);
+}
+
+async function updateSubject(subject, data, okMessage){
+  try {
+    await postJson(`/api/subjects/${subject.id}/update/`, data);
+    await loadAll();
+    renderList(); renderDetail();
+    if(okMessage) showToast(okMessage);
+  } catch(error){ showToast(error.message || 'Could not save that change.', 'error'); }
+}
+
+function renderPickList(subject){
+  const box = document.getElementById('pickList');
+  if(!box) return;
+  const q = state.pick.q.toLowerCase();
+  const inSubject = new Set(subject.pupils.map(p=>p.id));
+  const match = p=>!inSubject.has(p.id) && (!q || p.name.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
+  const sectioned = new Set();
+  const groups = [];
+  state.sections.forEach(sec=>{
+    sec.pupils.forEach(p=>sectioned.add(p.id));
+    if(state.pick.section && state.pick.section !== String(sec.id)) return;
+    const people = sortPeople(sec.pupils).filter(match);
+    if(people.length) groups.push({key: `s${sec.id}`, name: sec.name, people});
+  });
+  if(!state.pick.section || state.pick.section === NO_SECTION){
+    const loose = sortPeople(state.pupils).filter(p=>!sectioned.has(p.id)).filter(match);
+    if(loose.length) groups.push({key: 'none', name: 'Not in a year group', people: loose});
+  }
+  box.innerHTML = groups.length ? groups.map(g=>`<div class="pick-group">
+      <label class="pick-group-head"><input type="checkbox" data-group="${g.key}"> ${escapeHtml(g.name)} <span class="sub">(${plural(g.people.length, 'pupil')} not yet in this subject)</span></label>
+      ${g.people.map(p=>`<label class="p"><input type="checkbox" data-in="${g.key}" value="${p.id}"${state.pick.selected.has(p.id)?' checked':''}> ${escapeHtml(p.name)} <span class="em">${escapeHtml(p.email)}</span></label>`).join('')}
+    </div>`).join('')
+    : `<p class="empty" style="padding:8px 0;">${state.pupils.length ? 'Everyone matching is already in this subject.' : 'No pupil accounts yet — add them on the Roles page.'}</p>`;
+  const btn = document.getElementById('addPupilsBtn');
+  // Picks are kept in state.pick.selected, so they survive changing the search or the year group filter.
+  const picked = state.pick.selected;
+  const setPicked = (id, on)=>{
+    on ? picked.add(id) : picked.delete(id);
+    box.querySelectorAll(`input[data-in][value="${id}"]`).forEach(x=>{ x.checked = on; });  // same pupil listed under two year groups
+  };
+  const sync = ()=>{
+    box.querySelectorAll('input[data-group]').forEach(g=>{
+      const items = Array.from(box.querySelectorAll(`input[data-in="${g.dataset.group}"]`));
+      const on = items.filter(i=>i.checked).length;
+      g.checked = on > 0 && on === items.length;
+      g.indeterminate = on > 0 && on < items.length;
+    });
+    const n = picked.size;
+    btn.disabled = n === 0;
+    btn.textContent = n ? `Add ${plural(n, 'pupil')}` : 'Add selected';
+  };
+  box.querySelectorAll('input[data-in]').forEach(i=>i.addEventListener('change', ()=>{ setPicked(Number(i.value), i.checked); sync(); }));
+  box.querySelectorAll('input[data-group]').forEach(g=>g.addEventListener('change', ()=>{
+    box.querySelectorAll(`input[data-in="${g.dataset.group}"]`).forEach(i=>setPicked(Number(i.value), g.checked));
+    sync();
+  }));
+  sync();
+}
+
+function wireDetail(subject){
+  wireNameSort('pupilSort', renderDetail);
+  if(!CAN_MANAGE) return;
+  document.getElementById('renameBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('subjectName').value.trim();
+    if(!name) return showToast('Give the subject a name.', 'error');
+    if(name === subject.name) return;
+    updateSubject(subject, {name}, 'Subject renamed.');
+  });
+  document.getElementById('deleteSubjectBtn').addEventListener('click', async ()=>{
+    if(!confirm(`Delete "${subject.name}"? Pupils keep their accounts, their year groups and their work — only the subject grouping is removed.`)) return;
+    try {
+      await postJson(`/api/subjects/${subject.id}/delete/`);
+      state.selectedId = null;
+      await loadAll(); selectSubject(state.selectedId);
+      showToast('Subject deleted.');
+    } catch(error){ showToast(error.message, 'error'); }
+  });
+  document.getElementById('addTeacherBtn').addEventListener('click', ()=>{
+    const id = Number(document.getElementById('addTeacherSelect').value);
+    if(!id) return;
+    updateSubject(subject, {teacherIds: subject.teachers.map(t=>t.id).concat(id)}, 'Teacher assigned.');
+  });
+  document.querySelectorAll('[data-remove-teacher]').forEach(b=>b.addEventListener('click', ()=>{
+    updateSubject(subject, {teacherIds: subject.teachers.map(t=>t.id).filter(id=>id !== Number(b.dataset.removeTeacher))}, 'Teacher removed.');
+  }));
+  document.querySelectorAll('[data-remove-pupil]').forEach(b=>b.addEventListener('click', ()=>{
+    updateSubject(subject, {removePupilIds: [Number(b.dataset.removePupil)]}, 'Pupil removed from subject.');
+  }));
+  document.getElementById('pickSearch').addEventListener('input', (e)=>{ state.pick.q = e.target.value; renderPickList(subject); });
+  document.getElementById('pickSection').addEventListener('change', (e)=>{ state.pick.section = e.target.value; renderPickList(subject); });
+  renderPickList(subject);
+  document.getElementById('addPupilsBtn').addEventListener('click', ()=>{
+    const ids = Array.from(state.pick.selected);
+    if(!ids.length) return;
+    state.pick.selected = new Set();
+    updateSubject(subject, {addPupilIds: ids}, `Added ${plural(ids.length, 'pupil')} to ${subject.name}.`);
+  });
+}
+
+document.getElementById('subjectSearch').addEventListener('input', (e)=>{ state.filter = e.target.value; renderList(); });
+
+const createBtn = document.getElementById('createSubjectBtn');
+if(createBtn){
+  const nameInput = document.getElementById('newSubjectName');
+  const create = async ()=>{
+    const err = document.getElementById('subjectFormError');
+    err.classList.add('hidden');
+    const name = nameInput.value.trim();
+    if(!name){ err.textContent = 'Give the subject a name.'; err.classList.remove('hidden'); return; }
+    try {
+      const subject = await postJson('/api/subjects/create/', {name});
+      nameInput.value = '';
+      await loadAll();
+      selectSubject(subject.id);
+      showToast('Subject created — now assign its teachers and add pupils.');
+    } catch(error){ err.textContent = error.message || 'Could not create that subject.'; err.classList.remove('hidden'); }
+  };
+  createBtn.addEventListener('click', create);
+  nameInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') create(); });
+}
+
+window.onBulkImported = async ()=>{ await loadAll(); renderList(); renderDetail(); };
+document.getElementById('bulkSubjectsBtn')?.addEventListener('click', ()=>openBulk('subjects'));
+document.getElementById('bulkSubjectPupilsBtn')?.addEventListener('click', ()=>openBulk('subject_pupils'));
+
+(async ()=>{
+  try { await loadAll(); renderList(); renderDetail(); }
+  catch(error){ document.getElementById('detail').innerHTML = `<p class="err">${escapeHtml(error.message || 'Could not load subjects.')}</p>`; }
+})();
+</script>
+{% endblock %}

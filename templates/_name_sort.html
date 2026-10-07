@@ -1,0 +1,54 @@
+{% comment %}
+Shared "sort people by name" helpers. Default: last name A–Z. The choice is remembered per
+browser, so every list (Roles, Year groups, Subjects, Assign to) uses the same order.
+  sortPeople(list)            → a sorted copy (items need firstName / lastName, or name)
+  nameSortSelect(id)          → <select> HTML for the current choice
+  wireNameSort(id, onChange)  → hooks the select up; calls onChange() after a change
+{% endcomment %}
+<style>
+  .name-sort{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted,#6b7280);white-space:nowrap;}
+  .name-sort select{font-size:12.5px;padding:5px 8px;border-radius:8px;border:1px solid var(--border,#e3e8f2);background:#fff;color:inherit;width:auto;}
+</style>
+<script>
+const NAME_SORTS = {last_asc: 'Last name A–Z', last_desc: 'Last name Z–A', first_asc: 'First name A–Z', first_desc: 'First name Z–A'};
+const NAME_SORT_KEY = 'examhub.nameSort';
+let nameSortMode = 'last_asc';
+try { const saved = localStorage.getItem(NAME_SORT_KEY); if(saved && NAME_SORTS[saved]) nameSortMode = saved; } catch(e) {}
+
+function _nameParts(p){
+  let first = (p.firstName || '').trim(), last = (p.lastName || '').trim();
+  if(!first && !last){
+    // Only a display name: treat the last word as the surname.
+    const words = String(p.name || '').trim().split(/\s+/);
+    last = words.length > 1 ? words.pop() : (words[0] || '');
+    first = words.join(' ');
+  }
+  return {first, last};
+}
+function sortPeople(list, mode){
+  mode = mode || nameSortMode;
+  const byLast = mode.startsWith('last'), dir = mode.endsWith('desc') ? -1 : 1;
+  const cmp = (a, b)=>a.localeCompare(b, undefined, {sensitivity: 'base', numeric: true});
+  return (list || []).slice().sort((x, y)=>{
+    const a = _nameParts(x), b = _nameParts(y);
+    // People with no surname go by first name (and vice versa) rather than all bunching up.
+    const a1 = byLast ? (a.last || a.first) : (a.first || a.last), b1 = byLast ? (b.last || b.first) : (b.first || b.last);
+    const a2 = byLast ? a.first : a.last, b2 = byLast ? b.first : b.last;
+    return dir * (cmp(a1, b1) || cmp(a2, b2) || cmp(x.email || '', y.email || ''));
+  });
+}
+function nameSortSelect(id){
+  return `<label class="name-sort" for="${id}">Sort <select id="${id}">${Object.entries(NAME_SORTS)
+    .map(([v, label])=>`<option value="${v}"${v === nameSortMode ? ' selected' : ''}>${label}</option>`).join('')}</select></label>`;
+}
+function wireNameSort(id, onChange){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = nameSortMode;
+  el.addEventListener('change', ()=>{
+    nameSortMode = NAME_SORTS[el.value] ? el.value : 'last_asc';
+    try { localStorage.setItem(NAME_SORT_KEY, nameSortMode); } catch(e) {}
+    onChange && onChange();
+  });
+}
+</script>
