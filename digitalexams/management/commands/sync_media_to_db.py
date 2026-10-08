@@ -8,7 +8,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from digitalexams.models import AssignmentItem, School, StoredFile
+from digitalexams.models import AssignmentItem, ExamResource, School, StoredFile
 
 
 class Command(BaseCommand):
@@ -21,6 +21,9 @@ class Command(BaseCommand):
             for field in (item.pdf, item.image, item.video):
                 if field and field.name:
                     names.add(field.name)
+        for resource in ExamResource.objects.exclude(file=''):
+            if resource.file and resource.file.name:
+                names.add(resource.file.name)
         for school in School.objects.exclude(logo=''):
             if school.logo and school.logo.name:
                 names.add(school.logo.name)

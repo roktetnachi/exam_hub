@@ -431,6 +431,64 @@ def _needs_seb(request, assignment):
     return not seb_lockdown_ok(request)
 
 
+def _seb_ok_once(request):
+    """seb_lockdown_ok(), worked out once per request (the assignments list asks per exam)."""
+    if not hasattr(request, '_examhub_seb_ok'):
+        request._examhub_seb_ok = seb_lockdown_ok(request)
+    return request._examhub_seb_ok
+
+
+def pupil_content_withheld(request, assignment, submission):
+    """Should this paper's questions and files be held back from the pupil right now?
+    Yes for a real pupil who hasn't handed in yet, while
+      * a join-code paper hasn't been started with the right code, or
+      * a Lockdown paper is being looked at outside Safe Exam Browser.
+    Before, those two gates only guarded the Open button: typing /s/<school>/api/assignments/ or a
+    file address into an ordinary browser showed the questions ahead of time."""
+    if not is_real_pupil(request) or (submission is not None and submission.status == 'submitted'):
+        return False
+    if assignment.require_join_code and not (submission is not None and submission.started_at):
+        return True
+    return assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not _seb_ok_once(request)
+
+
+def _pupil_join_code_pending(request, assignment):
+    """A real pupil asking for a join-code paper's files before entering the code."""
+    if not is_real_pupil(request) or not assignment.require_join_code:
+        return False
+    sub = Submission.objects.filter(recipient__assignment=assignment,
+                                    recipient__pupil_email__iexact=request.user.email).first()
+    return not (sub and (sub.started_at or sub.status == 'submitted'))
+
+
+def join_code_required_response():
+    return JsonResponse({'code': 'join_code_required',
+                         'detail': 'Enter the join code your teacher gives you to open this paper.'}, status=403)
+
+
+PUBLIC_MEDIA_PREFIXES = ('school_logos/',)
+
+
+@require_GET
+def public_media(request, path):
+    """/media/<path> — only school logos (shown on the sign-in page, before anyone signs in).
+    Everything else under /media/ is a 404, so an exam paper can't be fetched by guessing its
+    file name; it has to come through item_pdf / resource_file and their checks."""
+    import posixpath
+    from django.core.files.storage import default_storage
+    name = posixpath.normpath(path).lstrip('/')
+    if name.startswith('..') or not name.startswith(PUBLIC_MEDIA_PREFIXES):
+        raise Http404
+    content_type = mimetypes.guess_type(name)[0] or ''
+    if not content_type.startswith('image/') or content_type == 'image/svg+xml':
+        raise Http404
+    try:
+        handle = default_storage.open(name, 'rb')
+    except (FileNotFoundError, OSError, ValueError):
+        raise Http404
+    return FileResponse(handle, content_type=content_type)
+
+
 def _pupil_cannot_see_yet(request, assignment):
     """A pre-created exam's files stay private until pupils are allowed to see the exam."""
     if not is_real_pupil(request):
@@ -642,11 +700,16 @@ def _unread_since(last_message_at, last_read_at):
     return bool(last_message_at) and (last_read_at is None or last_message_at > last_read_at)
 
 
-def serialize_assignment(assignment, pupil_email=None):
+def serialize_assignment(assignment, pupil_email=None, request=None):
+    """`request` is passed for a pupil's own list so a Lockdown / join-code paper's questions can
+    be held back until SEB / the join code has been checked (see pupil_content_withheld)."""
     is_teacher_view = pupil_email is None
     recipients = []
+    own_sub = None
     for recipient in _recipients_of(assignment):
         sub = _submission_of(recipient)
+        if not is_teacher_view and recipient.pupil_email.lower() == (pupil_email or '').lower():
+            own_sub = sub
         # A pupil only ever sees scores once the teacher has explicitly published them —
         # being graded is not the same as being told.
         show_grades = is_teacher_view or sub.published
@@ -674,6 +737,8 @@ def serialize_assignment(assignment, pupil_email=None):
             # Teacher's marking on the work — the pupil only gets it with the released grade.
             'teacherMarks': (sub.teacher_marks or {}) if show_grades else {},
             'newSubmission': sub.is_new_for_teacher if is_teacher_view else False})
+    withheld = (request is not None and not is_teacher_view
+                and pupil_content_withheld(request, assignment, own_sub))
     def serialize_item(item):
         data = {'id': item.id, 'type': item.item_type, 'label': item.label, 'order': item.order,
             'points': item.points, 'section': item.section}
@@ -684,8 +749,8 @@ def serialize_assignment(assignment, pupil_email=None):
         elif item.item_type == AssignmentItem.ItemType.VIDEO:
             data['videoUrl'] = reverse('item-video', args=[item.id])
         else:
-            data['prompt'] = item.prompt
-            data['options'] = item.options
+            data['prompt'] = '' if withheld else item.prompt
+            data['options'] = [] if withheld else item.options
         if is_teacher_view:
             # Never sent to pupils — same "gate" reasoning as the join code below.
             data['correctAnswer'] = item.correct_answer
@@ -694,7 +759,11 @@ def serialize_assignment(assignment, pupil_email=None):
     return {'id': assignment.id, 'title': assignment.title, 'prompt': assignment.instructions,
         'createdAt': manila_isoformat(assignment.created_at),
         'items': items,
-        'resources': [serialize_resource(r) for r in assignment.resources.all()],
+        'resources': [dict(serialize_resource(r), text='') if (withheld and r.kind == ExamResource.Kind.TEXT)
+                      else serialize_resource(r) for r in assignment.resources.all()],
+        # True while the questions above are held back; the page fetches the list again once
+        # Safe Exam Browser / the join code has been checked.
+        'contentWithheld': withheld,
         'teacherName': assignment.teacher_name, 'teacherEmail': assignment.teacher_email,
         'opensAt': manila_isoformat(assignment.opens_at), 'dueAt': manila_isoformat(assignment.due_at),
         'isHidden': assignment.is_hidden,
@@ -729,7 +798,8 @@ def assignments_api(request):
         # Pre-created exams stay invisible to pupils until they're made visible / their time comes.
         assignments = [a for a in assignments
                        if exam_visible_to_pupils(a, a.recipients.filter(pupil_email__iexact=email).first())]
-    return JsonResponse({'assignments': [serialize_assignment(a, email) for a in assignments]})
+    return JsonResponse({'assignments': [serialize_assignment(a, email, request if is_real_pupil(request) else None)
+                                         for a in assignments]})
 
 
 @login_required
@@ -747,6 +817,8 @@ def item_pdf(request, item_id):
             return HttpResponseForbidden('This PDF is not assigned to your account.')
     if _pupil_cannot_see_yet(request, assignment):
         return exam_not_open_response()
+    if _pupil_join_code_pending(request, assignment):
+        return join_code_required_response()
     if _needs_seb(request, assignment):
         return seb_required_response(request)
     filename = item.pdf.name.rsplit('/', 1)[-1]
@@ -781,6 +853,8 @@ def _serve_item_media(request, item_id, item_type, field_name):
             return HttpResponseForbidden('This file is not assigned to your account.')
     if _pupil_cannot_see_yet(request, assignment):
         return exam_not_open_response()
+    if _pupil_join_code_pending(request, assignment):
+        return join_code_required_response()
     if _needs_seb(request, assignment):
         return seb_required_response(request)
     field = getattr(item, field_name)
@@ -912,6 +986,8 @@ def resource_file(request, resource_id):
             return HttpResponseForbidden('This file is not assigned to your account.')
     if _pupil_cannot_see_yet(request, assignment):
         return exam_not_open_response()
+    if _pupil_join_code_pending(request, assignment):
+        return join_code_required_response()
     if _needs_seb(request, assignment):
         return seb_required_response(request)
     filename = resource.file.name.rsplit('/', 1)[-1]

@@ -155,8 +155,10 @@ class SchoolTenantMiddleware:
             )
 
         # Verify authenticated users belong to this school (platform superusers are exempt).
+        # An ordinary account with NO school is refused too — before, the check was skipped for
+        # it, so such an account could open any school's /s/<slug>/ pages just by typing the slug.
         if request.user.is_authenticated and not request.user.is_superuser:
-            if request.user.school_id and request.user.school_id != school.id:
+            if request.user.school_id != school.id:
                 raise PermissionDenied("You do not have access to this school.")
 
         # ----------------------------------------------------------------

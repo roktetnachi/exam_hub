@@ -5638,6 +5638,11 @@ async function openStudentTask(assignmentId){
     const ok = await gateWithJoinCode(gateAssignment, gateSub);
     if(!ok) return; // pupil cancelled, or never entered a correct code — stay on the task list
   }
+  // A Lockdown / join-code paper's questions only come from the server once SEB / the join code
+  // has been checked (so they can't be read early from the API address) — fetch them now.
+  if(isRealPupilView && gateAssignment.contentWithheld){
+    try { await loadAssignments(state.currentPupilEmail); } catch(_) {}
+  }
   // Instructions first: the exam (and its clock) only starts when the pupil presses Start.
   if(isRealPupilView && gateSub.status !== 'submitted'){
     const go = await showExamIntro(gateAssignment, gateSub);

@@ -2,3 +2,7 @@
 staticfiles/
 __pycache__/
 *.pyc
+
+# Uploaded files (exam papers, images, resources). They live in the database (StoredFile) and on
+# each machine's disk, never in git — the repo must not carry exam papers.
+media/

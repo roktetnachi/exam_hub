@@ -15,14 +15,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import include, path
+
+from digitalexams.views import public_media
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Uploads are NOT served from /media/ in general: exam papers, images, videos and resources
+    # only go out through the checked views (api/items/<id>/pdf/, api/resources/<id>/file/, …),
+    # which know who is signed in, which school they're in and whether the exam is open. Only
+    # school logos are public here, because the sign-in page shows them before anyone signs in.
+    path('media/<path:path>', public_media, name='public-media'),
     path('', include('digitalexams.urls')),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

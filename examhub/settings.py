@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,10 +24,15 @@ load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
 import os
+
+# SECURITY WARNING: don't run with debug turned on in production!
+# Debug mode shows full error pages and, on any wrong address, a list of every URL in the app —
+# a map for anyone poking around. It's on for local development and off on Railway automatically
+# (Railway sets RAILWAY_ENVIRONMENT). Override either way with DEBUG=1 / DEBUG=0 in .env or in
+# Railway → Variables.
+_ON_RAILWAY = any(os.environ.get(v) for v in ('RAILWAY_ENVIRONMENT', 'RAILWAY_ENVIRONMENT_NAME', 'RAILWAY_PROJECT_ID'))
+DEBUG = os.environ.get('DEBUG', '0' if _ON_RAILWAY else '1').strip().lower() in ('1', 'true', 'yes', 'on')
 
 
 ALLOWED_HOSTS = [
@@ -52,28 +58,33 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-examhub-7v$k2q!m9x@r4t#w8z%p1n&c6b^h3j*l5d(s0f)g",
-)
+# Signs sign-in sessions and Safe Exam Browser launch links, so the live site must use its own secret
+# from Railway -> Variables (SECRET_KEY). The fallback below is public (it's in the code) and is only
+# allowed for local development.
+SECRET_KEY = os.environ.get('SECRET_KEY', '').strip()
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured('SECRET_KEY is not set. Add it on Railway under Variables.')
+    SECRET_KEY = "django-insecure-examhub-7v$k2q!m9x@r4t#w8z%p1n&c6b^h3j*l5d(s0f)g"
 
-# Railway PostgreSQL via the public TCP proxy (same setup as the RC Generator).
-# Works both locally and on Railway, so no DATABASE_URL variable is needed.
+# Database: read from the DATABASE_URL variable, never written in this file (it used to be, which
+# put the password in the code history). Locally it comes from .env; on Railway, add it to the web
+# service under Variables as  DATABASE_URL = ${{Postgres.DATABASE_URL}}  so it follows the database
+# automatically, including after a password change.
+import dj_database_url
+from urllib.parse import urlsplit
+_DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+if not _DATABASE_URL:
+    raise ImproperlyConfigured(
+        'DATABASE_URL is not set. Locally, add it to the .env file; on Railway, add it to the web '
+        'service: Variables -> New Variable -> DATABASE_URL = ${{Postgres.DATABASE_URL}}')
+# Railway's public proxy (*.rlwy.net) needs SSL; its private network (*.railway.internal) doesn't.
+_db_host = urlsplit(_DATABASE_URL).hostname or ''
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'railway',
-        'USER': 'postgres',
-        'PASSWORD': 'bDFdPmXwYGyQPLziutCYOKLIwOacWjyK',
-        'HOST': 'hayabusa.proxy.rlwy.net',
-        'PORT': '30691',
-        'OPTIONS': {
-            'connect_timeout': 10,
-            'sslmode': 'require',
-        },
-        'CONN_MAX_AGE': 60,
-    }
+    'default': dj_database_url.parse(
+        _DATABASE_URL, conn_max_age=60, ssl_require=not _db_host.endswith('.railway.internal')),
 }
+DATABASES['default'].setdefault('OPTIONS', {})['connect_timeout'] = 10
 
 # Application definition
 
@@ -216,3 +227,18 @@ LOGIN_CODE_LIFETIME_MINUTES = 10
 LOGIN_CODE_RESEND_SECONDS = 60
 
 AUTH_USER_MODEL = 'digitalexams.User'
+
+# With DEBUG off, Django stops printing errors to the console by default — keep them in Railway's
+# log so a crash can still be diagnosed.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False}},
+}
+
+if not DEBUG:
+    # The live site is https-only: never send the sign-in cookie over plain http.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
