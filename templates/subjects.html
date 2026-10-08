@@ -4,7 +4,10 @@
 
 {% block style %}
   .layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
-  .class-list{padding:14px;}
+  /* The subject list keeps its place while the details scroll, and scrolls on its own when long. */
+  .class-list{padding:14px;position:sticky;top:76px;max-height:calc(100vh - 150px);display:flex;flex-direction:column;}
+  #subjectList{flex:1 1 auto;min-height:120px;overflow-y:auto;margin:0 -6px;padding:0 6px;}
+  .list-count{font-size:12px;color:var(--muted);margin:-4px 0 6px 2px;}
   .class-list .search{margin-bottom:10px;}
   .class-item{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:12px;padding:12px 14px;margin-bottom:4px;color:var(--text);}
   .class-item:hover{background:var(--page-bg);}
@@ -32,8 +35,15 @@
   .pick-list{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:4px 10px;margin:8px 0;}
   .pick-group{border-bottom:1px solid var(--border);padding:6px 0;}
   .pick-group:last-child{border-bottom:none;}
-  .pick-group-head{display:flex;gap:8px;align-items:center;font-weight:700;font-size:13.5px;padding:4px 0;}
+  .pick-group-head{display:flex;gap:8px;align-items:center;font-weight:700;font-size:13.5px;padding:2px 0;}
   .pick-group-head .sub{font-weight:400;font-size:12.5px;}
+  .pg-toggle{flex:1;display:flex;align-items:center;gap:6px;background:none;border:none;padding:4px 0;text-align:left;font:inherit;color:inherit;cursor:pointer;}
+  .pg-chev{display:inline-block;width:12px;color:var(--muted);transition:transform .15s;}
+  .pick-group.open .pg-chev{transform:rotate(90deg);}
+  .pg-picked{margin-left:auto;font-size:12px;font-weight:700;color:var(--blue-dark);background:var(--blue-tint);border-radius:999px;padding:1px 9px;}
+  .pg-picked:empty{display:none;}
+  .pick-body{display:none;}
+  .pick-group.open .pick-body{display:block;}
   .pick-list label.p{display:flex;gap:8px;align-items:center;padding:4px 0 4px 22px;font-size:13.5px;}
   .pick-list .em{color:var(--muted);font-size:12.5px;}
   .placeholder{text-align:center;padding:60px 20px;}
@@ -41,7 +51,7 @@
   .filters{display:flex;gap:8px;flex-wrap:wrap;}
   .filters input{flex:1;min-width:180px;}
   .filters select{max-width:240px;}
-  @media (max-width:900px){ .layout{grid-template-columns:1fr;} }
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} .class-list{position:static;max-height:none;} #subjectList{max-height:50vh;} }
 {% endblock %}
 
 {% block content %}
@@ -65,6 +75,7 @@
 <div class="layout">
   <aside class="card class-list">
     <input type="search" class="search" id="subjectSearch" placeholder="Search subjects…" aria-label="Search subjects">
+    <div class="list-count" id="subjectCount"></div>
     <div id="subjectList"><p class="empty">Loading…</p></div>
     {% if can_manage_classes %}
     <div class="new-class">
@@ -88,7 +99,7 @@
 
 {% block script %}
 <script>
-const state = { subjects: [], teachers: [], sections: [], pupils: [], selectedId: null, filter: '', pick: {q: '', section: '', selected: new Set()} };
+const state = { subjects: [], teachers: [], sections: [], pupils: [], selectedId: null, filter: '', pick: {q: '', section: '', selected: new Set(), open: new Set()} };
 const NO_SECTION = '__none__';
 
 function selectedSubject(){ return state.subjects.find(s=>s.id === state.selectedId) || null; }
@@ -109,7 +120,7 @@ async function loadAll(){
 
 function selectSubject(id){
   state.selectedId = id;
-  state.pick = {q: '', section: '', selected: new Set()};
+  state.pick = {q: '', section: '', selected: new Set(), open: new Set()};
   const url = new URL(location.href);
   if(id) url.searchParams.set('subject', id); else url.searchParams.delete('subject');
   history.replaceState(null, '', url);
@@ -130,6 +141,7 @@ function renderList(){
     list.innerHTML = `<p class="empty">${CAN_MANAGE ? 'No subjects yet — add one below, or use "Bulk import subjects".' : "You haven't been assigned to a subject yet. Ask an admin to add you."}</p>`;
     return;
   }
+  document.getElementById('subjectCount').textContent = q ? `${shown.length} of ${plural(state.subjects.length, 'subject')}` : plural(state.subjects.length, 'subject');
   if(!shown.length){ list.innerHTML = '<p class="empty">No subjects match.</p>'; return; }
   list.innerHTML = shown.map(s=>{
     const teacherText = s.teachers.length ? escapeHtml(s.teachers.map(x=>x.name).join(', ')) : '<span class="warn">No teacher yet</span>';
@@ -140,6 +152,11 @@ function renderList(){
     </button>`;
   }).join('');
   list.querySelectorAll('.class-item').forEach(b=>b.addEventListener('click', ()=>selectSubject(Number(b.dataset.id))));
+  // Keep the chosen subject in view inside the list (without scrolling the whole page).
+  const active = list.querySelector('.class-item.active');
+  if(active && (active.offsetTop < list.scrollTop || active.offsetTop + active.offsetHeight > list.scrollTop + list.clientHeight)){
+    list.scrollTop = active.offsetTop - list.offsetTop - 8;
+  }
 }
 
 function sectionTags(p){
@@ -226,9 +243,13 @@ function renderPickList(subject){
     const loose = sortPeople(state.pupils).filter(p=>!sectioned.has(p.id)).filter(match);
     if(loose.length) groups.push({key: 'none', name: 'Not in a year group', people: loose});
   }
-  box.innerHTML = groups.length ? groups.map(g=>`<div class="pick-group">
-      <label class="pick-group-head"><input type="checkbox" data-group="${g.key}"> ${escapeHtml(g.name)} <span class="sub">(${plural(g.people.length, 'pupil')} not yet in this subject)</span></label>
-      ${g.people.map(p=>`<label class="p"><input type="checkbox" data-in="${g.key}" value="${p.id}"${state.pick.selected.has(p.id)?' checked':''}> ${escapeHtml(p.name)} <span class="em">${escapeHtml(p.email)}</span></label>`).join('')}
+  // Year groups start closed (click a name to open it); a search, a single year group or a short
+  // list shows them open.
+  const autoOpen = !!q || !!state.pick.section || groups.length <= 1;
+  box.innerHTML = groups.length ? groups.map(g=>`<div class="pick-group${autoOpen || state.pick.open.has(g.key) ? ' open' : ''}" data-key="${g.key}">
+      <div class="pick-group-head"><input type="checkbox" data-group="${g.key}" aria-label="Select everyone in ${escapeHtml(g.name)}">
+        <button type="button" class="pg-toggle"><span class="pg-chev">▸</span><span>${escapeHtml(g.name)} <span class="sub">(${plural(g.people.length, 'pupil')} not yet in this subject)</span></span><span class="pg-picked" data-picked-for="${g.key}"></span></button></div>
+      <div class="pick-body">${g.people.map(p=>`<label class="p"><input type="checkbox" data-in="${g.key}" value="${p.id}"${state.pick.selected.has(p.id)?' checked':''}> ${escapeHtml(p.name)} <span class="em">${escapeHtml(p.email)}</span></label>`).join('')}</div>
     </div>`).join('')
     : `<p class="empty" style="padding:8px 0;">${state.pupils.length ? 'Everyone matching is already in this subject.' : 'No pupil accounts yet — add them on the Roles page.'}</p>`;
   const btn = document.getElementById('addPupilsBtn');
@@ -244,11 +265,18 @@ function renderPickList(subject){
       const on = items.filter(i=>i.checked).length;
       g.checked = on > 0 && on === items.length;
       g.indeterminate = on > 0 && on < items.length;
+      const badge = box.querySelector(`[data-picked-for="${g.dataset.group}"]`);
+      if(badge) badge.textContent = on ? `${on} ticked` : '';
     });
     const n = picked.size;
     btn.disabled = n === 0;
     btn.textContent = n ? `Add ${plural(n, 'pupil')}` : 'Add selected';
   };
+  box.querySelectorAll('.pg-toggle').forEach(b=>b.addEventListener('click', ()=>{
+    const g = b.closest('.pick-group'), open = !g.classList.contains('open');
+    g.classList.toggle('open', open);
+    open ? state.pick.open.add(g.dataset.key) : state.pick.open.delete(g.dataset.key);
+  }));
   box.querySelectorAll('input[data-in]').forEach(i=>i.addEventListener('change', ()=>{ setPicked(Number(i.value), i.checked); sync(); }));
   box.querySelectorAll('input[data-group]').forEach(g=>g.addEventListener('change', ()=>{
     box.querySelectorAll(`input[data-in="${g.dataset.group}"]`).forEach(i=>setPicked(Number(i.value), g.checked));
