@@ -21,6 +21,34 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `media/` is no longer tracked by git (exam papers were in the repository). **Before pushing that change, run `python manage.py sync_media_to_db` on the computer with the `media/` folder** so every uploaded file is in the database; Railway then serves them from there. Files already in old commits stay in the history unless it is rewritten.
 - After the deploy works, **rotate the database password** (Postgres service → Database → Credentials), redeploy the web service, and update `DATABASE_URL` in your local `.env`. The old password is in the git history of `settings.py`.
 - Commit the migrations `0027`–`0029` and the new test files and templates (`test_seb.py`, `test_url_access.py`, `test_graphcalc.py`, `templates/_graphcalc.html`) — they were not yet in git.
+- The 2026-10-09 changes (comment-only marking, notifications, dashboard tabs, navigation, flag for review, pupil task sections) need **no migration and no new settings**. Existing highlights / underlines stay as they are and still show. One new address, `POST /api/notifications/read-all/`, ships with `urls.py`.
+- Pupils' "Flag for review" marks are kept in their browser only (per exam), so they don't carry over to another device.
+
+### Changed — Breadcrumbs, calmer teacher alerts, flag for review, pupil task sections (2026-10-09, second batch)
+No migration needed.
+- **Breadcrumbs** on the exam screen: "← Live exams › Exam title › Grade › Pupil". The first goes back to that dashboard tab, the exam title goes to Monitor (`renderCrumbs()`, redrawn on every screen change).
+- **Teacher alerts:** only a **lockout** still pops up (a pupil is waiting). A new **pupil message** shows a small toast at the bottom right (Reply / Later, closes itself after ~9 s) and stays in the bell until read.
+- **Bell:** items are grouped **Needs action** (lockouts) / **Today** / **Earlier**, and there's **Mark all as read** — new `POST /api/notifications/read-all/` (`notifications_read_all_api`). Teachers: clears unread pupil messages and new-submission items on exams they can see; pupils: unread teacher messages and released grades. Lockouts are never cleared this way.
+- **Flag for review (pupils):** "⚑ Flag" button beside the question navigator; flagged questions get a ⚑ in the question grid (with a count in the legend) and are listed in the Submit confirmation next to the blank ones, each a button that jumps to it. Flags are the pupil's own reminders, kept in that browser per exam (`localStorage`); the teacher never sees them.
+- **Pupil task list in three sections:** **To do** (open ones first, soonest deadline first, then not open yet, then closed) · **Submitted** ("Handed in 2 hours ago", "Waiting for your grade") · **Graded** ("View grade · 12/15", new ones first). Deadlines read "Ends in 2 days" with the exact date underneath, shown in amber when it's under 24 hours. On phones each exam is a card with a full-width button.
+- Removed the PDF viewer's diagnostic line ("Text: N spans, pointer-events=…"); a missing text layer now only logs a console warning.
+- Tests: `test_notifications` (mark-all-read for teacher and pupil, scope, lockouts kept; toast / crumbs / flags / task-list markup; no diagnostic line).
+
+### Changed — Comment-only marking, quieter grade notices, dashboard tabs and navigation (2026-10-09)
+No migration needed.
+- **Marking is comment-only.** Grade tab, written answers: selecting words opens a comment box straight away (no Underline / Highlight / Comment pop-up). The words get one fixed light-red tint and a number matching the margin comment. Enter or clicking away saves; a comment left empty is dropped, so an accidental selection leaves nothing behind. The style picker is gone from the comment list.
+- **PDF toolbar is Select + Comment only** (the Highlight and Underline tools are removed). Comment + click drops a numbered pin with its comment box; a pin closed without a comment is removed. **C** toggles the Comment tool.
+- Older highlights / underlines / circles / boxes still show (read-only, tagged as older marks); the saved data format is unchanged. The server accepts the new `comment` style (`MARK_STYLES` in `views.py`).
+- **Comments link both ways:** click a numbered comment to scroll to and flash its words; click the tinted words to flash the comment (review screen, Grade tab and the pupil's view).
+- **Pupils get no pop-up when a grade is released.** It waits in the bell (count badge, "Graded: <exam> (x / y)", one short wiggle when it arrives) and a **"New grade"** chip on the task list. Opening it shows the submitted work with a **grade panel at the top** (total, %, score + feedback per item, 💬 count; each row jumps to that question). The grade summary modal is removed (`openGradeInWork()` replaces `openGradeSummary()`). New `newGrade` flag in the assignments API (`Submission.is_new_grade_for_pupil`). Teacher pop-ups (lockouts, pupil messages) are unchanged.
+- **Dashboard tabs:** All · Live · Scheduled · Hidden · Closed with counts, a **Needs grading** toggle (handed-in work not yet graded or released), a title search, per-tab empty messages, and "✎ N to grade" / "N graded, not released" under Submitted. The tab is remembered and kept in the address (`?list=`).
+- **Addresses follow the screen** for teachers: `?open=<id>&tab=<tab>&pupil=<recipientId>`. Refresh, browser Back / Forward and copied links land on the same exam, tab and pupil (previously the address was wiped after loading). The back link says where it goes ("← Live exams").
+- **Grade tab:** ‹ › beside the pupil list, **Next ungraded →**, and an "N of M graded" progress bar; keys J / K / N. Unsaved scores still prompt before moving.
+- **Menu button below 900 px** (iPad portrait), where the top menu used to disappear completely.
+- **Submit with blank answers:** each blank question is a button in the confirmation that jumps to it.
+- Wording: bell is "Notifications" everywhere; the pupil list in Grade says "released" (was "published"); "Comments saved".
+- Mobile dashboard labels fixed (the Created column was labelled "Due").
+- Tests: `test_marking` (comment style saved; tabs / navigation markup), `test_notifications` (`newGrade` flag; no grade modal; pupils bell-only), `test_resources` (no Highlight / Underline tools).
 
 ### Security — addresses can't be used to get round the checks (2026-10-08)
 Audit of what a signed-out visitor, a pupil, a teacher or someone from another school can reach by typing addresses. The page/API checks were already sound (school in the URL must match the account → 403; every exam, file, submission, chat and grading call re-checks the school and ownership; pupils are bounced from teacher pages). Gaps found and closed:

@@ -395,6 +395,12 @@ class Submission(models.Model):
         return (self.status == 'submitted' and self.submitted_at is not None
                 and (self.teacher_seen_at is None or self.teacher_seen_at < self.submitted_at))
 
+    @property
+    def is_new_grade_for_pupil(self):
+        """A released grade the pupil hasn't opened yet (drives the bell and the "New" chip)."""
+        return bool(self.published and self.graded_at
+                    and (self.grade_seen_at is None or self.grade_seen_at < self.graded_at))
+
     def __str__(self):
         return f'{self.recipient} ({self.status})'
 

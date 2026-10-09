@@ -1,7 +1,10 @@
 {% comment %} Shared bell + pop-up alerts for every signed-in page (examhub.html and teacher_base.html).
-   Teachers: a pupil locked out of an exam, or a new pupil message — pops up on whichever tab
-   they're on. Pupils: a released grade (pops up when they're not mid-exam) and teacher
-   messages (bell only). Data comes from /api/notifications/; each event pops up once. {% endcomment %}
+   Teachers: only a pupil locked out of an exam pops up (someone is waiting); a new pupil message
+   shows a small toast (Reply / dismiss) and waits in the bell. Pupils: never a pop-up — a released
+   grade and teacher messages wait in the bell (with its count badge); opening a grade shows it
+   on top of their submitted work. The bell groups items (Needs action / Today / Earlier) and has
+   "Mark all as read" (POST /api/notifications/read-all/ — lockouts stay until unlocked).
+   Data comes from /api/notifications/; each event pops up once. {% endcomment %}
 <style>
   .nx-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.42);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;}
   .nx-backdrop.nx-hidden,.nx-hidden{display:none !important;}
@@ -23,6 +26,23 @@
   .nx-btn:disabled{opacity:.6;cursor:default;}
   .nx-more{font-size:12px;color:#6b7280;margin-top:10px;text-align:right;}
   .nx-bell-wrap{position:relative;}
+  .nx-dd-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .nx-readall{border:none;background:none;color:var(--blue,#4b91c5);font-size:12.5px;font-weight:700;cursor:pointer;padding:4px 2px;font-family:inherit;}
+  .nx-readall:disabled{color:#9aa3b2;cursor:default;}
+  .nx-group{font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 -2px;}
+  .nx-toasts{position:fixed;right:16px;bottom:16px;z-index:10001;display:flex;flex-direction:column;gap:8px;max-width:min(360px,calc(100vw - 32px));}
+  .nx-toast{display:flex;gap:10px;align-items:flex-start;background:#fff;border-radius:14px;box-shadow:0 16px 40px -14px rgba(17,24,39,.45);border:1px solid #e3e8f2;padding:11px 12px;font-family:inherit;animation:nxIn .16s ease-out;}
+  .nx-toast .nx-icon{width:32px;height:32px;font-size:15px;border-radius:9px;}
+  .nx-toast-body{flex:1;min-width:0;}
+  .nx-toast-title{font-weight:800;font-size:13.5px;color:#232733;}
+  .nx-toast-text{font-size:13px;color:#4b5563;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
+  .nx-toast-actions{display:flex;gap:6px;margin-top:8px;}
+  .nx-toast-actions button{border:0;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .nx-toast-reply{background:var(--blue,#4b91c5);color:#fff;}
+  .nx-toast-later{background:#f1f3f7;color:#3c4552;}
+  @keyframes nxPulse{0%,100%{transform:none}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
+  #notifBellBtn.nx-pulse svg{animation:nxPulse .9s ease-in-out 2;transform-origin:50% 10%;}
+  @media (prefers-reduced-motion: reduce){ #notifBellBtn.nx-pulse svg{animation:none;} }
   .nx-count{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#d9231a;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;border:2px solid #fff;}
   #notifDropdown .nx-item{display:flex;gap:10px;text-align:left;border:1px solid #e3e8f2;border-radius:11px;padding:9px 10px;background:#fff;cursor:pointer;width:100%;font-family:inherit;}
   #notifDropdown .nx-item:hover{border-color:var(--blue,#4b91c5);background:#fafcff;}
@@ -49,7 +69,7 @@
   const ROLE = "{% if request.user.role == 'pupil' and not request.user.is_superuser %}pupil{% else %}teacher{% endif %}";
   const POPPED_KEY = 'examhub-notif-popped-{{ request.user.pk }}';
   const ICONS = {lock:'🔒', message:'💬', graded:'🏅', submitted:'📥'};
-  let items = [], queue = [], showing = null, polling = null;
+  let items = [], queue = [], showing = null, polling = null, knownKeys = null;
 
   function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function token(){ return document.querySelector('meta[name="csrf-token"]')?.content || ''; }
@@ -110,6 +130,28 @@
   function openGrade(it){ const h = hooks(); if(h && h.openGrade) h.openGrade(it); else go({grade: it.assignmentId}); }
   function openReview(it){ const h = hooks(); if(h && h.openReview) h.openReview(it); else go({review: it.recipientId}); }
 
+  // ---- small toast (teacher: a new pupil message) — doesn't block the page ----
+  function toast(it){
+    let box = document.getElementById('nxToasts');
+    if(!box){ box = document.createElement('div'); box.id = 'nxToasts'; box.className = 'nx-toasts'; box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
+    if(box.querySelector(`[data-key="${CSS.escape(it.key)}"]`)) return;
+    const d = describe(it);
+    const el = document.createElement('div');
+    el.className = 'nx-toast'; el.dataset.key = it.key; el.setAttribute('role', 'status');
+    el.innerHTML = `<span class="nx-icon ${it.kind}">${ICONS[it.kind] || '🔔'}</span>
+      <div class="nx-toast-body"><div class="nx-toast-title">${esc(d.title)}</div>
+        <div class="nx-toast-text">${esc(it.text || d.sub || '')}</div>
+        <div class="nx-toast-actions"><button type="button" class="nx-toast-reply">${esc(d.actions[0].label)}</button><button type="button" class="nx-toast-later">Later</button></div></div>`;
+    const gone = ()=>{ el.remove(); };
+    el.querySelector('.nx-toast-later').onclick = gone;
+    el.querySelector('.nx-toast-reply').onclick = async ()=>{ gone(); try { await d.actions[0].run(it); } catch(e){ alertError(e); } };
+    box.appendChild(el);
+    while(box.children.length > 3) box.firstChild.remove();
+    let timer = setTimeout(gone, 9000);
+    el.addEventListener('mouseenter', ()=>clearTimeout(timer));
+    el.addEventListener('mouseleave', ()=>{ timer = setTimeout(gone, 4000); });
+  }
+
   // ---- pop-up modal (one at a time, queued) ----
   function showNext(){
     if(showing || !queue.length) return;
@@ -168,7 +210,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="hidden nx-hidden" id="notifBellDot"></span></button>
       <div class="nx-hidden" id="notifDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:330px;max-height:440px;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:0 18px 44px -18px rgba(30,41,59,.35);padding:14px;z-index:60;text-align:left;">
-        <strong style="font-size:13px;">Notifications</strong>
+        <div class="nx-dd-head"><strong style="font-size:13px;">Notifications</strong></div>
         <div id="notifList" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
         <p id="notifEmpty" style="margin:6px 0 0;color:#6b7280;font-size:13px;">You're all caught up.</p>
       </div>`;
@@ -190,12 +232,31 @@
     badge.style.display = items.length ? '' : 'none';
     const oldDot = document.getElementById('notifBellDot'); if(oldDot) oldDot.style.display = 'none';
     const head = document.querySelector('#notifDropdown strong'); if(head) head.textContent = 'Notifications';
+    // Header: "Mark all as read" (everything except lockouts, which clear when the pupil is unlocked).
+    if(head && !document.getElementById('nxReadAll')){
+      let row = head.closest('.nx-dd-head');
+      if(!row){ row = document.createElement('div'); row.className = 'nx-dd-head'; head.parentNode.insertBefore(row, head); row.appendChild(head); }
+      const b = document.createElement('button');
+      b.type = 'button'; b.id = 'nxReadAll'; b.className = 'nx-readall'; b.textContent = 'Mark all as read';
+      b.addEventListener('click', readAll);
+      row.appendChild(b);
+    }
+    const readable = items.filter(it=>it.kind !== 'lock').length;
+    const readAllBtn = document.getElementById('nxReadAll');
+    if(readAllBtn){ readAllBtn.disabled = !readable; readAllBtn.style.visibility = readable ? '' : 'hidden'; }
     const list = document.getElementById('notifList');
     const empty = document.getElementById('notifEmpty');
     if(empty){ empty.textContent = "You're all caught up."; empty.classList.toggle('hidden', items.length > 0); empty.classList.toggle('nx-hidden', items.length > 0); }
+    // Groups: lockouts first ("Needs action"), then Today, then Earlier.
+    const today = new Date().toDateString();
+    const groupOf = it=>it.kind === 'lock' ? 'Needs action' : (new Date(it.at).toDateString() === today ? 'Today' : 'Earlier');
+    let lastGroup = null;
     list.innerHTML = items.map((it, i)=>{
       const d = describe(it);
-      return `<button type="button" class="nx-item" data-i="${i}"><span class="nx-icon ${it.kind}">${ICONS[it.kind] || '🔔'}</span>
+      const g = groupOf(it);
+      const heading = g !== lastGroup ? `<div class="nx-group">${g}</div>` : '';
+      lastGroup = g;
+      return `${heading}<button type="button" class="nx-item" data-i="${i}"><span class="nx-icon ${it.kind}">${ICONS[it.kind] || '🔔'}</span>
         <span style="min-width:0;"><span class="nx-item-title">${esc(d.bell)}</span>
         <span class="nx-item-sub" style="display:block;">${esc(it.kind === 'message' ? it.assignmentTitle + ' · ' : '')}${esc(whenText(it.at))}</span></span></button>`;
     }).join('');
@@ -206,6 +267,19 @@
       if(it.kind === 'lock'){ queue.unshift(it); if(!showing) showNext(); }
       else describe(it).actions[0].run(it);
     }));
+  }
+  async function readAll(e){
+    e && e.stopPropagation();
+    const b = document.getElementById('nxReadAll');
+    if(b) b.disabled = true;
+    try {
+      await api('/api/notifications/read-all/', {method: 'POST'});
+      items = items.filter(it=>it.kind === 'lock');
+      queue = queue.filter(it=>it.kind === 'lock');
+      document.querySelectorAll('#nxToasts .nx-toast').forEach(t=>t.remove());
+      render();
+      hooks()?.refresh?.();   // let the page clear its own dots / "new" chips
+    } catch(err){ alertError(err); if(b) b.disabled = false; }
   }
   function wireBell(){
     const btn = ensureBell();
@@ -223,10 +297,22 @@
     try {
       const data = await api('/api/notifications/');
       items = data.items || [];
+      // Something new arrived (e.g. a released grade): give the bell a short wiggle instead of a pop-up.
+      const keys = items.map(it=>it.key);
+      if(knownKeys && keys.some(k=>!knownKeys.includes(k)) && !pupilInExam()){
+        const b = document.getElementById('notifBellBtn');
+        if(b){ b.classList.remove('nx-pulse'); void b.offsetWidth; b.classList.add('nx-pulse'); setTimeout(()=>b.classList.remove('nx-pulse'), 2000); }
+      }
+      knownKeys = keys;
       const seen = popped();
       items.forEach(it=>{
-        const popsUp = ROLE === 'teacher' ? (it.kind === 'lock' || it.kind === 'message') : it.kind === 'graded';
-        if(popsUp && !seen.includes(it.key) && !queue.some(q=>q.key===it.key) && showing?.key !== it.key) queue.push(it);
+        if(ROLE !== 'teacher' || seen.includes(it.key)) return;   // pupils: bell only
+        if(it.kind === 'lock'){   // a pupil is stuck waiting: the only thing that pops up
+          if(!queue.some(q=>q.key===it.key) && showing?.key !== it.key) queue.push(it);
+        } else if(it.kind === 'message'){   // a toast, once; it stays in the bell until read
+          remember(it.key);
+          toast(it);
+        }
       });
       // Drop queued alerts that resolved themselves meanwhile (unlocked, read elsewhere…).
       queue = queue.filter(q=>items.some(it=>it.key===q.key));

@@ -3,7 +3,7 @@
 A living checklist for verifying that ExamHub is healthy before (and after) every deployment or significant change.
 Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through it.
 
-> **Version coverage:** migrations `0001` – `0029` · v0.22.0 + Unreleased (year groups & subjects, exam privacy, teacher marking, submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters)
+> **Version coverage:** migrations `0001` – `0029` · v0.22.0 + Unreleased (year groups & subjects, exam privacy, teacher marking (comment-only), submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters, dashboard tabs & navigation, breadcrumbs, quieter notifications, flag for review, pupil task sections)
 
 ---
 
@@ -398,17 +398,19 @@ python manage.py check --deploy
 | 19.3 | Answers are in collapsible sections per item with score chip, correct answer and feedback; Expand / Collapse all (Review screen and Grade tab) | Sections toggle | |
 | 19.4 | Clicking an annotation in the list opens its page and flashes it | Jump + flash | |
 | 19.5 | **Grade tab = mark + grade in one place:** choosing a submitted pupil shows their work (PDF with annotations on the left, items on the right) with the marking tools, and each item has its score box and feedback; *Save grades* / *Release grade* at the top and bottom | Work view inside the Grade tab | |
-| 19.6 | Pupil *View grade*: total, %, per-item score and feedback; opening it clears the grade notification | `grade_seen_at` set | |
-| 19.7 | Grade tab, written answers: select words → **Underline / Highlight / Comment** (no Circle; no "Mark this answer" toggle needed); numbered margin comments; style change / delete from the list; autosaves ("Marks saved") | Saved to `teacher_marks.answers` | |
-| 19.8 | Grade tab, PDF "Mark:" toolbar: select, **Highlight** (drag), **Underline** (drag), **Comment pin** (click) — no Circle / Box; older circles and boxes still display | Saved to `teacher_marks.pdf` | |
+| 19.6 | Pupil *View grade* (task list or bell) opens their submitted work with a **grade panel at the top** (no modal): total, %, per-item score, feedback and 💬 count; clicking a row jumps to that question; opening it clears the bell item and the "New grade" chip | `grade_seen_at` set | |
+| 19.7 | Grade tab, written answers are **comment-only**: selecting words opens a comment box straight away (no Underline / Highlight pop-up); the words get a light red tint + number; Enter or clicking away saves ("Comments saved"); an empty comment is dropped; delete from the list | Saved to `teacher_marks.answers` with `style: comment` | |
+| 19.8 | Grade tab, PDF toolbar has only **Select** and **Comment** (C toggles): Comment + click drops a numbered pin with a comment box (Enter saves); a pin closed with no comment is removed; older highlights / underlines / circles / boxes still display, tagged as older marks | Saved to `teacher_marks.pdf` as `pin` | |
 | 19.9 | Select tool → click a pupil's highlight / note → comment on it; shows as "💬 You: …" in the annotation list | Saved to `teacher_marks.annComments` | |
-| 19.10 | Pupil sees marks and comments **only after the grade is released** (on their answer, on the PDF, in *View grade*) | Hidden before publish | |
+| 19.10 | Pupil sees marks and comments **only after the grade is released** (on their answer, on the PDF, and in the grade panel above their work) | Hidden before release | |
 | 19.11 | Review screen and Grade tab: − / + / Fit and Ctrl + scroll also zoom **image** items | Image resizes | |
 | 19.12 | **Review screen is read-only:** all answers, annotations, existing marks and feedback, but no Mark toolbar, no selection pop-up, no score boxes; header button "Mark & grade this pupil" opens the Grade tab | Nothing editable | |
 | 19.13 | Grade tab "Read-only view" opens the Review screen; "Back to grading" returns to the same pupil | Same pupil | |
 | 19.14 | Saving grades keeps the open items, scroll position and PDF; header total, "Released / Not released" and item chips update | No reload jump | |
 | 19.15 | Changing pupil with unsaved scores/feedback asks "Save your changes?" (Save and continue / Discard changes) | No silent loss | |
 | 19.16 | Bell "Open their work" (new submission) opens that pupil in the Grade tab | Grade tab | |
+| 19.17 | Grade tab: ‹ › beside the pupil list, **Next ungraded →** (shows "All graded ✓" when done) and the "N of M graded" bar; keys J / K / N when not typing; unsaved scores still prompt | Moves pupil, progress updates | |
+| 19.18 | Clicking a numbered comment scrolls to and flashes the words it's about; clicking tinted words flashes the comment (review screen and pupil view) | Linked both ways | |
 
 ---
 
@@ -417,14 +419,16 @@ python manage.py check --deploy
 | # | Check | Expected | Status |
 |---|-------|----------|--------|
 | 20.1 | Bell present on Exams, Classes, Activity and Roles pages | Visible with count | |
-| 20.2 | Pupil locked out → teacher pop-up on **any** page with resume code, *Unlock now*, *Open monitor*; lockouts shown before messages | Pop-up within ~10 s | |
+| 20.2 | Pupil locked out → teacher pop-up on **any** page with resume code, *Unlock now*, *Open monitor* (the only teacher alert that still pops up) | Pop-up within ~10 s | |
 | 20.3 | *Unlock now* clears the lock (`locked_at` null) | Pupil continues | |
-| 20.4 | New pupil message → teacher pop-up with text and *Reply*; reading the thread clears it | Bell count drops | |
+| 20.4 | New pupil message → small toast bottom right (*Reply* / *Later*, closes by itself, stays while hovered), **no pop-up**; it stays in the bell; reading the thread clears it | Bell count drops | |
 | 20.5 | Plain teachers only get alerts for their own exams; admins for the whole school | Scoped correctly | |
-| 20.6 | Grade released → pupil pop-up + bell (never during an unsubmitted exam); re-grade notifies again | Pop-up shown | |
+| 20.6 | Grade released → pupil gets **no pop-up**: bell count + item "Graded: <exam> (x / y)", the bell wiggles once, and a "New grade" chip on the task row; never shown during an unsubmitted exam; re-grade notifies again | Bell only | |
 | 20.7 | Each alert pops up only once per event (per browser) | No repeats | |
 | 20.8 | Pupil submits → teacher sees "N new" on the exam row, a "New" chip in Monitor and a 📥 bell item ("Open their work"); all clear once the teacher opens that pupil's work | Indicators appear, then clear | |
 | 20.9 | Monitor → *Mark all as seen* clears every new-submission indicator for that exam (`POST /api/submissions/seen/`) | Count drops to 0 | |
+| 20.10 | Bell groups items under **Needs action** (lockouts) / **Today** / **Earlier** | Grouped | |
+| 20.11 | Bell **Mark all as read** (`POST /api/notifications/read-all/`): teacher — messages and new submissions cleared, lockouts stay; pupil — messages and grades cleared; another teacher's exams untouched | Only lockouts left | |
 
 ---
 
@@ -449,7 +453,7 @@ python manage.py check --deploy
 | # | Check | Expected | Status |
 |---|-------|----------|--------|
 | 22.1 | Long answers scroll inside the answer box; pupil can scroll back to the top; toolbar and Submit stay visible | Scrolls both ways | |
-| 22.2 | Navigator "‹ Question n of N ›" + grid of numbered squares grouped by section, answered vs not answered | Grid matches answers | |
+| 22.2 | Navigator "‹ Question n of N ›" + grid of numbered squares grouped by section, answered vs not answered, ⚑ on flagged questions (see 26.10) | Grid matches answers and flags | |
 | 22.3 | Contents panel: bar headings with points, current item highlighted, Expand all / Collapse all; 7+ items start collapsed except the current one | As described | |
 | 22.4 | PDF zoom: − / % / + / Fit and Ctrl + scroll (trackpad pinch); page stays sharp when zoomed in; wide pages scroll instead of being cut off on the left | Zooms 30%–400% | |
 | 22.5 | Highlights, highlight notes, image notes and sticky-note dragging made **while zoomed** land on the right text and stay in place at every zoom (stored in unzoomed page coordinates) | Aligned at 100% and zoomed | |
@@ -459,12 +463,12 @@ python manage.py check --deploy
 | 22.9 | After submitting (normal browser) the task list, bell and account menu return; "View submission" shows the back button | Normal navigation | |
 | 22.10 | **Scientific calculator** (when the exam allows the scientific calculator): sin / cos / tan and inverses (2nd), DEG / RAD, ln, log, eˣ, 10ˣ, √, ∛, x², x³, xʸ, ʸ√x, 1/x, n!, %, π, e, EXP, abs (\|x\|), ( ), Ans, Rand, MC / MR / M+ / M−; correct order of operations (e.g. 2+3×4 = 14, −2² = −4); errors shown as "Math error" / "Syntax error" | Correct results | |
 | 22.11 | Calculator keyboard: digits, + − × ÷ ^ ( ) . % !, Enter (=), Backspace, Esc (AC) while it has focus; typing doesn't go into the answer box | Works | |
-| 22.12 | Arriving straight into an exam (`?open=…`, e.g. from SEB) shows no grade pop-up over it; held pop-ups appear after submitting | No pop-up during the exam | |
+| 22.12 | Arriving straight into an exam (`?open=…`, e.g. from SEB) shows nothing over it — pupils never get pop-ups, and the bell is hidden until they submit | Nothing over the exam | |
 | 22.13 | **Instructions screen:** opening an unsubmitted exam shows a wide white card with the school logo, title, facts and instructions; the exam starts (`started_at`, timer) only on **Start exam**; "Back to my tasks" leaves without starting; returning shows **Continue exam** | Nothing starts before Start | |
 | 22.14 | Answer box text size: selecting text + choosing a size changes it; choosing a size with just a cursor makes the next typed text that size; font, colours and buttons keep the selection | Sizes visibly change | |
 | 22.15 | Answer toolbar fits in two rows in the answer pane; word count updates while typing and per item | Tidy, live count | |
 | 22.16 | Question navigator shows ‹ › and the item label only (no "n of N"); clicking the label opens the grid | No count text | |
-| 22.17 | Released grade appears without reloading: pupil on the task list or reading back submitted work sees the grade / marks within ~20 s; "View submission" and the pop-up's "View grade" always show the latest | Marks visible | |
+| 22.17 | Released grade appears without reloading: pupil on the task list or reading back submitted work sees the grade / marks within ~20 s; "View submission", "View grade" and the bell's grade item always show the latest | Marks visible | |
 
 ---
 
@@ -514,6 +518,25 @@ python manage.py check --deploy
 
 ---
 
+## 26. Teacher Navigation
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 26.1 | Dashboard tabs **All · Live · Scheduled · Hidden · Closed** with counts; arrow keys move between tabs; each tab has its own empty message with "Show all exams" | Correct exams per tab | |
+| 26.2 | **Needs grading** toggle (with count) keeps only exams with handed-in work that isn't graded or released; rows show "✎ N to grade" / "N graded, not released" | Filter works in every tab | |
+| 26.3 | Search box filters by title inside the chosen tab; the date filter still works alongside it | Combined filters | |
+| 26.4 | The chosen tab is remembered and in the address (`?list=closed`); refresh keeps it | Same tab after reload | |
+| 26.5 | Opening an exam / tab / pupil updates the address (`?open=<id>&tab=grade&pupil=<recipient>`); refresh, browser Back / Forward and a copied link land on the same screen | No reset to the dashboard | |
+| 26.6 | Back link names where it goes ("← Live exams") | Matches the tab | |
+| 26.7 | Below 900 px wide (iPad portrait) the top menu becomes a **Menu** button listing Exams / Year groups / Subjects / Activity / Roles; Esc or clicking away closes it | Menu usable at 768–900 px | |
+| 26.8 | Pupil Submit with blank answers lists each blank question as a button; tapping one closes the dialog and jumps to it | Lands on that question | |
+| 26.9 | Exam screen breadcrumb "← Live exams › Exam › Grade › Pupil": first item → that dashboard tab, exam title → Monitor | Correct targets | |
+| 26.10 | Pupil **⚑ Flag** beside the question navigator: grid shows ⚑ and "Flagged (n)"; survives a page reload; Submit lists flagged questions (⚑) with the blank ones, each jumping to the question | Flags kept and listed | |
+| 26.11 | Pupil task list in **To do / Submitted / Graded** sections with counts; "Ends in 2 days" + exact date (amber under 24 h); Submitted shows "Handed in …"; Graded shows "View grade · x/y"; phone width shows cards with full-width buttons | Sections correct | |
+| 26.12 | Pupil PDF viewer toolbar has no "Text: N spans" diagnostic line | Not shown | |
+
+---
+
 ## Running the Test Suite
 
 ```bash
@@ -539,9 +562,12 @@ python manage.py test digitalexams.test_sections_subjects digitalexams.test_mark
 
 # 2026-10-08: URL-access hardening and the graphing calculator
 python manage.py test digitalexams.test_url_access digitalexams.test_graphcalc
+
+# 2026-10-09: comment-only marking, notifications (bell-only grades, toasts, mark all as read), tabs and navigation
+python manage.py test digitalexams.test_marking digitalexams.test_notifications digitalexams.test_resources
 ```
 
-> **Last full run (2026-10-08):** 136 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-09):** 143 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 
@@ -549,4 +575,4 @@ python manage.py test digitalexams.test_url_access digitalexams.test_graphcalc
 
 ---
 
-*Last reviewed: 2026-10-08 (v0.22.0 + Unreleased, migrations up to 0029)*
+*Last reviewed: 2026-10-09 (v0.22.0 + Unreleased, migrations up to 0029)*

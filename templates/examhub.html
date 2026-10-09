@@ -38,6 +38,13 @@
   .topnav a:hover{color:var(--blue-dark);}
   .topnav a.active{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.14);}
   @media (max-width:900px){ .topnav{display:none;} }
+  .nav-compact{display:none;margin-left:10px;}
+  @media (max-width:900px){ .nav-compact{display:block;} }
+  .nav-menu{position:absolute;left:0;top:calc(100% + 6px);min-width:210px;background:#fff;border-radius:14px;box-shadow:var(--card-shadow),0 18px 40px -18px rgba(30,41,59,.35);padding:6px;z-index:60;display:flex;flex-direction:column;}
+  .nav-menu.hidden{display:none;}
+  .nav-menu a{padding:11px 14px;border-radius:10px;font-size:14.5px;font-weight:600;color:var(--text);text-decoration:none;min-height:44px;display:flex;align-items:center;}
+  .nav-menu a:hover,.nav-menu a:focus-visible{background:var(--page-bg);outline:none;}
+  .nav-menu a.active{color:var(--blue-dark);background:#eef1f9;}
 
   .app{padding:26px 26px 40px;max-width:1300px;margin:0 auto;}
   .hidden{display:none !important;}
@@ -84,7 +91,12 @@
   .tm-underline{text-decoration:underline;text-decoration-color:#d9231a;text-decoration-thickness:2px;text-underline-offset:3px;}
   .tm-circle{border:2px solid #d9231a;border-radius:999px;padding:0 3px;margin:0 -1px;-webkit-box-decoration-break:clone;box-decoration-break:clone;}
   .tm-highlight{background:rgba(255,214,0,.5);-webkit-box-decoration-break:clone;box-decoration-break:clone;}
-  .tm.tm-hot,.tm-flash.tm{background:rgba(217,35,26,.14);}
+  .tm-comment{background:rgba(217,35,26,.07);border-bottom:2px solid rgba(217,35,26,.5);-webkit-box-decoration-break:clone;box-decoration-break:clone;cursor:pointer;}
+  .tm.tm-hot,.tm-flash.tm{background:rgba(217,35,26,.2);}
+  .tm.tm-flash{animation:tmTextFlash 1.4s ease-out 1;}
+  @keyframes tmTextFlash{0%,60%{background:rgba(217,35,26,.32);}100%{background:rgba(217,35,26,.07);}}
+  .tm-grid .tm-c:not(:has(textarea)),.pupil-inline .tm-c{cursor:pointer;}
+  .tm-c-old{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
   .tm-num{color:#fff;background:#d9231a;border-radius:999px;font-size:10px;font-weight:800;padding:0 5px;margin-left:2px;cursor:pointer;vertical-align:super;line-height:1.4;}
   .tm-block{margin:2px 0;}
   .tm-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
@@ -125,8 +137,8 @@
   .rv-ann-tc{display:block;color:#a91c15;font-size:12.5px;margin-top:2px;}
   .rv-label-hint{text-transform:none;letter-spacing:0;font-weight:500;}
   .tm-tools{display:flex;align-items:center;gap:3px;border:1px solid #f1d6d4;background:#fffafa;border-radius:10px;padding:3px 5px;}
-  .tm-tools-label{font-size:11.5px;font-weight:800;color:#a91c15;margin:0 3px;}
-  .tm-tools button{min-width:30px;height:28px;border:none;background:none;border-radius:7px;font-size:15px;cursor:pointer;color:#a91c15;}
+  .tm-tool-txt{font-size:12.5px;font-weight:700;}
+  .tm-tools button{min-width:30px;height:30px;padding:0 9px;border:none;background:none;border-radius:7px;font-size:15px;cursor:pointer;color:#a91c15;}
   .tm-tools button.active{background:#d9231a;color:#fff;}
   .tm-tools .tm-status{margin-left:6px;}
   .tm-pdf-layer{position:absolute;left:0;top:0;z-index:8;pointer-events:none;}
@@ -168,6 +180,28 @@
   .tm-grid.pupil{margin-top:8px;}
   .tm-pupil-pdf{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
   .new-sub-badge{display:inline-block;margin-left:8px;background:#28186f;color:#fff;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;vertical-align:middle;letter-spacing:.01em;}
+  .grade-nav{display:flex;align-items:center;gap:4px;}
+  .grade-nav .btn{min-width:36px;min-height:36px;font-size:18px;line-height:1;padding:0 10px;}
+  .grade-progress{font-size:12.5px;color:var(--muted);font-weight:600;}
+  .grade-progress .bar{display:inline-block;width:70px;height:6px;border-radius:999px;background:#e6eaf2;vertical-align:middle;margin-right:6px;overflow:hidden;}
+  .grade-progress .bar i{display:block;height:100%;background:#1f7a35;border-radius:999px;}
+  .confirm-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .confirm-links-label{width:100%;font-size:12.5px;font-weight:700;color:var(--muted);}
+  .confirm-link{border:1.5px solid #f0c89a;background:#fff8ef;color:#9a5300;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;min-height:34px;}
+  .confirm-link:hover,.confirm-link:focus-visible{background:#fde7c7;}
+  .exam-tabs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .exam-tabs-list{display:flex;gap:4px;background:var(--page-bg);border-radius:999px;padding:4px;overflow-x:auto;max-width:100%;}
+  .exam-tabs-list button{border:none;background:none;border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:700;color:var(--muted);white-space:nowrap;min-height:36px;}
+  .exam-tabs-list button:hover{color:var(--blue-dark);}
+  .exam-tabs-list button[aria-selected="true"]{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.14);}
+  .exam-tabs-list .n,.exam-needs .n{display:inline-block;min-width:20px;padding:1px 6px;margin-left:4px;border-radius:999px;background:rgba(40,24,111,.08);font-size:11.5px;text-align:center;}
+  .exam-tabs-list button[data-exam-tab="live"] .n:not(:empty){background:#e4f3e4;color:#1f7a35;}
+  .exam-tabs-list .n:empty,.exam-needs .n:empty{display:none;}
+  .exam-needs{border:1.5px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted);min-height:36px;}
+  .exam-needs[aria-pressed="true"]{border-color:#d97706;background:#fef3e2;color:#9a5300;}
+  .exam-needs .n:not(:empty){background:#fde7c7;color:#9a5300;}
+  #examSearch{margin-left:auto;padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:13.5px;min-width:180px;flex:0 1 240px;}
+  @media (max-width:700px){ #examSearch{margin-left:0;flex:1 1 100%;} }
   .exam-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 12px;margin-bottom:6px;border-bottom:1px solid var(--border);font-size:13px;}
   .exam-filter-label{font-weight:700;color:var(--text);}
   .exam-filter label{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;margin:0;}
@@ -247,7 +281,38 @@
   .autosave-status{font-size:12.5px;color:var(--muted);margin-right:auto;display:flex;align-items:center;gap:6px;}
   .autosave-status.error{color:var(--danger);}
   .autosave-status.ok::before{content:'✓';color:#1f7a35;font-weight:800;}
-  #taskGradeBanner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  #taskGradeBanner{display:block;scroll-margin-top:84px;}
+  #taskGradeBanner .gp-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  #taskGradeBanner .gp-pct{font-size:13px;font-weight:700;color:#1f7a35;background:#e4f3e4;border-radius:999px;padding:2px 9px;vertical-align:middle;}
+  .gp-items{margin-top:4px;display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto;}
+  .gp-row{display:flex;flex-direction:column;gap:5px;text-align:left;width:100%;border:1px solid #cfe7ea;background:#fff;border-radius:10px;padding:8px 11px;font-family:inherit;cursor:pointer;}
+  .gp-row:hover,.gp-row:focus-visible{border-color:var(--blue);}
+  .gp-row-head{display:flex;gap:9px;align-items:center;}
+  .gp-row-head .t{flex:1;min-width:0;font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .gp-row-head .s{font-weight:800;font-size:12.5px;border-radius:999px;padding:2px 9px;white-space:nowrap;background:#eef1f9;color:var(--blue-dark);}
+  .gp-row-head .s.full{background:#e4f3e4;color:#1f7a35;} .gp-row-head .s.zero{background:#fbeae9;color:#a91c15;}
+  .gp-cc{font-size:12px;color:#a91c15;font-weight:700;white-space:nowrap;}
+  .gp-fb{font-size:13px;line-height:1.45;white-space:pre-wrap;color:var(--text);background:#f3f8ee;border-radius:8px;padding:6px 9px;}
+  .task-list tr.tl-head td{padding:16px 4px 6px;border-bottom:2px solid var(--border);background:none !important;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .task-list tr.tl-head:first-child td{padding-top:4px;}
+  .task-list tr.tl-head .n{display:inline-block;min-width:20px;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--page-bg);color:var(--text);text-align:center;}
+  .task-list tr.tl-empty td{color:var(--muted);font-size:13px;padding:10px 4px;}
+  .tl-when{font-weight:700;color:var(--text);}
+  .tl-when.soon{color:#b45309;}
+  .tl-when.past{color:var(--muted);font-weight:600;}
+  .tl-date{font-size:12px;color:var(--muted);margin-top:2px;}
+  @media (max-width:640px){
+    #studentTaskList table thead{display:none;}
+    .task-list tr.tl-head td,.task-list tr.tl-empty td{display:block;}
+    .task-list tr:not(.tl-head):not(.tl-empty){display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:12px 4px;border-bottom:1px solid var(--border);}
+    .task-list tr:not(.tl-head):not(.tl-empty) td{display:block;border:none;padding:0;}
+    .task-list tr:not(.tl-head):not(.tl-empty) td:nth-child(1){grid-column:1;grid-row:1;font-weight:700;font-size:15px;}
+    .task-list tr:not(.tl-head):not(.tl-empty) td:nth-child(3){grid-column:2;grid-row:1;text-align:right;}
+    .task-list tr:not(.tl-head):not(.tl-empty) td:nth-child(2){grid-column:1 / -1;grid-row:2;}
+    .task-list tr:not(.tl-head):not(.tl-empty) td:nth-child(4){grid-column:1 / -1;grid-row:3;}
+    .task-list td:nth-child(4) .btn{width:100%;min-height:44px;}
+  }
+  .chip-new{display:inline-block;font-size:11px;font-weight:800;color:#1f7a35;background:#e4f3e4;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle;}
   .gs-total{background:#e4f3e4;color:#1f7a35;border-radius:14px;padding:8px 14px;text-align:center;flex-shrink:0;}
   .gs-total .n{font-size:24px;font-weight:800;line-height:1.1;} .gs-total .p{font-size:11.5px;font-weight:700;}
   .gs-item{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
@@ -556,6 +621,12 @@
   .qnav-grid .qg-legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:4px;}
   .qnav-grid .qg-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #d3dae6;vertical-align:-2px;margin-right:4px;}
   .qnav-grid .qg-legend i.done{background:#e5f6ea;border-color:#9fd6b0;}
+  .qnav-grid .qg-legend i.flag{border:none;width:auto;height:auto;font-style:normal;color:#d97706;font-weight:800;}
+  .qnav-grid .qg-cell{position:relative;}
+  .qnav-grid .qg-cell.flagged::after{content:'⚑';position:absolute;top:-7px;right:-5px;font-size:12px;color:#d97706;background:#fff;border-radius:999px;line-height:1;padding:1px 2px;}
+  .qnav-flag{height:38px;border:1px solid var(--border);background:#fff;border-radius:10px;padding:0 11px;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:5px;}
+  .qnav-flag:hover{color:#9a5300;border-color:#f0c89a;}
+  .qnav-flag.on{background:#fef3e2;border-color:#f0c89a;color:#9a5300;}
   .rich-toolbar{display:flex;flex-wrap:wrap;gap:3px;padding:6px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);align-items:center;}
   .rich-toolbar button{min-width:26px;height:26px;border:none;background:none;border-radius:4px;font-size:13px;color:#3c4552;display:flex;align-items:center;justify-content:center;}
   .rich-toolbar button:hover{background:#eef1f4;}
@@ -645,6 +716,14 @@
   .link-btn{font-size:13.5px;padding:6px 4px;font-weight:600;}
   .back-link{font-size:14.5px;padding:8px 0;margin-bottom:14px;display:inline-flex;align-items:center;gap:4px;}
   .back-link:hover{text-decoration:underline;}
+  .crumbs{display:flex;align-items:center;flex-wrap:wrap;gap:0 2px;margin-bottom:14px;font-size:14.5px;}
+  .crumbs .back-link{margin-bottom:0;}
+  #detailCrumbsRest{display:inline-flex;align-items:center;flex-wrap:wrap;min-width:0;}
+  .crumb-sep{color:#a3acbb;margin:0 7px;}
+  .crumb-link{background:none;border:none;padding:8px 0;color:var(--blue);font-weight:600;font-size:inherit;cursor:pointer;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .crumb-link:hover{text-decoration:underline;}
+  .crumb-here{color:var(--text);font-weight:700;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .crumb-mid{color:var(--muted);font-weight:600;}
   .field{margin-bottom:18px;}
   .field label{font-size:14px;color:var(--text);margin-bottom:7px;}
   .field input[type=text], .field input[type=number], .field input[type=date], .field input[type=datetime-local],
@@ -770,9 +849,9 @@
     #assignmentTable td{border:none;padding:2px 0;}
     #assignmentTable td:first-child{position:absolute;left:0;top:18px;width:auto;}
     #assignmentTable td:nth-child(2) .title-link{font-size:16px;}
-    #assignmentTable td:nth-child(3)::before{content:'Due ';color:var(--muted);}
+    #assignmentTable td:nth-child(3)::before{content:'Created ';color:var(--muted);}
     #assignmentTable td:nth-child(4), #assignmentTable td:nth-child(5){display:inline-block;width:auto;margin-right:14px;color:var(--muted);font-size:14px;}
-    #assignmentTable td:nth-child(5)::before{content:'Submitted ';}
+    #assignmentTable td:nth-child(6)::before{content:'Submitted ';color:var(--muted);}
     #assignmentTable .row-actions{margin-top:10px;}
   }
   @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important;}}
@@ -798,20 +877,30 @@
     {% if request.user.is_superuser or request.user.is_school_admin %}<a href="{{ request.school_url_prefix|default:'' }}{% url 'roles-page' %}">Roles</a>{% endif %}
   </nav>
   {% endif %}
+  {% if request.user.is_superuser or request.user.role == 'teacher' %}
+  <div class="nav-compact" style="position:relative;">
+    <button type="button" class="icon-btn" id="navMenuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu" title="Menu"
+      style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <span>Menu</span>
+    </button>
+    <div class="hidden nav-menu" id="navMenu" role="menu"></div>
+  </div>
+  {% endif %}
   <div style="margin-left:auto;"></div>
   <div class="role-toggle{% if request.user.role == 'pupil' and not request.user.is_superuser or not request.user.can_manage_classes %} hidden{% endif %}" id="roleToggleWrap" title="Preview lets you see exactly what a pupil sees, read-only">
     <button id="btnTeacherRole" class="active">Teacher view</button>
     <button id="btnStudentRole">Pupil preview</button>
   </div>
   <div style="position:relative;">
-    <button class="icon-btn" id="notifBellBtn" title="Messages" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;position:relative;">
+    <button class="icon-btn" id="notifBellBtn" title="Notifications" aria-label="Notifications" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;position:relative;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="hidden" id="notifBellDot" style="position:absolute;top:5px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid #fff;"></span>
     </button>
     <div class="hidden" id="notifDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:320px;max-height:420px;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:var(--card-shadow);padding:14px;z-index:50;">
-      <strong style="font-size:13px;">Messages</strong>
+      <strong style="font-size:13px;">Notifications</strong>
       <div id="notifList" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;"></div>
-      <p class="sub" id="notifEmpty" style="margin:6px 0 0;">No unread messages.</p>
+      <p class="sub" id="notifEmpty" style="margin:6px 0 0;">You're all caught up.</p>
     </div>
   </div>
   <div style="position:relative;">
@@ -863,6 +952,7 @@
   <div class="card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmDialogTitle">
     <h2 id="confirmDialogTitle" style="margin-bottom:10px;"></h2>
     <p id="confirmDialogMessage"></p>
+    <div id="confirmDialogLinks" class="confirm-links hidden"></div>
     <div class="row" style="justify-content:flex-end;gap:10px;margin-top:20px;">
       <button type="button" class="btn outline" id="confirmDialogCancel">Cancel</button>
       <button type="button" class="btn" id="confirmDialogOk">OK</button>
@@ -919,6 +1009,17 @@
         <button class="btn small outline danger" id="bulkDeleteBtn">Delete selected</button>
       </div>
       <div class="card">
+        <div class="exam-tabs" id="examTabsBar">
+          <div class="exam-tabs-list" role="tablist" aria-label="Show exams that are">
+            <button type="button" role="tab" data-exam-tab="all">All <span class="n"></span></button>
+            <button type="button" role="tab" data-exam-tab="live">Live <span class="n"></span></button>
+            <button type="button" role="tab" data-exam-tab="scheduled">Scheduled <span class="n"></span></button>
+            <button type="button" role="tab" data-exam-tab="hidden">Hidden <span class="n"></span></button>
+            <button type="button" role="tab" data-exam-tab="closed">Closed <span class="n"></span></button>
+          </div>
+          <button type="button" class="exam-needs" id="examNeedsGrading" aria-pressed="false" title="Only exams with handed-in work that still needs grading or releasing">✎ Needs grading <span class="n" id="examNeedsCount"></span></button>
+          <input type="search" id="examSearch" placeholder="Search exams…" aria-label="Search exams by title" autocomplete="off">
+        </div>
         <div class="exam-filter" id="examFilterBar">
           <span class="exam-filter-label">Created</span>
           <label>from <input type="date" id="examFrom" aria-label="Created from"></label>
@@ -1157,7 +1258,9 @@
     </div>
 
     <div id="teacherAssignmentDetail" class="hidden">
-      <button class="back-link" id="backFromDetail">&larr; Back to dashboard</button>
+      <nav class="crumbs" id="detailCrumbs" aria-label="Breadcrumb">
+        <button class="back-link" id="backFromDetail">&larr; All exams</button><span id="detailCrumbsRest"></span>
+      </nav>
       <h2 id="detailTitle"></h2>
       <p class="sub" id="detailPrompt"></p>
       <div class="exam-bar" id="examStateBar"></div>
@@ -1211,8 +1314,14 @@
 
       <div id="detailPanel-grade" class="detail-panel hidden">
         <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <label class="sub" style="margin:0;">Pupil</label>
-          <select id="gradePupilSelect" style="padding:7px;border-radius:9px;border:1px solid var(--border);min-width:220px;"></select>
+          <label class="sub" style="margin:0;" for="gradePupilSelect">Pupil</label>
+          <div class="grade-nav">
+            <button type="button" class="btn small outline" id="gradePrevBtn" title="Previous pupil (K)" aria-label="Previous pupil">&lsaquo;</button>
+            <select id="gradePupilSelect" style="padding:7px;border-radius:9px;border:1px solid var(--border);min-width:220px;"></select>
+            <button type="button" class="btn small outline" id="gradeNextBtn" title="Next pupil (J)" aria-label="Next pupil">&rsaquo;</button>
+          </div>
+          <button type="button" class="btn small" id="gradeNextUngradedBtn" title="Jump to the next pupil whose work still needs grading (N)">Next ungraded &rarr;</button>
+          <span class="grade-progress" id="gradeProgress" aria-live="polite"></span>
           <div class="grow"></div>
           <button class="btn small outline" id="publishAllGradesBtn" title="Show grades to every pupil you've already graded">Release all graded</button>
         </div>
@@ -1253,12 +1362,9 @@
               <button class="mode-btn small" id="reviewZoomFit" type="button" title="Fit to width">Fit</button>
             </div>
             <label class="rv-toggle"><input type="checkbox" id="reviewShowAnnotations" checked> Annotations</label>
-            <div class="tm-tools" id="tmTools" role="toolbar" aria-label="Mark the PDF">
-              <span class="tm-tools-label">Mark:</span>
-              <button type="button" class="active" data-tool="select" title="Select — click a mark, or one of the pupil's highlights/notes, to comment on it">↖</button>
-              <button type="button" data-tool="highlight" title="Highlight — drag over the words"><span style="background:rgba(255,214,0,.55);padding:0 4px;border-radius:2px;">H</span></button>
-              <button type="button" data-tool="underline" title="Underline — drag along a line">⎯</button>
-              <button type="button" data-tool="pin" title="Comment — click where it should go">💬</button>
+            <div class="tm-tools" id="tmTools" role="toolbar" aria-label="Comment on the PDF">
+              <button type="button" class="active" data-tool="select" aria-pressed="true" title="Select — click a comment, or one of the pupil's highlights/notes, to comment on it">↖ <span class="tm-tool-txt">Select</span></button>
+              <button type="button" data-tool="pin" aria-pressed="false" title="Comment — click on the page where it should go (C)">💬 <span class="tm-tool-txt">Comment</span></button>
               <span class="tm-status" aria-live="polite"></span>
             </div>
             <button class="mode-btn small" id="reviewExpandViewer" type="button" title="Give the document more room" aria-label="Wider viewer">&#x2922;</button>
@@ -1301,8 +1407,8 @@
       <p class="sub">Here's everything assigned to you. Open a task when it's time to start.</p>
       <div class="card">
         <table>
-          <thead><tr><th>Exam</th><th>Ends</th><th>Status</th><th></th></tr></thead>
-          <tbody id="studentTbody"></tbody>
+          <thead><tr><th>Exam</th><th>When</th><th>Status</th><th></th></tr></thead>
+          <tbody id="studentTbody" class="task-list"></tbody>
         </table>
         <div class="empty-state hidden" id="studentEmpty">
           <div class="empty-icon">&#127881;</div>
@@ -1379,7 +1485,6 @@
               <span id="pageLabel">Page 1</span>
               <button class="mode-btn small" id="nextPage" aria-label="Next page" title="Next page" style="min-width:40px;font-size:18px;">&rsaquo;</button>
             </div>
-            <span id="textLayerDiag" class="hidden" style="font-size:11px;color:var(--muted);margin-left:8px;" title="Diagnostic: how many selectable text spans pdf.js rendered on this page"></span>
           </div>
           <div class="pdf-scroll" id="pdfScroll"><div class="pdf-zoom-box" id="pdfZoomBox"><div class="pdf-stage" id="pdfStage"></div></div></div>
           <div class="question-prompt-pane hidden" id="questionPromptPane">
@@ -1809,20 +1914,6 @@
       </div>
     </div>
 
-    <div class="modal-backdrop hidden" id="gradeSummaryBackdrop">
-      <div class="card" style="width:640px;max-width:96vw;">
-        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div style="min-width:0;"><h2 id="gradeSummaryTitle" style="margin-bottom:2px;">Your grade</h2><p class="sub" id="gradeSummaryMeta" style="margin:0;"></p></div>
-          <div class="gs-total" id="gradeSummaryTotal"></div>
-        </div>
-        <div id="gradeSummaryOverall"></div>
-        <div id="gradeSummaryItems" style="margin-top:14px;"></div>
-        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;">
-          <button class="btn outline" id="gradeSummaryOpenWork" type="button">View my submission</button>
-          <button class="btn" id="gradeSummaryClose" type="button">Close</button>
-        </div>
-      </div>
-    </div>
 
     <div class="modal-backdrop hidden" id="chatModal">
       <div class="card" style="width:420px;max-width:92vw;">
@@ -1905,13 +1996,28 @@ function showToast(message, type='info', ms){
   stack.appendChild(el);
   setTimeout(()=>el.remove(), ms || (type === 'error' ? 7000 : 4000));
 }
-function confirmDialog({title='Are you sure?', message='', confirmLabel='OK', cancelLabel='Cancel', danger=false}={}){
+// links: optional [{label, title, run}] shown as buttons under the message; picking one cancels
+// the dialog and runs it (e.g. "jump to the blank question").
+function confirmDialog({title='Are you sure?', message='', confirmLabel='OK', cancelLabel='Cancel', danger=false, links=null, linksLabel=''}={}){
   return new Promise((resolve)=>{
     const modal = document.getElementById('confirmDialog');
     const ok = document.getElementById('confirmDialogOk');
     const cancel = document.getElementById('confirmDialogCancel');
     document.getElementById('confirmDialogTitle').textContent = title;
     document.getElementById('confirmDialogMessage').textContent = message;
+    const linkBox = document.getElementById('confirmDialogLinks');
+    linkBox.innerHTML = '';
+    linkBox.classList.toggle('hidden', !(links && links.length));
+    if(links && links.length){
+      if(linksLabel){ const l = document.createElement('div'); l.className = 'confirm-links-label'; l.textContent = linksLabel; linkBox.appendChild(l); }
+      links.forEach(link=>{
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'confirm-link'; b.textContent = link.label;
+        if(link.title) b.title = link.title;
+        b.addEventListener('click', ()=>{ done(false); setTimeout(()=>link.run(), 0); });
+        linkBox.appendChild(b);
+      });
+    }
     ok.textContent = confirmLabel; cancel.textContent = cancelLabel;
     ok.classList.toggle('danger', !!danger);
     modal.classList.remove('hidden');
@@ -1943,13 +2049,13 @@ function apiErrorMessage(error){
 }
 function apiAssignment(a){
   const submissions={};
-  a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, email:r.email, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responses:r.responses||{}, outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, startedAt:r.startedAt||null,
+  a.recipients.forEach(r=>{ submissions[r.name]={recipientId:r.id, email:r.email, status:r.status==='not_started'?'idle':(r.status==='draft'?'progress':r.status), annotations:r.annotations||[], responses:r.responses||{}, outlineHtml:r.outlineHtml||'', submittedAt:r.submittedAt ? new Date(r.submittedAt).toLocaleString() : null, submittedAtIso:r.submittedAt||null, startedAt:r.startedAt||null,
     extraMinutes:r.extraMinutes||0, opensOverride:r.opensOverride||null, closesAt:r.closesAt||null,
     itemScores:r.itemScores||{}, totalScore:r.totalScore ?? null, maxScore:r.maxScore ?? null,
     gradedAt:r.gradedAt||null, published:!!r.published,
     locked:!!r.locked, lockReason:r.lockReason||'', lockCount:r.lockCount||0, resumeCode:r.resumeCode||null,
     hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher,
-    teacherMarks:r.teacherMarks||{}, newSubmission:!!r.newSubmission}; });
+    teacherMarks:r.teacherMarks||{}, newSubmission:!!r.newSubmission, newGrade:!!r.newGrade}; });
   return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt, isHidden:!!a.isHidden, closedAt:a.closedAt||null, state:a.state||'live', items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'', createdAt:a.createdAt||null,
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
@@ -1961,6 +2067,21 @@ async function loadAssignments(pupilEmail=''){
   state.assignments=result.assignments.map(apiAssignment);
   updateNotifBell();
 }
+
+// ---------------- compact menu (narrow screens / iPad portrait, where the top menu is hidden) ----------------
+(function(){
+  const btn = document.getElementById('navMenuBtn'), menu = document.getElementById('navMenu'), nav = document.getElementById('teacherTopNav');
+  if(!btn || !menu || !nav) return;
+  menu.innerHTML = Array.from(nav.querySelectorAll('a')).map(a=>
+    `<a role="menuitem" href="${a.getAttribute('href')}"${a.classList.contains('active') ? ' class="active" aria-current="page"' : ''}>${a.textContent}</a>`).join('');
+  const setOpen = open=>{ menu.classList.toggle('hidden', !open); btn.setAttribute('aria-expanded', String(open)); if(open) menu.querySelector('a')?.focus(); };
+  btn.addEventListener('click', e=>{ e.stopPropagation(); setOpen(menu.classList.contains('hidden')); });
+  menu.addEventListener('click', e=>e.stopPropagation());
+  document.addEventListener('click', ()=>setOpen(false));
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !menu.classList.contains('hidden')){ setOpen(false); btn.focus(); } });
+  // The dashboard link inside the app goes back to the exam list without a reload.
+  menu.querySelector('a.active')?.addEventListener('click', e=>{ e.preventDefault(); setOpen(false); showTeacherDashboard(); });
+})();
 
 // ---------------- role toggle ----------------
 document.getElementById('btnTeacherRole').addEventListener('click', ()=>switchRole('teacher'));
@@ -1983,21 +2104,165 @@ function showTeacherDashboard(){
   hideAll('#teacherView > div');
   document.getElementById('teacherDashboard').classList.remove('hidden');
   renderAssignmentTable();
+  navSync('push');
 }
+
+// ---------------- teacher navigation: the address bar follows the screen ----------------
+// Dashboard  ->  /?list=<tab>          Exam  ->  /?open=<id>&tab=<monitor|grade|…>[&pupil=<recipientId>]
+// So refresh, the browser's Back/Forward and copied links all land on the same screen.
+function currentNavParams(){
+  if(document.body.dataset.role === 'pupil' || document.getElementById('teacherView').classList.contains('hidden')) return null;
+  const p = new URLSearchParams();
+  if(!document.getElementById('teacherDashboard').classList.contains('hidden')){
+    if(state.examTab && state.examTab !== 'all') p.set('list', state.examTab);
+    return p;
+  }
+  if(!document.getElementById('teacherAssignmentDetail').classList.contains('hidden') && state.currentAssignmentId){
+    p.set('open', state.currentAssignmentId);
+    const tab = document.querySelector('#detailTabs button.active')?.dataset.detailTab || 'monitor';
+    p.set('tab', tab);
+    if(tab === 'grade' && state.gradePupil){
+      const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+      const sub = a && a.submissions[state.gradePupil];
+      if(sub) p.set('pupil', sub.recipientId);
+    }
+    return p;
+  }
+  return null;   // other screens (read-only review, pupil preview) leave the address as it is
+}
+// Breadcrumb on the exam screen:  ← Live exams › Exam title › Grade › Pupil
+const DETAIL_TAB_NAMES = {create: 'Content', deliver: 'Deliver', monitor: 'Monitor', grade: 'Grade', analyse: 'Analyse'};
+function renderCrumbs(){
+  const rest = document.getElementById('detailCrumbsRest');
+  if(!rest || document.getElementById('teacherAssignmentDetail').classList.contains('hidden')) return;
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a){ rest.innerHTML = ''; return; }
+  const tab = document.querySelector('#detailTabs button.active')?.dataset.detailTab || 'monitor';
+  const sep = '<span class="crumb-sep" aria-hidden="true">›</span>';
+  const pupil = tab === 'grade' && state.gradePupil ? state.gradePupil : '';
+  const parts = [];
+  parts.push(tab === 'monitor' && !pupil
+    ? `<span class="crumb-here" aria-current="page" title="${escapeHtml(a.title)}">${escapeHtml(a.title)}</span>`
+    : `<button type="button" class="crumb-link" data-crumb="exam" title="${escapeHtml(a.title)} — back to Monitor">${escapeHtml(a.title)}</button>`);
+  if(tab !== 'monitor') parts.push(pupil
+    ? `<span class="crumb-mid">${DETAIL_TAB_NAMES[tab] || tab}</span>`
+    : `<span class="crumb-here" aria-current="page">${DETAIL_TAB_NAMES[tab] || tab}</span>`);
+  if(pupil) parts.push(`<span class="crumb-here" aria-current="page">${escapeHtml(pupil)}</span>`);
+  rest.innerHTML = sep + parts.join(sep);
+  rest.querySelector('[data-crumb="exam"]')?.addEventListener('click', ()=>switchDetailTab('monitor'));
+}
+let navTimer = null, navPending = 'replace';
+function navSync(mode='push'){
+  renderCrumbs();
+  if(state.navRestoring) return;
+  if(mode === 'push') navPending = 'push';
+  clearTimeout(navTimer);
+  // Several steps of one click (open exam -> Grade tab -> pupil) become a single history entry.
+  navTimer = setTimeout(()=>{
+    let m = navPending; navPending = 'replace';
+    if(!state.navStarted){ m = 'replace'; state.navStarted = true; }   // first screen after loading
+    const p = currentNavParams();
+    if(!p) return;
+    const qs = p.toString();
+    const url = location.pathname + (qs ? '?' + qs : '');
+    if(url === location.pathname + location.search) return;
+    try { history[m === 'push' ? 'pushState' : 'replaceState']({examhubNav: true}, '', url); } catch(_) {}
+  }, 0);
+}
+function applyNavFromUrl(){
+  const p = new URLSearchParams(location.search);
+  state.navRestoring = true;
+  try {
+    const id = Number(p.get('open'));
+    const a = id && state.assignments.find(x=>x.id===id);
+    if(a){
+      const tab = p.get('tab') || 'monitor';
+      const rid = Number(p.get('pupil'));
+      const pupil = rid ? Object.keys(a.submissions).find(n=>a.submissions[n].recipientId===rid) : null;
+      if(state.currentAssignmentId !== id || document.getElementById('teacherAssignmentDetail').classList.contains('hidden')) showAssignmentDetail(id);
+      if(tab === 'grade' && pupil) state.gradePupil = pupil;
+      switchDetailTab(tab);
+    } else {
+      const list = p.get('list');
+      state.examTab = EXAM_TABS.includes(list) ? list : 'all';
+      showTeacherDashboard();
+    }
+  } finally { state.navRestoring = false; }
+}
+window.addEventListener('popstate', ()=>{
+  if(document.body.dataset.role === 'pupil' || document.body.classList.contains('exam-focus')) return;
+  if(document.getElementById('teacherView').classList.contains('hidden')) return;   // pupil preview
+  applyNavFromUrl();
+});
 function hideAll(selector){ document.querySelectorAll(selector).forEach(el=>el.classList.add('hidden')); }
 
 // ---------------- dashboard: filter exams by the date they were created ----------------
 state.examFilter = {from: '', to: ''};
+// Status tabs (All / Live / Scheduled / Hidden / Closed) — the last one picked is remembered,
+// and it's also in the address bar (?list=closed) so refresh / Back keep it.
+const EXAM_TABS = ['all', 'live', 'scheduled', 'hidden', 'closed'];
+const EXAM_TAB_KEY = 'examhub-exam-tab';
+state.examTab = (()=>{
+  const fromUrl = new URLSearchParams(location.search).get('list');
+  if(EXAM_TABS.includes(fromUrl)) return fromUrl;
+  try { const saved = localStorage.getItem(EXAM_TAB_KEY); if(EXAM_TABS.includes(saved)) return saved; } catch(_) {}
+  return 'all';
+})();
+state.examSearch = '';
+state.examNeedsGrading = false;
 function examCreatedDay(a){ return (a.createdAt || '').slice(0, 10); }  // Manila date, YYYY-MM-DD
-function visibleExams(){
+// Handed-in work that hasn't been graded, or graded but not released to the pupil yet.
+function examNeedsGrading(a){
+  return Object.values(a.submissions).some(s=>s.status === 'submitted' && (!s.gradedAt || !s.published));
+}
+// Date range + search + "needs grading" — everything except the status tab (used for the tab counts).
+function examsBeforeTab(){
   const {from, to} = state.examFilter;
+  const q = state.examSearch.trim().toLowerCase();
   return state.assignments.filter(a=>{
     const day = examCreatedDay(a);
     if(from && (!day || day < from)) return false;
     if(to && (!day || day > to)) return false;
+    if(q && !(a.title || '').toLowerCase().includes(q)) return false;
+    if(state.examNeedsGrading && !examNeedsGrading(a)) return false;
     return true;
   });
 }
+function visibleExams(){
+  return examsBeforeTab().filter(a=>state.examTab === 'all' || (a.state || 'live') === state.examTab);
+}
+function setExamTab(tab){
+  if(!EXAM_TABS.includes(tab)) tab = 'all';
+  state.examTab = tab;
+  try { localStorage.setItem(EXAM_TAB_KEY, tab); } catch(_) {}
+  renderAssignmentTable();
+  navSync('replace');
+}
+function renderExamTabs(){
+  const base = examsBeforeTab();
+  document.querySelectorAll('#examTabsBar [data-exam-tab]').forEach(b=>{
+    const tab = b.dataset.examTab;
+    const n = tab === 'all' ? base.length : base.filter(a=>(a.state || 'live') === tab).length;
+    b.querySelector('.n').textContent = tab === 'all' || n ? n : '';
+    b.setAttribute('aria-selected', String(tab === state.examTab));
+    b.tabIndex = tab === state.examTab ? 0 : -1;
+  });
+  const needs = state.assignments.filter(examNeedsGrading).length;
+  const needsBtn = document.getElementById('examNeedsGrading');
+  needsBtn.querySelector('.n').textContent = needs || '';
+  needsBtn.setAttribute('aria-pressed', String(state.examNeedsGrading));
+}
+document.querySelectorAll('#examTabsBar [data-exam-tab]').forEach(b=>b.addEventListener('click', ()=>setExamTab(b.dataset.examTab)));
+// Arrow keys move between the tabs (standard tablist behaviour).
+document.querySelector('#examTabsBar .exam-tabs-list').addEventListener('keydown', e=>{
+  if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const i = EXAM_TABS.indexOf(state.examTab) + (e.key === 'ArrowRight' ? 1 : -1);
+  const tab = EXAM_TABS[(i + EXAM_TABS.length) % EXAM_TABS.length];
+  setExamTab(tab);
+  document.querySelector(`#examTabsBar [data-exam-tab="${tab}"]`).focus();
+});
+document.getElementById('examNeedsGrading').addEventListener('click', ()=>{ state.examNeedsGrading = !state.examNeedsGrading; renderAssignmentTable(); });
+document.getElementById('examSearch').addEventListener('input', e=>{ state.examSearch = e.target.value; renderAssignmentTable(); });
 function manilaToday(offsetDays=0){
   const d = new Date(Date.now() + 8 * 3600 * 1000 - offsetDays * 86400000);
   return d.toISOString().slice(0, 10);
@@ -2019,14 +2284,27 @@ function renderAssignmentTable(){
   tbody.innerHTML = '';
   document.getElementById('assignmentEmpty').classList.toggle('hidden', state.assignments.length>0);
   document.getElementById('examFilterBar').classList.toggle('hidden', state.assignments.length === 0);
+  document.getElementById('examTabsBar').classList.toggle('hidden', state.assignments.length === 0);
+  renderExamTabs();
   const shown = visibleExams();
   // Only exams that are on screen can stay selected, so a bulk action never touches hidden ones.
   const liveIds = new Set(shown.map(a=>a.id));
   Array.from(state.selectedAssignmentIds).forEach(id=>{ if(!liveIds.has(id)) state.selectedAssignmentIds.delete(id); });
-  const filtered = state.examFilter.from || state.examFilter.to;
+  const filtered = state.examFilter.from || state.examFilter.to || state.examSearch.trim() || state.examNeedsGrading || state.examTab !== 'all';
   document.getElementById('examFilterCount').textContent = filtered ? `Showing ${shown.length} of ${state.assignments.length} exams` : '';
-  if(filtered && !shown.length && state.assignments.length){
-    tbody.innerHTML = '<tr><td colspan="7" class="sub" style="text-align:center;padding:18px;">No exams were created in this date range.</td></tr>';
+  if(!shown.length && state.assignments.length){
+    const why = state.examSearch.trim() ? `No exams match “${escapeHtml(state.examSearch.trim())}”`
+      : state.examNeedsGrading ? 'Nothing needs grading here — all handed-in work is graded and released'
+      : (state.examFilter.from || state.examFilter.to) ? 'No exams were created in this date range'
+      : ({live: 'No live exams right now', scheduled: 'No exams are scheduled', hidden: 'No hidden exams', closed: 'No closed exams yet'}[state.examTab] || 'No exams');
+    const reset = state.examTab !== 'all' || state.examSearch.trim() || state.examNeedsGrading || state.examFilter.from || state.examFilter.to;
+    tbody.innerHTML = `<tr><td colspan="7" class="sub" style="text-align:center;padding:22px;">${why}.${reset ? ' <button type="button" class="link-btn" id="examShowAllBtn" style="color:var(--blue);font-size:13px;">Show all exams</button>' : ''}</td></tr>`;
+    document.getElementById('examShowAllBtn')?.addEventListener('click', ()=>{
+      state.examSearch = ''; document.getElementById('examSearch').value = '';
+      state.examNeedsGrading = false; state.examFilter = {from: '', to: ''};
+      document.getElementById('examFrom').value = ''; document.getElementById('examTo').value = '';
+      setExamTab('all');
+    });
   }
   shown.forEach(a=>{
     const submittedCount = Object.values(a.submissions).filter(s=>s.status==='submitted').length;
@@ -2035,6 +2313,10 @@ function renderAssignmentTable(){
       ? `<span title="Unread pupil message" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
     const newCount = Object.values(a.submissions).filter(s=>s.newSubmission).length;
     const newBadge = newCount ? `<span class="new-sub-badge" title="${newCount} submission${newCount === 1 ? '' : 's'} you haven't opened yet">${newCount} new</span>` : '';
+    const toGrade = Object.values(a.submissions).filter(s=>s.status === 'submitted' && !s.gradedAt).length;
+    const toRelease = Object.values(a.submissions).filter(s=>s.status === 'submitted' && s.gradedAt && !s.published).length;
+    const gradeHint = toGrade ? `<div class="exam-when" style="color:#9a5300;">✎ ${toGrade} to grade</div>`
+      : (toRelease ? `<div class="exam-when" style="color:#9a5300;">${toRelease} graded, not released</div>` : '');
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="checkbox" class="assignmentRowCheck" data-id="${a.id}" ${state.selectedAssignmentIds.has(a.id) ? 'checked' : ''}></td>
@@ -2042,7 +2324,7 @@ function renderAssignmentTable(){
       <td style="white-space:nowrap;color:var(--muted);font-size:13px;">${a.createdAt ? formatManilaDate(a.createdAt) : '—'}</td>
       <td>${examStateHtml(a)}</td>
       <td>${a.assignedTo.length} pupil${a.assignedTo.length === 1 ? '' : 's'}</td>
-      <td>${submittedCount} of ${a.assignedTo.length}</td>
+      <td>${submittedCount} of ${a.assignedTo.length}${gradeHint}</td>
       <td>
         <div class="row-actions">
           <button class="btn small" data-action="view" data-id="${a.id}">Open</button>
@@ -2884,7 +3166,7 @@ window.ExamHubNotifActions = {
   },
   async openGrade(it){
     if(document.body.dataset.role === 'pupil' && state.currentPupilEmail){ try { await loadAssignments(state.currentPupilEmail); } catch(_) {} }
-    openGradeSummary(it.assignmentId);
+    openGradeInWork(it.assignmentId);
   },
   openReview(it){
     if(document.body.dataset.role === 'pupil') return;
@@ -2909,6 +3191,8 @@ window.ExamHubNotifActions = {
       await loadAssignments(document.body.dataset.role === 'pupil' ? state.currentPupilEmail : '');
       const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
       if(a && !document.getElementById('teacherAssignmentDetail').classList.contains('hidden')) renderMonitorPanel(a);
+      if(!document.getElementById('teacherDashboard').classList.contains('hidden')) renderAssignmentTable();
+      if(!document.getElementById('studentTaskList').classList.contains('hidden')) showStudentTaskList();
     } catch(_) {}
   },
 };
@@ -3455,6 +3739,7 @@ function switchDetailTab(tab){
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     if(a) renderAnalyticsTab(a);
   }
+  navSync('push');
 }
 
 // ---------------- Phase 5: grading & publishing ----------------
@@ -3466,12 +3751,13 @@ function renderGradeTab(a, opts={}){
     const sub = a.submissions[p];
     let tag = '';
     if(sub.status !== 'submitted') tag = ' — not submitted';
-    else if(sub.published) tag = ' — published';
+    else if(sub.published) tag = ' — released';
     else if(sub.gradedAt) tag = ' — graded';
     else tag = ' — needs grading';
     return `<option value="${escapeHtml(p)}">${escapeHtml(p)}${tag}</option>`;
   }).join('');
   if(prev && a.assignedTo.includes(prev)) sel.value = prev;
+  updateGradeNav(a, sel.value);
   if(opts.keepWorkspace && reviewState.mode === 'grade' && reviewState.pupil === sel.value){
     refreshGradeHeader(a, sel.value);
     return;
@@ -3498,11 +3784,11 @@ function refreshGradeHeader(a, pupil){
     chip.textContent = `${sc.score} / ${item.points}`;
   });
 }
-document.getElementById('gradePupilSelect').addEventListener('change', async ()=>{
+// Moving between pupils (dropdown, ‹ ›, Next ungraded, J/K/N keys) — asks about unsaved scores first.
+async function gotoGradePupil(next){
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
-  if(!a) return;
+  if(!a || !next) return;
   const sel = document.getElementById('gradePupilSelect');
-  const next = sel.value;
   if(state.gradeDirty && state.gradePupil && state.gradePupil !== next){
     const leaving = state.gradePupil;
     const save = await confirmDialog({title: 'Save your changes?', message: `You've changed scores or feedback for ${leaving} without saving.`,
@@ -3511,11 +3797,65 @@ document.getElementById('gradePupilSelect').addEventListener('change', async ()=
       sel.value = leaving;
       const ok = await saveGrade(a.id, leaving);
       if(!ok) return;
-      sel.value = next;
     }
   }
+  sel.value = next;
   state.gradePupil = next;
+  updateGradeNav(a, next);
   renderGradeBody(a, next);
+  document.getElementById('detailPanel-grade').scrollIntoView({block: 'start', behavior: 'smooth'});
+}
+function gradeNeedsWork(sub){ return sub && sub.status === 'submitted' && !sub.gradedAt; }
+function nextUngradedPupil(a, from){
+  const list = a.assignedTo, start = Math.max(0, list.indexOf(from));
+  for(let k = 1; k <= list.length; k++){
+    const p = list[(start + k) % list.length];
+    if(gradeNeedsWork(a.submissions[p]) && p !== from) return p;
+  }
+  return null;
+}
+function updateGradeNav(a, pupil){
+  const list = a.assignedTo, i = list.indexOf(pupil);
+  document.getElementById('gradePrevBtn').disabled = i <= 0;
+  document.getElementById('gradeNextBtn').disabled = i < 0 || i >= list.length - 1;
+  const ungraded = nextUngradedPupil(a, pupil);
+  const nb = document.getElementById('gradeNextUngradedBtn');
+  nb.disabled = !ungraded;
+  nb.textContent = ungraded ? 'Next ungraded →' : 'All graded ✓';
+  const submitted = list.filter(p=>a.submissions[p].status === 'submitted');
+  const graded = submitted.filter(p=>a.submissions[p].gradedAt).length;
+  const pct = submitted.length ? Math.round(graded / submitted.length * 100) : 0;
+  document.getElementById('gradeProgress').innerHTML = submitted.length
+    ? `<span class="bar"><i style="width:${pct}%"></i></span>${graded} of ${submitted.length} graded${list.length > submitted.length ? ` · ${list.length - submitted.length} not submitted` : ''}`
+    : 'No work handed in yet';
+}
+document.getElementById('gradePupilSelect').addEventListener('change', e=>gotoGradePupil(e.target.value));
+document.getElementById('gradePrevBtn').addEventListener('click', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId); if(!a) return;
+  const i = a.assignedTo.indexOf(state.gradePupil); if(i > 0) gotoGradePupil(a.assignedTo[i - 1]);
+});
+document.getElementById('gradeNextBtn').addEventListener('click', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId); if(!a) return;
+  const i = a.assignedTo.indexOf(state.gradePupil); if(i >= 0 && i < a.assignedTo.length - 1) gotoGradePupil(a.assignedTo[i + 1]);
+});
+document.getElementById('gradeNextUngradedBtn').addEventListener('click', ()=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId); if(!a) return;
+  const p = nextUngradedPupil(a, state.gradePupil);
+  if(p) gotoGradePupil(p); else showToast('Everyone who handed in has been graded.', 'success');
+});
+// Grade tab shortcuts: J / K next / previous pupil, N next ungraded, C comment tool on the PDF.
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"], .modal-backdrop:not(.hidden)')) return;
+  if(document.getElementById('detailPanel-grade').classList.contains('hidden') || document.getElementById('teacherAssignmentDetail').classList.contains('hidden')) return;
+  if(document.querySelector('.modal-backdrop:not(.hidden)')) return;
+  const k = e.key.toLowerCase();
+  if(k === 'j') document.getElementById('gradeNextBtn').click();
+  else if(k === 'k') document.getElementById('gradePrevBtn').click();
+  else if(k === 'n') document.getElementById('gradeNextUngradedBtn').click();
+  else if(k === 'c' && document.getElementById('tmTools') && !document.getElementById('tmTools').classList.contains('hidden')) tmSetTool(TM.tool === 'pin' ? 'select' : 'pin');
+  else return;
+  e.preventDefault();
 });
 function gradeScoreCellHtml(item, existing){
   const isAutoType = AUTO_GRADED_TYPES.includes(item.type);
@@ -3551,6 +3891,7 @@ function renderGradeBody(a, pupil){
   state.gradeDirty = false;
   state.gradePupil = pupil || null;
   const focusItem = state.gradeFocusItem; state.gradeFocusItem = null;
+  navSync('push');
   if(!pupil){ body.innerHTML = '<div class="empty">No pupils assigned yet.</div>'; return; }
   const sub = a.submissions[pupil];
   if(!sub || sub.status !== 'submitted'){
@@ -4099,6 +4440,8 @@ function showAssignmentDetail(id){
   renderDeliverSummary(a);
   renderMonitorPanel(a);
   startMonitorPolling(id);
+  // The back link says where it goes (the dashboard tab you came from).
+  document.getElementById('backFromDetail').innerHTML = `&larr; ${({live: 'Live exams', scheduled: 'Scheduled exams', hidden: 'Hidden exams', closed: 'Closed exams'})[state.examTab] || 'All exams'}`;
 }
 document.getElementById('backFromDetail').addEventListener('click', ()=>{ stopMonitorPolling(); showTeacherDashboard(); });
 
@@ -4230,7 +4573,7 @@ function openGrading(assignmentId, pupil, focusItemId){
 // on the pupil's own PDF annotations. Stored separately in Submission.teacher_marks — the
 // pupil's work itself is never touched — and shown to the pupil only with the released grade.
 const TM = {timer: null, sub: null, tool: 'select', pop: null};
-const TM_STYLE_NAMES = {underline: 'Underline', circle: 'Circle', highlight: 'Highlight'};
+const TM_STYLE_NAMES = {comment: 'Comment', underline: 'Underline', circle: 'Circle', highlight: 'Highlight'};  // only 'comment' is made now; the rest are older marks
 const TM_SHAPE_NAMES = {highlight: 'Highlight', underline: 'Underline', pin: 'Comment', circle: 'Circle', box: 'Box'};  // circle/box: older marks only
 
 function tmMarks(sub){
@@ -4339,7 +4682,7 @@ async function tmSaveNow(sub){
   try {
     await request(`/api/submissions/${sub.recipientId}/marks/`, {method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({teacherMarks: tmMarks(sub)})});
-    tmSetStatus('Marks saved');
+    tmSetStatus('Comments saved');
   } catch(error){ tmSetStatus("Couldn't save — check your connection"); showToast(apiErrorMessage(error), 'error'); }
 }
 window.addEventListener('beforeunload', ()=>{ if(TM.timer && TM.sub) tmSaveNow(TM.sub); });
@@ -4350,14 +4693,12 @@ function tmCommentListHtml(shown, editable, emptyText){
   return shown.map(({m, num, lost})=>`<div class="tm-c${lost ? ' lost' : ''}" data-mark="${m.id}">
       <span class="tm-c-num">${num}</span>
       <div class="tm-c-body">
-        <div class="tm-c-quote">${editable
-          ? `<select class="tm-c-style" aria-label="Mark style">${Object.entries(TM_STYLE_NAMES).filter(([k])=>k !== 'circle' || m.style === 'circle').map(([k, v])=>`<option value="${k}"${k === m.style ? ' selected' : ''}>${v}</option>`).join('')}</select>`
-          : `<span class="tm-c-tag">${TM_STYLE_NAMES[m.style] || ''}</span>`}
+        <div class="tm-c-quote">${m.style && m.style !== 'comment' ? `<span class="tm-c-old" title="Made with an older marking tool">${TM_STYLE_NAMES[m.style] || ''}</span>` : ''}
           <span class="q">“${escapeHtml((m.quote || '').length > 90 ? m.quote.slice(0, 90) + '…' : m.quote || '')}”</span>${lost ? ' <em>(text changed)</em>' : ''}</div>
-        ${editable ? `<textarea class="tm-c-input" rows="2" placeholder="Add a comment (optional)">${escapeHtml(m.comment || '')}</textarea>`
+        ${editable ? `<textarea class="tm-c-input" rows="2" placeholder="Type your comment…">${escapeHtml(m.comment || '')}</textarea>`
           : (m.comment ? `<div class="tm-c-text">${escapeHtml(m.comment)}</div>` : '')}
       </div>
-      ${editable ? `<button type="button" class="tm-c-del" title="Remove this mark" aria-label="Remove mark ${num}">&times;</button>` : ''}
+      ${editable ? `<button type="button" class="tm-c-del" title="Remove this comment" aria-label="Remove comment ${num}">&times;</button>` : ''}
     </div>`).join('');
 }
 function tmFlash(container, markId){
@@ -4370,7 +4711,7 @@ function tmAnswerBlockHtml(item){
   // Grade tab: always in marking mode. Review screen: read-only, so no bar at all.
   return `<div class="tm-block" data-item="${item.id}">
     ${reviewEditable() ? `<div class="tm-bar">
-      <span class="tm-hint">✎ Select words in the answer, then pick Underline, Highlight or Comment.</span>
+      <span class="tm-hint">💬 Select words in the answer to comment on them.</span>
       <span class="tm-status"></span>
     </div>` : ''}
     <div class="tm-grid"><div class="rv-answer tm-answer"></div><div class="tm-comments"></div></div>
@@ -4384,7 +4725,7 @@ function tmDrawAnswer(block, sub){
   const marks = tmMarks(sub).answers[itemId] || [];
   const shown = tmApply(answer, marks);
   const list = block.querySelector('.tm-comments');
-  list.innerHTML = tmCommentListHtml(shown, editable, editable ? 'No marks yet — select some words in the answer.' : '');
+  list.innerHTML = tmCommentListHtml(shown, editable, editable ? 'No comments yet — select some words in the answer.' : '');
   list.classList.toggle('hidden', !shown.length && !editable);
   block.classList.toggle('has-marks', shown.length > 0);
   const toggle = block.querySelector('.tm-toggle');
@@ -4399,7 +4740,17 @@ function tmDrawAnswer(block, sub){
     row.addEventListener('mouseenter', ()=>answer.querySelectorAll(`[data-mark="${id}"]`).forEach(el=>el.classList.add('tm-hot')));
     row.addEventListener('mouseleave', ()=>answer.querySelectorAll('.tm-hot').forEach(el=>el.classList.remove('tm-hot')));
     row.querySelector('.tm-c-input')?.addEventListener('input', e=>{ const m = mark(); if(m){ m.comment = e.target.value; tmQueueSave(sub); } });
-    row.querySelector('.tm-c-style')?.addEventListener('change', e=>{ const m = mark(); if(m){ m.style = e.target.value; tmQueueSave(sub); tmDrawAnswer(block, sub); } });
+    // A new comment left empty is dropped when the box loses focus (e.g. text selected by accident).
+    row.querySelector('.tm-c-input')?.addEventListener('blur', e=>{
+      if(TM.newMarkId !== id) return;
+      TM.newMarkId = null;
+      if(e.target.value.trim()) return;
+      setTimeout(()=>{
+        tmMarks(sub).answers[itemId] = (tmMarks(sub).answers[itemId] || []).filter(x=>x.id !== id);
+        tmQueueSave(sub); tmDrawAnswer(block, sub);
+      }, 0);
+    });
+    row.querySelector('.tm-c-input')?.addEventListener('keydown', e=>{ if(e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)){ e.preventDefault(); e.target.blur(); } });
     row.querySelector('.tm-c-del')?.addEventListener('click', ()=>{
       tmMarks(sub).answers[itemId] = (tmMarks(sub).answers[itemId] || []).filter(x=>x.id !== id);
       tmQueueSave(sub); tmDrawAnswer(block, sub);
@@ -4428,33 +4779,37 @@ function tmInitAnswerBlocks(container, a, sub){
       const picked = tmSelectionIn(answer);
       tmClosePop();
       if(!picked) return;
-      const pop = document.createElement('div');
-      pop.className = 'tm-pop';
-      pop.innerHTML = `<button type="button" data-s="underline"><span class="tm tm-underline">U</span> Underline</button>
-        <button type="button" data-s="highlight"><span class="tm tm-highlight">H</span> Highlight</button>
-        <button type="button" data-s="comment">💬 Comment</button>`;
-      pop.style.left = Math.max(8, Math.min(window.innerWidth - 380, picked.rect.left + window.scrollX)) + 'px';
-      pop.style.top = (picked.rect.bottom + window.scrollY + 8) + 'px';
-      document.body.appendChild(pop);
-      TM.pop = pop;
-      pop.addEventListener('mousedown', e=>e.preventDefault());
-      pop.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
-        const style = b.dataset.s === 'comment' ? 'underline' : b.dataset.s;
-        const m = {id: tmId(), start: picked.start, end: picked.end, quote: picked.quote, style, comment: ''};
-        const marks = tmMarks(sub);
-        (marks.answers[block.dataset.item] = marks.answers[block.dataset.item] || []).push(m);
-        tmClosePop();
-        window.getSelection().removeAllRanges();
-        tmQueueSave(sub);
-        tmDrawAnswer(block, sub);
-        const input = block.querySelector(`.tm-c[data-mark="${m.id}"] .tm-c-input`);
-        if(input && b.dataset.s === 'comment') input.focus();
-        tmFlash(block, m.id);
-      }));
+      // Comment-only marking: the selected words get a comment box straight away.
+      const m = {id: tmId(), start: picked.start, end: picked.end, quote: picked.quote, style: 'comment', comment: ''};
+      const marks = tmMarks(sub);
+      (marks.answers[block.dataset.item] = marks.answers[block.dataset.item] || []).push(m);
+      window.getSelection().removeAllRanges();
+      TM.newMarkId = m.id;
+      tmDrawAnswer(block, sub);
+      const input = block.querySelector(`.tm-c[data-mark="${m.id}"] .tm-c-input`);
+      if(input){ input.scrollIntoView({block: 'nearest', behavior: 'smooth'}); input.focus(); }
+      tmFlash(block, m.id);
     }, 0));
   });
 }
 document.addEventListener('mousedown', e=>{ if(TM.pop && !TM.pop.contains(e.target)) tmClosePop(); });
+// Click a comment -> scroll to and flash the words it's about; click the tinted words -> flash the comment.
+document.addEventListener('click', e=>{
+  if(e.target.closest('textarea, button, select, input')) return;
+  const row = e.target.closest('.tm-c[data-mark]');
+  const scope = e.target.closest('.tm-block, .tm-grid, .response-item');
+  if(!scope) return;
+  if(row){
+    const target = scope.querySelector(`.tm[data-mark="${row.dataset.mark}"]`);
+    if(target){ target.scrollIntoView({block: 'center', behavior: 'smooth'}); tmFlash(scope, row.dataset.mark); }
+    return;
+  }
+  const hit = e.target.closest('.tm[data-mark], .tm-num');
+  if(hit && !scope.querySelector('.tm-c-input')){
+    const c = scope.querySelector(`.tm-c[data-mark="${hit.dataset.mark}"]`);
+    if(c){ c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); tmFlash(scope, hit.dataset.mark); }
+  }
+});
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape') { tmClosePop(); tmCloseSpot(); } });
 
 // ---------- PDF: the teacher's own marks + comments on the pupil's annotations ----------
@@ -4469,7 +4824,17 @@ function tmAnnComment(sub, idx){
   return c && an && c.fp === tmAnnFingerprint(an) ? c : null;
 }
 function tmPdfMarks(sub, itemId){ return tmMarks(sub).pdf[String(itemId)] || []; }
-function tmCloseSpot(){ document.querySelectorAll('.tm-spot').forEach(el=>el.remove()); }
+function tmCloseSpot(){
+  document.querySelectorAll('.tm-spot').forEach(el=>el.remove());
+  const n = TM.newPin; TM.newPin = null;
+  if(!n) return;
+  const list = tmPdfMarks(n.sub, n.itemId), m = list.find(x=>x.id === n.id);
+  if(m && !(m.comment || '').trim()){
+    tmMarks(n.sub).pdf[String(n.itemId)] = list.filter(x=>x.id !== n.id);
+    tmQueueSave(n.sub);
+    setTimeout(()=>{ tmRerenderPdf(); tmRefreshPdfLists(n.sub, n.itemId); }, 0);
+  }
+}
 // Draws the teacher layer on a rendered page. f = pixels per annotation unit (1 for the pupil's own viewer).
 function tmRenderPdfLayer(stage, f, sub, itemId, page, editable){
   stage.querySelectorAll('.tm-pdf-layer').forEach(el=>el.remove());
@@ -4551,7 +4916,7 @@ function tmWireDrawing(stage, layer, f, sub, itemId, page){
     e.preventDefault();
     tmCloseSpot();
     start = pt(e);
-    if(TM.tool === 'pin') return;
+    if(TM.tool === 'pin') return;   // comment-only marking: no drawn shapes any more
     ghost = document.createElement('div');
     ghost.className = 'tm-ghost ' + TM.tool;
     layer.appendChild(ghost);
@@ -4568,8 +4933,9 @@ function tmWireDrawing(stage, layer, f, sub, itemId, page){
     if(ghost){ ghost.remove(); ghost = null; }
     const x0 = Math.min(start.x, p.x), y0 = Math.min(start.y, p.y);
     let w = Math.abs(p.x - start.x), h = Math.abs(p.y - start.y);
-    const tool = TM.tool;
+    const tool = TM.tool === 'pin' ? 'pin' : null;
     start = null;
+    if(!tool) return;
     if(tool !== 'pin' && w < 8 && (tool === 'underline' || h < 8)) return;   // a click, not a drag
     if(tool === 'underline'){ h = 4; }
     const m = {id: tmId(), page, shape: tool, x: +(x0 / f).toFixed(2), y: +((tool === 'underline' ? y0 - 4 : y0) / f).toFixed(2),
@@ -4582,6 +4948,7 @@ function tmWireDrawing(stage, layer, f, sub, itemId, page){
     const num = marks.pdf[String(itemId)].length;
     const bx = tool === 'pin' ? x0 - 12 : x0 + Math.max(10, w) - 4, by = tool === 'pin' ? y0 - 12 : y0 - 14;
     tmOpenSpot(stage, f, sub, itemId, {mark: m, num}, true, bx, by + 26, true);
+    TM.newPin = {sub, itemId, id: m.id};   // after opening: a new pin closed with no comment is removed
   };
   layer.addEventListener('mouseup', finish);
   layer.addEventListener('mouseleave', e=>{ if(start && ghost) finish(e); });
@@ -4606,8 +4973,8 @@ function tmOpenSpot(stage, f, sub, itemId, target, editable, x, y, isNew){
   }
   spot.innerHTML = `<div class="tm-spot-head">${escapeHtml(title)}<button type="button" class="tm-spot-x" aria-label="Close">&times;</button></div>
     ${pupilText ? `<div class="tm-spot-pupil"><span>${editable ? "Pupil's note" : 'Your note'}:</span> ${escapeHtml(pupilText)}</div>` : ''}
-    ${editable ? `<textarea rows="3" placeholder="${target.mark ? 'Comment (optional)' : 'Your comment'}">${escapeHtml(comment)}</textarea>
-      <div class="tm-spot-actions"><button type="button" class="tm-spot-del">${target.mark ? 'Delete mark' : 'Remove comment'}</button><button type="button" class="tm-spot-ok">Done</button></div>`
+    ${editable ? `<textarea rows="3" placeholder="Type your comment…">${escapeHtml(comment)}</textarea>
+      <div class="tm-spot-actions"><button type="button" class="tm-spot-del">${target.mark ? 'Delete' : 'Remove comment'}</button><button type="button" class="tm-spot-ok">Done</button></div>`
       : `<div class="tm-spot-text">${comment ? escapeHtml(comment) : '<em>No comment.</em>'}</div>`}`;
   stage.appendChild(spot);
   spot.addEventListener('mousedown', e=>e.stopPropagation());
@@ -4623,6 +4990,7 @@ function tmOpenSpot(stage, f, sub, itemId, target, editable, x, y, isNew){
     tmQueueSave(sub);
   };
   ta.addEventListener('input', commit);
+  ta.addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); spot.querySelector('.tm-spot-ok').click(); } });
   spot.querySelector('.tm-spot-ok').addEventListener('click', ()=>{ commit(); tmCloseSpot(); tmRerenderPdf(); tmRefreshPdfLists(sub, itemId); });
   spot.querySelector('.tm-spot-del').addEventListener('click', ()=>{
     const marks = tmMarks(sub);
@@ -4642,9 +5010,9 @@ function tmRerenderPdf(){
 // Lists of PDF marks / annotation comments under each PDF item on the review screen.
 function tmPdfListHtml(sub, item, editable){
   const marks = tmPdfMarks(sub, item.id);
-  if(!marks.length) return editable ? '<p class="tm-empty">No marks on this PDF yet — pick a tool above the PDF (Highlight, Underline or Comment) and draw on the page.</p>' : '';
+  if(!marks.length) return editable ? '<p class="tm-empty">No comments on this PDF yet — choose 💬 Comment above the PDF and click on the page.</p>' : '';
   return marks.map((m, i)=>`<button type="button" class="tm-pdf-row" data-item="${item.id}" data-mark="${m.id}" data-page="${m.page}">
-      <span class="tm-c-num">${i + 1}</span><span class="tm-c-tag">${TM_SHAPE_NAMES[m.shape]}</span>
+      <span class="tm-c-num">${i + 1}</span>${m.shape !== 'pin' ? `<span class="tm-c-old">${TM_SHAPE_NAMES[m.shape]}</span>` : ''}
       <span class="t">${m.comment ? escapeHtml(m.comment) : '<em>No comment</em>'}</span><span class="pg">p. ${m.page}</span></button>`).join('');
 }
 function tmRefreshPdfLists(sub, itemId){
@@ -4665,7 +5033,7 @@ function tmWirePdfRows(box){
 }
 function tmSetTool(tool){
   TM.tool = tool;
-  document.querySelectorAll('#tmTools [data-tool]').forEach(b=>b.classList.toggle('active', b.dataset.tool === tool));
+  document.querySelectorAll('#tmTools [data-tool]').forEach(b=>{ b.classList.toggle('active', b.dataset.tool === tool); b.setAttribute('aria-pressed', String(b.dataset.tool === tool)); });
   tmCloseSpot();
   tmRerenderPdf();
 }
@@ -4677,7 +5045,7 @@ function tmPupilPdfSummary(item, sub){
   const annNotes = (sub.annotations || []).map((an, idx)=>[an, tmAnnComment(sub, idx)]).filter(([an, c])=>an.textId === item.id && c);
   if(!marks.length && !annNotes.length) return '';
   return `<div class="tm-pupil-pdf"><div class="tm-comments-head">On the PDF${marks.length ? ` · ${marks.length} mark${marks.length === 1 ? '' : 's'}` : ''} — open your paper to see them in place</div>
-    ${marks.map((m, i)=>`<div class="tm-c"><span class="tm-c-num">${i + 1}</span><div class="tm-c-body"><div class="tm-c-quote"><span class="tm-c-tag">${TM_SHAPE_NAMES[m.shape]}</span> <span class="q">page ${m.page}</span></div>${m.comment ? `<div class="tm-c-text">${escapeHtml(m.comment)}</div>` : ''}</div></div>`).join('')}
+    ${marks.map((m, i)=>`<div class="tm-c"><span class="tm-c-num">${i + 1}</span><div class="tm-c-body"><div class="tm-c-quote"><span class="q">page ${m.page}</span></div>${m.comment ? `<div class="tm-c-text">${escapeHtml(m.comment)}</div>` : ''}</div></div>`).join('')}
     ${annNotes.map(([an, c])=>`<div class="tm-c"><span class="tm-c-num">💬</span><div class="tm-c-body"><div class="tm-c-quote"><span class="q">On your ${an.type === 'image-note' ? 'note' : 'highlight'}${(an.note || an.text) ? ` “${escapeHtml((an.note || an.text).slice(0, 60))}”` : ''} · page ${an.page}</span></div><div class="tm-c-text">${escapeHtml(c.comment)}</div></div></div>`).join('')}</div>`;
 }
 function tmPupilAnswerHtml(item, sub, answerHtml){
@@ -4771,7 +5139,7 @@ function renderReviewSections(a, sub){
   wireReviewAnnRows(box, sub);
   box.querySelectorAll('.tm-pdf-list').forEach(tmWirePdfRows);
   tmInitAnswerBlocks(box, a, sub);
-  tmSetStatus(grading && tmHasAny(sub) ? (sub.published ? 'Marks saved · visible to the pupil' : 'Marks saved · pupil sees them when you release the grade') : '');
+  tmSetStatus(grading && tmHasAny(sub) ? (sub.published ? 'Comments saved · visible to the pupil' : 'Comments saved · pupil sees them when you release the grade') : '');
   if(grading){
     box.querySelectorAll('.override-score-btn').forEach(btn=>btn.addEventListener('click', ()=>{
       const card = btn.closest('.grade-item-card');
@@ -5036,28 +5404,81 @@ function showStudentTaskList(){
   const tbody = document.getElementById('studentTbody');
   tbody.innerHTML = '';
   document.getElementById('studentEmpty').classList.toggle('hidden', mine.length>0);
-  mine.forEach(a=>{
+  tbody.closest('table').classList.toggle('hidden', mine.length === 0);
+  // Three sections: To do (not handed in) · Submitted (waiting for a grade) · Graded (released).
+  const now = Date.now();
+  const info = a=>{
     const sub = a.submissions[state.currentPupil];
     const scheduledOpens = a.opensAt ? new Date(a.opensAt).getTime() : 0;
     const overrideOpens = sub.opensOverride ? new Date(sub.opensOverride).getTime() : null;
-    const now = Date.now(), opens = overrideOpens != null ? Math.min(scheduledOpens, overrideOpens) : scheduledOpens, closes = sub.closesAt ? new Date(sub.closesAt).getTime() : Infinity;
-    const locked = now < opens || now > closes;
-    const badgeClass = sub.status==='submitted' ? 'submitted' : (sub.status==='progress' ? 'progress' : 'idle');
-    const badgeLabel = sub.status==='submitted' ? 'Submitted' : (sub.status==='progress' ? 'In progress' : 'Not started');
-    const unreadDot = sub.hasUnreadFromTeacher
-      ? `<span title="New message from your teacher" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${a.title}${unreadDot}</td>
-      <td>${sub.closesAt ? formatManila(sub.closesAt) : 'When your teacher closes it'}</td>
-      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
-      <td style="white-space:nowrap;">${(locked && sub.status !== 'submitted') ? `<span class="badge idle">${now < opens ? 'Not open yet' : 'Closed'}</span>` : `<button class="btn small${sub.status==='submitted' ? ' outline' : ''}" data-open-task>${sub.status==='submitted' ? 'View submission' : (sub.status==='progress' ? 'Continue' : 'Start')}</button>`}
-        ${sub.published && sub.totalScore != null ? `<button class="btn small" data-view-grade style="margin-left:6px;">View grade · ${sub.totalScore}/${sub.maxScore}</button>` : ''}</td>
-    `;
-    tr.querySelector('[data-open-task]')?.addEventListener('click', ()=>openStudentTask(a.id));
-    tr.querySelector('[data-view-grade]')?.addEventListener('click', ()=>openGradeSummary(a.id));
-    tbody.appendChild(tr);
+    const opens = overrideOpens != null ? Math.min(scheduledOpens, overrideOpens) : scheduledOpens;
+    const closes = sub.closesAt ? new Date(sub.closesAt).getTime() : Infinity;
+    const graded = sub.status === 'submitted' && sub.published && sub.totalScore != null;
+    const group = sub.status !== 'submitted' ? 'todo' : (graded ? 'graded' : 'submitted');
+    return {a, sub, opens, closes, group, notOpen: now < opens, closed: now > closes};
+  };
+  const rows = mine.map(info);
+  // To do: open ones first (soonest deadline first), then not open yet, then closed.
+  const todoRank = r=>r.closed ? 2 : (r.notOpen ? 1 : 0);
+  const sections = [
+    {key: 'todo', title: 'To do', empty: 'Nothing to do right now 🎉',
+      rows: rows.filter(r=>r.group === 'todo').sort((x, y)=>todoRank(x) - todoRank(y) || x.closes - y.closes)},
+    {key: 'submitted', title: 'Submitted', empty: '',
+      rows: rows.filter(r=>r.group === 'submitted').sort((x, y)=>new Date(y.sub.submittedAt || 0) - new Date(x.sub.submittedAt || 0))},
+    {key: 'graded', title: 'Graded', empty: '',
+      rows: rows.filter(r=>r.group === 'graded').sort((x, y)=>(y.sub.newGrade - x.sub.newGrade) || (new Date(y.sub.gradedAt || 0) - new Date(x.sub.gradedAt || 0)))},
+  ];
+  sections.forEach(sec=>{
+    if(!sec.rows.length && !sec.empty) return;
+    const head = document.createElement('tr');
+    head.className = 'tl-head';
+    head.innerHTML = `<td colspan="4">${sec.title}<span class="n">${sec.rows.length}</span></td>`;
+    tbody.appendChild(head);
+    if(!sec.rows.length){
+      const tr = document.createElement('tr'); tr.className = 'tl-empty';
+      tr.innerHTML = `<td colspan="4">${sec.empty}</td>`; tbody.appendChild(tr); return;
+    }
+    sec.rows.forEach(r=>tbody.appendChild(studentTaskRow(r)));
   });
+}
+// "in 2 days" / "in 3 hours" / "ended yesterday" — the exact date sits underneath.
+function relativeWhen(ms){
+  const diff = ms - Date.now(), abs = Math.abs(diff), min = 60000, hr = 60 * min, day = 24 * hr;
+  const unit = abs < hr ? [Math.max(1, Math.round(abs / min)), 'minute'] : abs < day ? [Math.round(abs / hr), 'hour'] : [Math.round(abs / day), 'day'];
+  const txt = `${unit[0]} ${unit[1]}${unit[0] === 1 ? '' : 's'}`;
+  return diff >= 0 ? `in ${txt}` : `${txt} ago`;
+}
+function studentTaskRow({a, sub, opens, closes, notOpen, closed, group}){
+  const now = Date.now();
+  const unreadDot = sub.hasUnreadFromTeacher
+    ? `<span title="New message from your teacher" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;"></span>` : '';
+  let when;
+  if(group === 'graded') when = `<div class="tl-when past">Graded${sub.gradedAt ? ' ' + relativeWhen(new Date(sub.gradedAt).getTime()) : ''}</div>${sub.gradedAt ? `<div class="tl-date">${formatManila(sub.gradedAt)}</div>` : ''}`;
+  else if(group === 'submitted') when = `<div class="tl-when past">Handed in${sub.submittedAtIso ? ' ' + relativeWhen(new Date(sub.submittedAtIso).getTime()) : ''}</div>${sub.submittedAtIso ? `<div class="tl-date">${formatManila(sub.submittedAtIso)}</div>` : ''}`;
+  else if(notOpen) when = `<div class="tl-when">Opens ${relativeWhen(opens)}</div><div class="tl-date">${formatManila(new Date(opens).toISOString())}</div>`;
+  else if(!sub.closesAt) when = `<div class="tl-when">When your teacher closes it</div>`;
+  else {
+    const soon = group === 'todo' && !closed && closes - now < 24 * 3600 * 1000;
+    when = `<div class="tl-when${closed ? ' past' : (soon ? ' soon' : '')}">${closed ? 'Ended ' : 'Ends '}${relativeWhen(closes)}</div><div class="tl-date">${formatManila(sub.closesAt)}</div>`;
+  }
+  const badge = group === 'graded' ? `<span class="badge submitted">Graded</span>`
+    : group === 'submitted' ? `<span class="badge submitted">Submitted</span><div class="tl-date">Waiting for your grade</div>`
+    : notOpen ? `<span class="badge idle">Not open yet</span>`
+    : closed ? `<span class="badge idle">Closed</span>`
+    : sub.status === 'progress' ? `<span class="badge progress">In progress</span>` : `<span class="badge idle">Not started</span>`;
+  let actions = '';
+  if(group === 'graded') actions = `<button class="btn small" data-view-grade>View grade · ${sub.totalScore}/${sub.maxScore}</button>`;
+  else if(group === 'submitted') actions = `<button class="btn small outline" data-open-task>View submission</button>`;
+  else if(!notOpen && !closed) actions = `<button class="btn small" data-open-task>${sub.status === 'progress' ? 'Continue' : 'Start'}</button>`;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${escapeHtml(a.title)}${unreadDot}${sub.newGrade ? ' <span class="chip-new" title="Your teacher released a grade you haven\'t opened yet">New grade</span>' : ''}</td>
+    <td>${when}</td>
+    <td>${badge}</td>
+    <td style="white-space:nowrap;">${actions}</td>`;
+  tr.querySelector('[data-open-task]')?.addEventListener('click', ()=>openStudentTask(a.id));
+  tr.querySelector('[data-view-grade]')?.addEventListener('click', ()=>openGradeInWork(a.id));
+  return tr;
 }
 document.getElementById('backFromTask').addEventListener('click', ()=>{ clearExamTimer(); showStudentTaskList(); });
 
@@ -5547,7 +5968,7 @@ function buildResponseTabs(a, sub){
   const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
   const holder = document.getElementById('responseEditables');
   holder.innerHTML = '';
-  state.qnav = {a, sub, open: false};
+  state.qnav = {a, sub, open: false, readOnly};
   a.items.forEach((item, i)=>{
     const wrap = buildAnswerWidget(item, sub.responses[item.id] ?? sub.responses[String(item.id)], readOnly, ()=>{
       sub.responses[item.id] = collectAnswerFromWidget(item, wrap);
@@ -5584,12 +6005,33 @@ function renderQNav(){
       <button type="button" class="qnav-current" id="qnavCurrent" aria-expanded="${q.open}" title="Show all questions">
         <span class="lbl">${escapeHtml(cur.label)}</span><span class="caret">${q.open ? '▲' : '▼'}</span></button>
       <button type="button" class="qnav-arrow" id="qnavNext" aria-label="Next question" ${idx === items.length - 1 ? 'disabled' : ''}>&rsaquo;</button>
+      ${q.readOnly ? '' : `<button type="button" class="qnav-flag${isFlagged(q.sub, cur.id) ? ' on' : ''}" id="qnavFlag" aria-pressed="${isFlagged(q.sub, cur.id)}"
+        title="Flag this question to come back to it before you submit">⚑ <span>${isFlagged(q.sub, cur.id) ? 'Flagged' : 'Flag'}</span></button>`}
     </div>
     <div class="qnav-grid${q.open ? '' : ' hidden'}" id="qnavGrid"></div>`;
   document.getElementById('qnavPrev').addEventListener('click', ()=>goToItem(items[idx - 1].id));
   document.getElementById('qnavNext').addEventListener('click', ()=>goToItem(items[idx + 1].id));
   document.getElementById('qnavCurrent').addEventListener('click', ()=>{ q.open = !q.open; renderQNav(); });
+  document.getElementById('qnavFlag')?.addEventListener('click', ()=>{ setFlag(q.sub, cur.id, !isFlagged(q.sub, cur.id)); renderQNav(); });
   if(q.open) renderQNavGrid();
+}
+// "Flag for review": the pupil's own reminders, kept in this browser per exam (they never reach
+// the teacher and don't affect marking). Listed again in the Submit confirmation.
+state.flags = {};
+function flagSet(sub){
+  const key = 'examhub-flags-' + sub.recipientId;
+  if(!state.flags[key]){
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch(_) {}
+    state.flags[key] = new Set(Array.isArray(saved) ? saved.map(Number) : []);
+  }
+  return state.flags[key];
+}
+function isFlagged(sub, itemId){ return !!sub && flagSet(sub).has(Number(itemId)); }
+function setFlag(sub, itemId, on){
+  const set = flagSet(sub);
+  if(on) set.add(Number(itemId)); else set.delete(Number(itemId));
+  try { localStorage.setItem('examhub-flags-' + sub.recipientId, JSON.stringify([...set])); } catch(_) {}
 }
 function renderQNavGrid(){
   const grid = document.getElementById('qnavGrid');
@@ -5604,9 +6046,10 @@ function renderQNavGrid(){
   const done = q.a.items.filter(it=>answerIsFilled(it, q.sub.responses[it.id] ?? q.sub.responses[String(it.id)])).length;
   grid.innerHTML = blocks.map(b=>`${b.sec ? `<div class="qg-sec">${escapeHtml(b.sec)}</div>` : ''}<div class="qg-row">${b.cells.map(([it, i])=>{
       const filled = answerIsFilled(it, q.sub.responses[it.id] ?? q.sub.responses[String(it.id)]);
-      return `<button type="button" class="qg-cell${filled ? ' done' : ''}${it.id === state.activeResponseTextId ? ' current' : ''}" data-item="${it.id}" title="${escapeHtml(it.label)}${filled ? ' — answered' : ''}">${i + 1}</button>`;
+      const flagged = !q.readOnly && isFlagged(q.sub, it.id);
+      return `<button type="button" class="qg-cell${filled ? ' done' : ''}${flagged ? ' flagged' : ''}${it.id === state.activeResponseTextId ? ' current' : ''}" data-item="${it.id}" title="${escapeHtml(it.label)}${filled ? ' — answered' : ''}${flagged ? ' — flagged' : ''}">${i + 1}</button>`;
     }).join('')}</div>`).join('')
-    + `<div class="qg-legend"><span><i class="done"></i>Answered (${done})</span><span><i></i>Not answered yet (${q.a.items.length - done})</span></div>`;
+    + `<div class="qg-legend"><span><i class="done"></i>Answered (${done})</span><span><i></i>Not answered yet (${q.a.items.length - done})</span>${q.readOnly ? '' : `<span><i class="flag">⚑</i>Flagged (${q.a.items.filter(it=>isFlagged(q.sub, it.id)).length})</span>`}</div>`;
   grid.querySelectorAll('.qg-cell').forEach(b=>b.addEventListener('click', ()=>{ q.open = false; goToItem(Number(b.dataset.item)); }));
 }
 function refreshQNavStatus(){ if(state.qnav && state.qnav.open) renderQNavGrid(); }
@@ -5630,58 +6073,71 @@ function switchResponseTab(textId){
   updateAnswerWordCount();
 }
 
+// Released grade: shown as a panel at the top of the pupil's submitted work (no pop-up, no modal).
+// The teacher's comments sit in place on the answers / PDF; this panel has the total and the
+// score + feedback for each item, and each row jumps to that question.
 function renderTaskGradeBanner(sub){
   const banner = document.getElementById('taskGradeBanner');
-  if(!sub.published || sub.totalScore == null){ banner.classList.add('hidden'); banner.innerHTML = ''; return; }
-  banner.innerHTML = `<div><div class="score">${sub.totalScore} / ${sub.maxScore}</div>
-    <div class="sub" style="margin:2px 0 0;">Your grade for this exam${sub.gradedAt ? ' · graded ' + new Date(sub.gradedAt).toLocaleString() : ''}</div></div>
-    <button type="button" class="btn small" id="bannerViewGradeBtn">View grade &amp; feedback</button>`;
-  banner.classList.remove('hidden');
-  document.getElementById('bannerViewGradeBtn').onclick = ()=>openGradeSummary(state.currentAssignmentId);
-}
-
-// ---------------- pupil: "View grade" — total plus score and feedback item by item ----------------
-function openGradeSummary(assignmentId){
-  const a = state.assignments.find(x=>x.id===assignmentId);
-  const sub = a && a.submissions[state.currentPupil];
-  if(!a || !sub || !sub.published || sub.totalScore == null){
-    showToast("This grade hasn't been released yet.", 'info'); return;
-  }
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a || !sub.published || sub.totalScore == null){ banner.classList.add('hidden'); banner.innerHTML = ''; return; }
   const scores = sub.itemScores || {};
   const pct = sub.maxScore ? Math.round(sub.totalScore / sub.maxScore * 100) : null;
-  document.getElementById('gradeSummaryTitle').textContent = a.title;
-  document.getElementById('gradeSummaryMeta').textContent = `Graded${sub.gradedAt ? ' ' + new Date(sub.gradedAt).toLocaleString() : ''}${a.teacherName ? ' by ' + a.teacherName : ''}`;
-  document.getElementById('gradeSummaryTotal').innerHTML = `<div class="n">${sub.totalScore} / ${sub.maxScore}</div>${pct != null ? `<div class="p">${pct}%</div>` : ''}`;
-  let n = 0;
   const tmAll = tmMarks(sub);
-  const hasTm = item=>(tmAll.answers[String(item.id)] || []).length || (tmAll.pdf[String(item.id)] || []).length
-    || (sub.annotations || []).some((an, idx)=>an.textId === item.id && tmAnnComment(sub, idx));
-  const graded = a.items.filter(item=>scores[String(item.id)] && (scores[String(item.id)].score != null || scores[String(item.id)].feedback));
-  const withFeedback = graded.filter(item=>scores[String(item.id)].feedback).length;
-  document.getElementById('gradeSummaryOverall').innerHTML = `<div class="gs-overall">${graded.length} item${graded.length === 1 ? '' : 's'} marked · ${withFeedback ? `${withFeedback} with feedback from your teacher` : 'no written feedback this time'}.</div>`;
-  document.getElementById('gradeSummaryItems').innerHTML = a.items.map(item=>{
+  const commentCount = item=>(tmAll.answers[String(item.id)] || []).length + (tmAll.pdf[String(item.id)] || []).length
+    + (sub.annotations || []).filter((an, idx)=>an.textId === item.id && tmAnnComment(sub, idx)).length;
+  let n = 0;
+  const rows = a.items.map(item=>{
     const sc = scores[String(item.id)] || {};
-    if(sc.score == null && !sc.feedback && !hasTm(item)) return '';
+    const cc = commentCount(item);
+    if(sc.score == null && !sc.feedback && !cc) return '';
     n++;
     const max = sc.maxScore ?? item.points;
     const cls = sc.score == null ? '' : (Number(sc.score) >= Number(max) ? 'full' : (Number(sc.score) === 0 ? 'zero' : ''));
-    const title = item.prompt || item.label;
-    return `<div class="gs-item"><div class="gs-item-head"><span class="rv-num">${n}</span><span class="t">${escapeHtml(title)}</span>
-      ${sc.score != null ? `<span class="s ${cls}">${sc.score} / ${max}</span>` : ''}</div>
-      <div class="gs-fb${sc.feedback ? '' : ' none'}">${sc.feedback ? escapeHtml(sc.feedback) : 'No feedback for this item.'}</div>
-      ${tmPupilAnswerHtml(item, sub, responseOf(sub, item))}
-      ${tmPupilPdfSummary(item, sub)}</div>`;
-  }).join('') || '<p class="sub">Your teacher released your total without item-by-item marks.</p>';
-  document.getElementById('gradeSummaryBackdrop').classList.remove('hidden');
-  document.getElementById('gradeSummaryOpenWork').classList.toggle('hidden',
-    !document.getElementById('studentTask').classList.contains('hidden') && state.currentAssignmentId === assignmentId);
-  document.getElementById('gradeSummaryOpenWork').onclick = ()=>{ document.getElementById('gradeSummaryBackdrop').classList.add('hidden'); openStudentTask(assignmentId); };
-  if(document.body.dataset.role === 'pupil'){
+    return `<button type="button" class="gp-row" data-item="${item.id}">
+      <span class="gp-row-head"><span class="rv-num">${n}</span><span class="t">${escapeHtml(item.label || item.prompt || 'Item')}</span>
+        ${cc ? `<span class="gp-cc" title="Comments from your teacher on this answer">💬 ${cc}</span>` : ''}
+        ${sc.score != null ? `<span class="s ${cls}">${sc.score} / ${max}</span>` : ''}</span>
+      ${sc.feedback ? `<span class="gp-fb">${escapeHtml(sc.feedback)}</span>` : ''}</button>`;
+  }).join('');
+  const open = sub.newGrade || !!sub._gradePanelOpen;
+  banner.innerHTML = `<div class="gp-top">
+      <div><div class="score">${sub.totalScore} / ${sub.maxScore}${pct != null ? ` <span class="gp-pct">${pct}%</span>` : ''}</div>
+      <div class="sub" style="margin:2px 0 0;">Your grade${sub.gradedAt ? ' · graded ' + new Date(sub.gradedAt).toLocaleString() : ''}${a.teacherName ? ' by ' + escapeHtml(a.teacherName) : ''}</div></div>
+      ${rows ? `<button type="button" class="btn small outline" id="gradePanelToggle" aria-expanded="${open}">${open ? 'Hide feedback' : 'Show feedback'}</button>` : ''}
+    </div>
+    ${rows ? `<div class="gp-items${open ? '' : ' hidden'}" id="gradePanelItems">
+      <p class="sub" style="margin:8px 0 6px;">Score and feedback for each item. Your teacher's comments are also shown on your answers — click an item to go to it.</p>${rows}</div>`
+      : '<p class="sub" style="margin:8px 0 0;">Your teacher released your total without item-by-item marks.</p>'}`;
+  banner.classList.remove('hidden');
+  const toggle = document.getElementById('gradePanelToggle');
+  if(toggle) toggle.onclick = ()=>{
+    sub._gradePanelOpen = document.getElementById('gradePanelItems').classList.toggle('hidden') === false;
+    toggle.setAttribute('aria-expanded', String(sub._gradePanelOpen));
+    toggle.textContent = sub._gradePanelOpen ? 'Hide feedback' : 'Show feedback';
+  };
+  banner.querySelectorAll('.gp-row').forEach(r=>r.addEventListener('click', ()=>goToItem(Number(r.dataset.item))));
+  // Opening the work is "seeing" the grade: clears the bell and the "New grade" chip.
+  if(document.body.dataset.role === 'pupil' && sub.newGrade){
+    sub.newGrade = false; sub._gradePanelOpen = true;
     request(`/api/submissions/${sub.recipientId}/grade-seen/`, {method:'POST'})
       .then(()=>window.ExamHubNotify && window.ExamHubNotify.refresh()).catch(()=>{});
   }
 }
-document.getElementById('gradeSummaryClose').addEventListener('click', ()=>document.getElementById('gradeSummaryBackdrop').classList.add('hidden'));
+
+// "View grade" (task list, bell, ?grade= link): open the submitted work with the grade panel on top.
+async function openGradeInWork(assignmentId){
+  const a = state.assignments.find(x=>x.id===assignmentId);
+  const sub = a && a.submissions[state.currentPupil];
+  if(!a || !sub){ showToast("Couldn't find that exam.", 'error'); return; }
+  const taskOpen = !document.getElementById('studentTask').classList.contains('hidden') && state.currentAssignmentId === assignmentId;
+  if(!taskOpen) await openStudentTask(assignmentId);
+  const fresh = (state.assignments.find(x=>x.id===assignmentId) || a).submissions[state.currentPupil];
+  if(!fresh || !fresh.published){ showToast("This grade hasn't been released yet.", 'info'); return; }
+  if(taskOpen) renderTaskGradeBanner(fresh);
+  const banner = document.getElementById('taskGradeBanner');
+  banner.scrollIntoView({behavior: 'smooth', block: 'start'});
+  banner.classList.remove('rv-flash'); void banner.offsetWidth; banner.classList.add('rv-flash');
+}
 document.getElementById('openChatFromTaskBtn').addEventListener('click', ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   const sub = a && a.submissions[state.currentPupil];
@@ -5937,7 +6393,6 @@ async function renderCurrentItem(){
   document.getElementById('pdfOnlyControls2').classList.toggle('hidden', !isPdf);
   document.getElementById('pageNavControls').classList.toggle('hidden', !isPdf);
   document.getElementById('pdfZoomControls').classList.toggle('hidden', !isPdf);
-  document.getElementById('textLayerDiag').classList.toggle('hidden', !isPdf);
   if(isPdf){
     await renderPdfPage();
   } else if(isMedia){
@@ -6107,15 +6562,9 @@ async function renderPdfPage(){
     console.error('ExamHub: text layer failed to render, text highlighting unavailable on this page.', error);
   }
   if(myGen !== renderGeneration) return;
-  // On-page diagnostic (no DevTools needed) — read this off the toolbar and report it back if
-  // highlighting still doesn't work: it tells us in one glance whether pdf.js produced any
-  // selectable text at all, and whether something else is blocking pointer events on it.
-  const diagEl = document.getElementById('textLayerDiag');
-  if(diagEl){
-    const pe = getComputedStyle(textLayerDiv).pointerEvents;
-    diagEl.textContent = `Text: ${textLayerDiv.childElementCount} spans, pointer-events=${pe}` + (textLayerOk ? '' : ' ⚠');
-    diagEl.style.color = textLayerOk ? 'var(--muted)' : 'var(--danger)';
-  }
+  // (The on-page "Text: N spans" diagnostic was removed; if highlighting ever fails, check
+  // textLayerOk / the text layer in DevTools.)
+  if(!textLayerOk) console.warn('ExamHub: PDF text layer has no selectable text on this page');
 
   const noteLayer = document.createElement('div');
   noteLayer.className = 'note-layer'; noteLayer.style.width = viewport.width+'px'; noteLayer.style.height = viewport.height+'px';
@@ -7149,12 +7598,19 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   const answerable = a.items.filter(item=>item.type !== 'image' && item.type !== 'video').length;
   const missing = unansweredItems(a, payload.responses || {});
   const summary = missing.length
-    ? `You've answered ${answerable - missing.length} of ${answerable}. Still blank: ${missing.map(i=>i.label).join(', ')}. `
+    ? `You've answered ${answerable - missing.length} of ${answerable}. `
     : `You've answered all ${answerable} item${answerable === 1 ? '' : 's'}. `;
+  const flagged = a.items.filter(i=>isFlagged(sub, i.id));
+  const missingIds = new Set(missing.map(i=>i.id));
+  // Each blank or flagged question is a button that takes the pupil straight to it.
+  const links = missing.map(i=>({label: (isFlagged(sub, i.id) ? '⚑ ' : '') + (i.label || 'Question'), title: 'Blank — go to this question', run: ()=>goToItem(i.id)}))
+    .concat(flagged.filter(i=>!missingIds.has(i.id)).map(i=>({label: '⚑ ' + (i.label || 'Question'), title: 'Flagged — go to this question', run: ()=>goToItem(i.id)})));
   const ok = await confirmDialog({
-    title: missing.length ? 'Submit with blank answers?' : 'Submit your work?',
-    message: summary + "Once you submit, you can't make any more changes.",
+    title: missing.length ? 'Submit with blank answers?' : (flagged.length ? 'Submit with flagged questions?' : 'Submit your work?'),
+    message: summary + (flagged.length ? `You flagged ${flagged.length} question${flagged.length === 1 ? '' : 's'} to check. ` : '') + "Once you submit, you can't make any more changes.",
     confirmLabel: 'Submit now', cancelLabel: 'Keep working',
+    links,
+    linksLabel: links.length ? (missing.length && flagged.length ? 'Blank or flagged (⚑) — tap one to go to it:' : missing.length ? 'Still blank — tap one to go to it:' : 'Flagged — tap one to go to it:') : '',
   });
   if(!ok) return;
   try { const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
@@ -7191,17 +7647,24 @@ const openGradeParam = Number(initParams.get('grade'));
 if(openParam && document.body.dataset.role === 'pupil'){
   state.pendingOpenAssignmentId = openParam;
 }
-if(openParam || openGradeParam) history.replaceState(null, '', location.pathname);
+// Pupils (SEB launch / grade links): tidy the address. Teachers keep it — it's the screen they're on.
+if((openParam || openGradeParam) && document.body.dataset.role === 'pupil') history.replaceState(null, '', location.pathname);
+const openPupilParam = Number(initParams.get('pupil'));
 loadAssignments().then(()=>{
   startNotifPolling();
   if(document.body.dataset.role==='pupil'){
     switchRole('student');
-    if(openGradeParam) setTimeout(()=>openGradeSummary(openGradeParam), 400);
+    if(openGradeParam) setTimeout(()=>openGradeInWork(openGradeParam), 400);
     return;
   }
   // Coming from a notification on the Classes/Activity/Roles pages: ?open=<id>&tab=monitor&chat=<recipient>
   if(openParam && state.assignments.some(a=>a.id===openParam)){
     showAssignmentDetail(openParam);
+    if(openTabParam === 'grade' && openPupilParam){
+      const a = state.assignments.find(x=>x.id===openParam);
+      const pupil = Object.keys(a.submissions).find(n=>a.submissions[n].recipientId===openPupilParam);
+      if(pupil) state.gradePupil = pupil;
+    }
     if(openTabParam) switchDetailTab(openTabParam);
     if(openChatParam){
       const a = state.assignments.find(x=>x.id===openParam);

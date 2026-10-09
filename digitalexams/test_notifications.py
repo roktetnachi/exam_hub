@@ -66,6 +66,54 @@ class NotificationTests(TestCase):
         self.sub.graded_at = timezone.now() + datetime.timedelta(seconds=5); self.sub.save()  # re-graded
         self.assertEqual(len(self.notes(self.pupil)), 1)
 
+    def test_new_grade_flag_for_pupil_task_list(self):
+        # Drives the "New grade" chip; pupils get the grade in the bell only (no pop-up).
+        self.sub.status = 'submitted'; self.sub.graded_at = timezone.now(); self.sub.total_score = 8; self.sub.max_score = 10
+        self.sub.published = True; self.sub.save()
+        def flag(user):
+            self.client.force_login(user)
+            return self.client.get('/s/ssc/api/assignments/').json()['assignments'][0]['recipients'][0]['newGrade']
+        self.assertTrue(flag(self.pupil))
+        self.assertFalse(flag(self.teacher))   # teachers never see it
+        self.client.force_login(self.pupil)
+        self.client.post(f'/s/ssc/api/submissions/{self.r.id}/grade-seen/')
+        self.assertFalse(flag(self.pupil))
+
+    def test_pupil_page_has_no_grade_modal(self):
+        self.client.force_login(self.pupil)
+        html = self.client.get('/s/ssc/').content.decode()
+        self.assertNotIn('id="gradeSummaryBackdrop"', html)
+        self.assertIn('function openGradeInWork', html)
+        self.assertIn("if(ROLE !== 'teacher' || seen.includes(it.key)) return;   // pupils: bell only", html)
+
+    def test_mark_all_as_read_teacher_keeps_lockouts(self):
+        Message.objects.create(recipient=self.r, sender_role='pupil', sender_name='Ana', text='Help?')
+        self.sub.locked_at = timezone.now(); self.sub.save()
+        self.assertEqual(sorted(i['kind'] for i in self.notes(self.teacher)), ['lock', 'message'])
+        self.assertEqual(self.client.post('/s/ssc/api/notifications/read-all/').status_code, 200)
+        self.assertEqual([i['kind'] for i in self.notes(self.teacher)], ['lock'])   # someone is waiting
+        # Another teacher's "mark all" doesn't touch exams they can't see.
+        Message.objects.create(recipient=self.r, sender_role='pupil', sender_name='Ana', text='Again')
+        self.client.force_login(self.other); self.client.post('/s/ssc/api/notifications/read-all/')
+        self.assertEqual(sorted(i['kind'] for i in self.notes(self.teacher)), ['lock', 'message'])
+
+    def test_mark_all_as_read_pupil(self):
+        Message.objects.create(recipient=self.r, sender_role='teacher', sender_name='Tess', text='Well done')
+        self.sub.status = 'submitted'; self.sub.graded_at = timezone.now(); self.sub.published = True
+        self.sub.total_score = 8; self.sub.max_score = 10; self.sub.save()
+        self.assertEqual(sorted(i['kind'] for i in self.notes(self.pupil)), ['graded', 'message'])
+        self.client.post('/s/ssc/api/notifications/read-all/')
+        self.assertEqual(self.notes(self.pupil), [])
+
+    def test_teacher_message_is_a_toast_not_a_popup(self):
+        self.client.force_login(self.teacher)
+        html = self.client.get('/s/ssc/').content.decode()
+        self.assertIn("if(it.kind === 'lock'){   // a pupil is stuck waiting", html)
+        self.assertIn('function toast(it)', html)
+        self.assertNotIn('id="textLayerDiag"', html)
+        for needle in ('id="detailCrumbs"', 'function renderCrumbs', 'function setFlag', 'function studentTaskRow'):
+            self.assertIn(needle, html)
+
     def test_other_pupil_cannot_mark_seen(self):
         User.objects.create_user('ben', 'ben@x.edu', 'x', school=self.school)
         self.client.force_login(User.objects.get(username='ben'))

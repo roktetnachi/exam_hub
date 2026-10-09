@@ -76,6 +76,24 @@ class MarkingAndSubmissionNoticeTests(TestCase):
         rec = self.client.get('/s/ssc/api/assignments/').json()['assignments'][0]['recipients'][0]
         self.assertEqual(rec['teacherMarks']['answers'][str(self.item.id)][0]['comment'], 'Which cat?')
 
+    def test_comment_style_is_saved(self):
+        # Comment-only marking: new marks on written answers use style 'comment'.
+        self.client.force_login(self.t)
+        marks = {'answers': {str(self.item.id): [{'id': 'c1', 'start': 4, 'end': 7, 'quote': 'cat', 'style': 'comment', 'comment': 'Which cat?'}]},
+                 'pdf': {}, 'annComments': {}}
+        self.assertEqual(self.post(f'/api/submissions/{self.rec.id}/marks/', {'teacherMarks': marks}).status_code, 200)
+        saved = Submission.objects.get(id=self.sub.id).teacher_marks['answers'][str(self.item.id)]
+        self.assertEqual((saved[0]['style'], saved[0]['comment']), ('comment', 'Which cat?'))
+
+    def test_dashboard_tabs_and_grade_navigation_markup(self):
+        self.client.force_login(self.t)
+        html = self.client.get('/s/ssc/').content.decode()
+        for needle in ('data-exam-tab="live"', 'data-exam-tab="scheduled"', 'data-exam-tab="hidden"', 'data-exam-tab="closed"',
+                       'id="examNeedsGrading"', 'id="examSearch"', 'id="gradePrevBtn"', 'id="gradeNextBtn"',
+                       'id="gradeNextUngradedBtn"', 'id="gradeProgress"', 'id="navMenuBtn"', 'function navSync'):
+            self.assertIn(needle, html)
+        self.assertNotIn('Underline, Highlight or Comment', html)
+
     def test_only_the_exams_teacher_can_mark(self):
         self.client.force_login(self.other_t)
         self.assertEqual(self.post(f'/api/submissions/{self.rec.id}/marks/', {'teacherMarks': self.marks()}).status_code, 403)

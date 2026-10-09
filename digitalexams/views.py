@@ -736,7 +736,8 @@ def serialize_assignment(assignment, pupil_email=None, request=None):
             'published': sub.published,
             # Teacher's marking on the work — the pupil only gets it with the released grade.
             'teacherMarks': (sub.teacher_marks or {}) if show_grades else {},
-            'newSubmission': sub.is_new_for_teacher if is_teacher_view else False})
+            'newSubmission': sub.is_new_for_teacher if is_teacher_view else False,
+            'newGrade': sub.is_new_grade_for_pupil if not is_teacher_view else False})
     withheld = (request is not None and not is_teacher_view
                 and pupil_content_withheld(request, assignment, own_sub))
     def serialize_item(item):
@@ -2392,6 +2393,31 @@ def notifications_api(request):
 
 @login_required
 @require_POST
+def notifications_read_all_api(request):
+    """Bell -> "Mark all as read". Clears the same items the bell shows, in the same scope:
+    teachers — unread pupil messages and new submissions on their exams (admins: the school's);
+    pupils — unread teacher messages and released grades. Lockouts are left alone: they clear
+    when the pupil is unlocked, because someone is waiting on them."""
+    user = request.user
+    now = timezone.now()
+    assignments = _notification_assignments(request)
+    if is_real_pupil(request):
+        recipients = Recipient.objects.filter(assignment__in=assignments, pupil_email__iexact=user.email)
+        messages_read = recipients.update(pupil_last_read_at=now)
+        cleared = Submission.objects.filter(recipient__in=recipients, published=True).update(grade_seen_at=now)
+        return JsonResponse({'ok': True, 'messages': messages_read, 'grades': cleared})
+    if user.role != User.Role.TEACHER and not user.is_superuser:
+        return HttpResponseForbidden('Not allowed.')
+    if not user.can_manage_classes:
+        assignments = assignments.filter(teacher_email__iexact=user.email)
+    recipients = Recipient.objects.filter(assignment__in=assignments)
+    messages_read = recipients.update(teacher_last_read_at=now)
+    seen = Submission.objects.filter(recipient__in=recipients, status='submitted').update(teacher_seen_at=now)
+    return JsonResponse({'ok': True, 'messages': messages_read, 'submissions': seen})
+
+
+@login_required
+@require_POST
 def submission_seen_api(request, recipient_id=None):
     """The teacher opened a pupil's submission (or pressed "Mark all as seen" on an exam):
     clears its "new" dot / bell item. Body for the bulk form: {"assignmentId": id}."""
@@ -2419,8 +2445,10 @@ def submission_seen_api(request, recipient_id=None):
     return JsonResponse({'seen': n})
 
 
-MARK_STYLES = {'underline', 'circle', 'highlight'}
-PDF_SHAPES = {'highlight', 'underline', 'pin', 'circle', 'box'}   # circle/box: older marks only
+# Marking is comment-only now: new marks are 'comment' (written answers) and 'pin' (PDF).
+# The other styles/shapes are only kept so marks made before the change still load and save.
+MARK_STYLES = {'comment', 'underline', 'circle', 'highlight'}
+PDF_SHAPES = {'pin', 'highlight', 'underline', 'circle', 'box'}
 MAX_MARKS_BYTES = 400_000
 
 
@@ -2476,7 +2504,7 @@ def _clean_teacher_marks(raw):
 @login_required
 @require_POST
 def save_teacher_marks_api(request, recipient_id):
-    """Save the teacher's underlines / circles / highlights / comments on a pupil's paper."""
+    """Save the teacher's comments on a pupil's paper (plus any older underlines / highlights)."""
     denied = _require_teacher(request)
     if denied:
         return denied

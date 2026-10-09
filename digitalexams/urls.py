@@ -60,6 +60,7 @@ urlpatterns = [
     path('api/assignments/<int:assignment_id>/broadcast-message/', views.broadcast_message_api, name='broadcast-message'),
     path('api/activity-log/', views.activity_log_api, name='activity-log'),
     path('api/notifications/', views.notifications_api, name='notifications'),
+    path('api/notifications/read-all/', views.notifications_read_all_api, name='notifications-read-all'),
     path('api/submissions/<int:recipient_id>/grade-seen/', views.grade_seen_api, name='grade-seen'),
     path('api/submissions/<int:recipient_id>/seen/', views.submission_seen_api, name='submission-seen'),
     path('api/submissions/seen/', views.submission_seen_api, name='submissions-seen'),

@@ -103,9 +103,11 @@ class ExamResourceTests(TestCase):
         self.client.force_login(self.t)
         html = self.client.get('/s/ssc/').content.decode()
         for marker in ('id="openResourcesBtn"', 'id="resourcesModal"', 'data-add-resource="pdf"', 'data-edit-add-resource="text"',
-                       'id="pdfZoomIn"', 'id="pdfZoomFit"', 'function mountZoomableImage', 'data-tool="highlight"'):
+                       'id="pdfZoomIn"', 'id="pdfZoomFit"', 'function mountZoomableImage', 'data-tool="pin"'):
             self.assertIn(marker, html)
         self.assertNotIn('data-tool="circle"', html)
+        self.assertNotIn('data-tool="highlight"', html)   # comment-only marking
+        self.assertNotIn('data-tool="underline"', html)
         self.assertNotIn('data-s="circle"', html)
 
     def test_pdf_highlight_mark_is_accepted(self):
