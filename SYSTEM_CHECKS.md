@@ -3,7 +3,7 @@
 A living checklist for verifying that ExamHub is healthy before (and after) every deployment or significant change.
 Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through it.
 
-> **Version coverage:** migrations `0001` – `0029` · v0.22.0 + Unreleased (year groups & subjects, exam privacy, teacher marking, submission notices, exam resources, zoom, new invite email)
+> **Version coverage:** migrations `0001` – `0029` · v0.22.0 + Unreleased (year groups & subjects, exam privacy, teacher marking, submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters)
 
 ---
 
@@ -14,8 +14,8 @@ Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through i
 | 1.1 | Python version matches `.python-version` | ≥ 3.12 | |
 | 1.2 | All packages in `requirements.txt` are installed | No missing packages | |
 | 1.3 | `.env` file exists at project root | Present | |
-| 1.4 | `SECRET_KEY` is set (and not the insecure default in production) | Non-default value in prod | |
-| 1.5 | `DEBUG` is `False` in production | `False` | |
+| 1.4 | `SECRET_KEY` is set in Railway → Variables. With `DEBUG` off the site refuses to start without it; the built-in default only works locally | Non-default value in prod | |
+| 1.5 | `DEBUG` is `False` in production — automatic on Railway (`RAILWAY_ENVIRONMENT` is set), `True` locally; `DEBUG=1` / `DEBUG=0` overrides | `False` on the live site | |
 | 1.6 | `ALLOWED_HOSTS` accepts the production domain: `.railway.app` (any Railway domain) + `RAILWAY_PUBLIC_DOMAIN` + anything in the `ALLOWED_HOSTS` env var (comma-separated, for a custom domain) | `digitalexamhub.up.railway.app` (or custom domain) not refused with 400 | |
 | 1.7 | `CSRF_TRUSTED_ORIGINS` covers the same hosts (`https://*.railway.app` + each extra host) | Sign-in and form posts accepted on the live domain | |
 | 1.8 | `SchoolTenantMiddleware` is listed in `MIDDLEWARE` (after Session/Auth) | Present and correctly ordered | |
@@ -23,9 +23,11 @@ Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through i
 | 1.10 | `digitalexams.accounts.ForcePasswordChangeMiddleware` is listed **after** `SchoolTenantMiddleware` | Present, last in `MIDDLEWARE` | |
 | 1.11 | Email configured: `EMAIL_HOST_USER` + `EMAIL_HOST_PASSWORD` (App Password) set in `.env` / Railway | `EMAIL_BACKEND` resolves to SMTP in production | |
 | 1.12 | Test email actually arrives (not in spam) from the configured account | Delivered | |
-| 1.13 | ⚠️ Database credentials are **not** hard-coded in `settings.py` | Read from env (currently hard-coded — move to `.env` and rotate) | |
+| 1.13 | Database comes from `DATABASE_URL` (no password in `settings.py`): `.env` locally; Railway web service → Variables → `DATABASE_URL` = reference to `${{Postgres.DATABASE_URL}}`. Password rotated (Postgres → Database → Credentials) after the move, since the old one is in git history | Site starts; old password no longer works | |
 | 1.14 | `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")` is set | Links and `.seb` files built with `https://` | |
 | 1.15 | `SITE_URL` env var (optional) matches the public address used in invite emails | Unset = `https://digitalexamhub.up.railway.app` | |
+| 1.16 | With `DEBUG` off: `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` are `True`; errors still appear in Railway's log (`LOGGING` → console) | Cookies https-only; tracebacks in the log | |
+| 1.17 | A wrong address on the live site (e.g. `/s/<slug>/nope/`) shows a plain "Not Found", **not** Django's yellow page listing every URL | Plain 404 | |
 
 ### How to verify
 ```bash
@@ -114,10 +116,12 @@ python manage.py showmigrations digitalexams
 | 4.2 | `STATIC_ROOT` (`staticfiles/`) is populated | Files present | |
 | 4.3 | WhiteNoise middleware is in `MIDDLEWARE` | Position 2 (after Security) | |
 | 4.4 | `MEDIA_ROOT` (`media/`) exists and is writable | Writable directory | |
-| 4.5 | Uploaded PDFs / images / videos are served at `/media/` | HTTP 200 response | |
+| 4.5 | `/media/` serves **school logos only** (`/media/school_logos/…` → 200). Any other upload, e.g. `/media/assignments/2026/09/<file>.pdf`, is **404 even when signed in** — exam files only come through `/api/items/<id>/pdf/`, `/image/`, `/video/` and `/api/resources/<id>/file/` | Logos 200, everything else 404 | |
 | 4.6 | `STORAGES["default"]` is `digitalexams.storage.DatabaseBackedStorage` | Uploads also saved to `StoredFile` | |
 | 4.7 | `python manage.py sync_media_to_db` run on the machine holding `media/` reports 0 "not found" | All files in DB | |
 | 4.8 | An exam PDF uploaded locally opens on the Railway site (and survives a redeploy) | Teacher review + pupil view load it | |
+| 4.9 | `media/` is ignored by git: `git ls-files media` prints nothing; `.gitignore` lists `media/` | Not tracked | |
+| 4.10 | `sync_media_to_db` also covers exam **resource** files (not only items and logos) | Resources in `StoredFile` | |
 
 ```bash
 python manage.py collectstatic --noinput
@@ -185,6 +189,10 @@ ls staticfiles/
 | 7.12 | Newer SEB (macOS / iPad) without hash headers: the page verifies via `POST /api/seb/verify/` (SEB JavaScript API) and the exam opens; in a normal browser it stays blocked | Opens in SEB only | |
 | 7.13 | One-time launch (`/seb/enter/<token>/`): works with headers (redirect) and with the JavaScript API (small "Opening your exam…" page); an expired / used link says so | Pupil signed in inside SEB | |
 | 7.14 | Submitting inside SEB (any delivery mode) quits SEB within ~2 s via the quit address `/?sebquit=1` (`quitURLConfirm` false); if it doesn't, "You can now close Safe Exam Browser" is shown | SEB closes | |
+| 7.15 | A pupil opening `/s/<slug>/api/assignments/` in an ordinary browser for an unsubmitted **Lockdown** exam gets `contentWithheld: true` with empty question text / options and empty text resources; inside SEB the same call returns the questions | Held back outside SEB | |
+| 7.16 | **Join-code** exam: before the right code, `/api/assignments/` withholds the questions and item / resource files return 403 `join_code_required`; after the code (`started_at` set) everything loads | Nothing readable before the code | |
+| 7.17 | After the SEB check / join code, the exam page re-fetches the paper and shows every question (no blank questions) | Questions appear | |
+| 7.18 | ⚠️ Known limitation: SEB's Config Key can be worked out from the downloadable `.seb` file, so a skilled pupil could fake the check outside SEB | Mitigate with supervision / managed devices | |
 
 ---
 
@@ -216,6 +224,11 @@ ls staticfiles/
 | 9.11 | Plain teachers: no "Teacher view / Pupil preview" switch, no "Preview as a pupil", no Year groups tab (`/classes/` → `/subjects/`) | Teacher view only | |
 | 9.12 | Teacher marks (`/api/submissions/<id>/marks/`) and "seen" endpoints: exam's own teacher or admins only | HTTP 403 for others | |
 | 9.13 | Exam resources: add / delete only by the exam's teacher or admins; files (`/api/resources/<id>/file/`) only for assigned pupils, the exam's teacher and admins | HTTP 403 for others | |
+| 9.14 | Changing the school slug in the address (`/s/<other-school>/…`) as a non-superuser | HTTP 403 "You do not have access to this school." | |
+| 9.15 | Own slug + another school's object id (e.g. `/s/<own>/api/items/<other-school-id>/pdf/`) | HTTP 403 | |
+| 9.16 | An ordinary account with **no school** opening any `/s/<slug>/…` | HTTP 403 | |
+| 9.17 | Signed out: any `/s/<slug>/api/…` or page | 302 → `/login/` | |
+| 9.18 | A pupil can't read another pupil's work or chat by changing the id (`/api/recipients/<id>/messages/`, `/api/submissions/<id>/save/`), and the assignments list never includes other pupils | HTTP 403 / not listed | |
 
 ---
 
@@ -242,7 +255,8 @@ ls staticfiles/
 | 11.3 | Production URL responds with HTTP 200 | `https://digitalexamhub.up.railway.app/` | |
 | 11.4 | Migrations run automatically on deploy (or via release command) | No unapplied migrations on live DB | |
 | 11.5 | SSL/TLS active on the Railway domain | HTTPS, valid cert | |
-| 11.6 | `sslmode=require` in DB `OPTIONS` | Encrypted connection | |
+| 11.6 | `sslmode=require` in DB `OPTIONS` when connecting through the public proxy (`*.rlwy.net`); not forced on Railway's private network (`*.railway.internal`) | Connects in both places | |
+| 11.7 | Railway web service has `DATABASE_URL` and `SECRET_KEY` variables (deploy fails with `ImproperlyConfigured` otherwise) | Both present | |
 
 ---
 
@@ -423,6 +437,10 @@ python manage.py check --deploy
 | 21.3 | A subject's teachers can assign exams to its pupils; plain teachers see "My subjects" read-only | Per role | |
 | 21.4 | "Assign to" picker: a pupil in several groups is ticked everywhere at once and counted once | One recipient per pupil | |
 | 21.5 | Subject changes appear in Activity under "Year groups & subjects" | Logged | |
+| 21.6 | Exam "Assign to" (create + Edit exam) with many subjects: groups start **closed**; clicking a name opens it; the group checkbox ticks everyone without opening; per-group badge ("n selected" / "all selected") and running total update | Short list, correct counts | |
+| 21.7 | "Assign to" search finds subjects, year groups and pupils (by name or email); a pupil match opens their groups showing only matching pupils; Open all / Close all work; search bar stays visible while scrolling; opened groups stay open after re-sorting | Works | |
+| 21.8 | Subjects and Year groups pages: the left list scrolls on its own and stays in view; search and "New …" box always visible; count shown ("3 of 40 subjects" while searching); selected subject scrolled into view | No long page scroll | |
+| 21.9 | Subjects → Add pupils: year groups start closed; tick = everyone not yet in the subject; searching or picking one year group opens them; "n ticked" badge | Works | |
 
 ---
 
@@ -439,7 +457,7 @@ python manage.py check --deploy
 | 22.7 | **Exam focus:** a pupil in an unsubmitted exam sees no "Back to my tasks", bell or account menu — only the exam, Notepad / Resources / Calculator, Message teacher and Submit, plus the "Exam in progress" line | Nothing leads to other exams | |
 | 22.8 | Browser Back button during an exam keeps the pupil on the exam (toast: press Submit when finished) | Stays on exam | |
 | 22.9 | After submitting (normal browser) the task list, bell and account menu return; "View submission" shows the back button | Normal navigation | |
-| 22.10 | **Scientific calculator** (when the exam allows the calculator): sin / cos / tan and inverses (2nd), DEG / RAD, ln, log, eˣ, 10ˣ, √, ∛, x², x³, xʸ, ʸ√x, 1/x, n!, %, π, e, EXP, abs (\|x\|), ( ), Ans, Rand, MC / MR / M+ / M−; correct order of operations (e.g. 2+3×4 = 14, −2² = −4); errors shown as "Math error" / "Syntax error" | Correct results | |
+| 22.10 | **Scientific calculator** (when the exam allows the scientific calculator): sin / cos / tan and inverses (2nd), DEG / RAD, ln, log, eˣ, 10ˣ, √, ∛, x², x³, xʸ, ʸ√x, 1/x, n!, %, π, e, EXP, abs (\|x\|), ( ), Ans, Rand, MC / MR / M+ / M−; correct order of operations (e.g. 2+3×4 = 14, −2² = −4); errors shown as "Math error" / "Syntax error" | Correct results | |
 | 22.11 | Calculator keyboard: digits, + − × ÷ ^ ( ) . % !, Enter (=), Backspace, Esc (AC) while it has focus; typing doesn't go into the answer box | Works | |
 | 22.12 | Arriving straight into an exam (`?open=…`, e.g. from SEB) shows no grade pop-up over it; held pop-ups appear after submitting | No pop-up during the exam | |
 | 22.13 | **Instructions screen:** opening an unsubmitted exam shows a wide white card with the school logo, title, facts and instructions; the exam starts (`started_at`, timer) only on **Start exam**; "Back to my tasks" leaves without starting; returning shows **Continue exam** | Nothing starts before Start | |
@@ -478,6 +496,24 @@ python manage.py check --deploy
 
 ---
 
+## 25. Graphing Calculator
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 25.1 | Create / Edit exam: "Allow scientific calculator" and "Allow graphing calculator" (no "not yet available" note); delivery summary shows both | Saved per exam | |
+| 25.2 | Pupil toolbar shows **Graphing calculator** only when allowed (and **Calculator** only when the scientific one is); both can be on at once | Buttons match the exam | |
+| 25.3 | The window drags by its header, keeps focus for keyboard input (typing doesn't go into the answer box) and fits a 1366×768 screen | Usable | |
+| 25.4 | Home: `2+3*4` = 14, `-2²` = −4, `2^3^2` = 64, `(-8)^(1/3)` = −2, `1/0` → `ERR: DIVIDE BY 0`; after a result, pressing × starts `Ans*`; ▲ recalls earlier entries | Correct | |
+| 25.5 | MODE degree: `sin(30)` = 0.5, `tan(90)` → error; radian is the default | Correct | |
+| 25.6 | Y=: Y1 = `X^2-4`, Y2 = `2X+1`, Y3 = `1/X` graph in their colours; clicking "=" turns one off; a bad entry shows ✕ and isn't drawn | Correct graphs, no line across the 1/X asymptote | |
+| 25.7 | WINDOW accepts expressions (`-2π`); Xmin ≥ Xmax shows "ERR: WINDOW RANGE"; ZOOM 1–8 all work (ZTrig uses π/2 or 90° ticks by mode) | Correct window | |
+| 25.8 | TRACE: ◀ ▶ move along the curve, ▲ ▼ switch curve, typing `3` + ENTER jumps to X=3; panning at the screen edge | Y matches the function | |
+| 25.9 | 2nd CALC on Y1 = `X^2-4`: zero (0, 5, guess 2) → X=2; minimum (−2, 2) → X=0 Y=−4; intersect with `2X+1` → X=3.449489743; dy/dx at 3 → 6; ∫ from 0 to 3 → −3 with shading; value at 1.5 → −1.75 | Exact values | |
+| 25.10 | 2nd TABLE lists X and the graphed functions from TblStart in steps of ΔTbl; arrows move the highlight; the bottom line shows the full value | Correct table | |
+| 25.11 | No outside requests: the calculator works in Safe Exam Browser and offline once the page is loaded | Works in SEB | |
+
+---
+
 ## Running the Test Suite
 
 ```bash
@@ -500,9 +536,12 @@ python manage.py test digitalexams.test_notifications digitalexams.test_exam_win
 
 # Unreleased: year groups & subjects, marking + submission notices, exam resources
 python manage.py test digitalexams.test_sections_subjects digitalexams.test_marking digitalexams.test_resources digitalexams.test_seb
+
+# 2026-10-08: URL-access hardening and the graphing calculator
+python manage.py test digitalexams.test_url_access digitalexams.test_graphcalc
 ```
 
-> **Last full run (2026-10-07):** 125 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-08):** 136 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 
@@ -510,4 +549,4 @@ python manage.py test digitalexams.test_sections_subjects digitalexams.test_mark
 
 ---
 
-*Last reviewed: 2026-10-07 (v0.22.0 + Unreleased, migrations up to 0029)*
+*Last reviewed: 2026-10-08 (v0.22.0 + Unreleased, migrations up to 0029)*

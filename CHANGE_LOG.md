@@ -14,6 +14,44 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Then, **on the computer that holds the uploaded files** (the local copy with the `media/` folder), run `python manage.py sync_media_to_db` once. It copies every exam PDF / image / video / school logo into the database so the Railway site can serve them too.
 - If the site runs on a custom domain (not `*.railway.app`), set the `ALLOWED_HOSTS` environment variable in Railway to that domain, and `SITE_URL` to its full address (used in invite emails; default `https://digitalexamhub.up.railway.app`).
 - After any change of domain: download the `.seb` file again for Lockdown exams and replace the old entries under Allowed Browser Exam Keys.
+- **Before deploying the 2026-10-08 security changes, set two Railway variables on the web service** or the site won't start:
+  - `DATABASE_URL` → "Add Reference" to the Postgres service's `DATABASE_URL` (`${{Postgres.DATABASE_URL}}`). Locally it comes from `.env` (already there).
+  - `SECRET_KEY` → a long random value (if it isn't set already). Setting / changing it signs everyone out once.
+- `DEBUG` now switches itself off on Railway (it detects `RAILWAY_ENVIRONMENT`) and stays on locally. Override with `DEBUG=1` / `DEBUG=0`.
+- `media/` is no longer tracked by git (exam papers were in the repository). **Before pushing that change, run `python manage.py sync_media_to_db` on the computer with the `media/` folder** so every uploaded file is in the database; Railway then serves them from there. Files already in old commits stay in the history unless it is rewritten.
+- After the deploy works, **rotate the database password** (Postgres service → Database → Credentials), redeploy the web service, and update `DATABASE_URL` in your local `.env`. The old password is in the git history of `settings.py`.
+- Commit the migrations `0027`–`0029` and the new test files and templates (`test_seb.py`, `test_url_access.py`, `test_graphcalc.py`, `templates/_graphcalc.html`) — they were not yet in git.
+
+### Security — addresses can't be used to get round the checks (2026-10-08)
+Audit of what a signed-out visitor, a pupil, a teacher or someone from another school can reach by typing addresses. The page/API checks were already sound (school in the URL must match the account → 403; every exam, file, submission, chat and grading call re-checks the school and ownership; pupils are bounced from teacher pages). Gaps found and closed:
+- **Uploaded exam files were public under `/media/`.** Anyone who knew or guessed a file name could download an exam paper without signing in (confirmed on the live site). `/media/` now serves **school logos only** (`school_logos/`, needed on the sign-in page); everything else is 404. Exam PDFs, images, videos and resources are only served through the checked views (`/api/items/<id>/pdf|image|video/`, `/api/resources/<id>/file/`). New view `public_media` in `views.py`, routed in `examhub/urls.py` (the `DEBUG`-only `static()` media route is gone).
+- **`DEBUG` was hard-coded on in production**, so error pages showed internals and a wrong address listed every URL in the app. Now off on Railway automatically; errors still go to Railway's log (`LOGGING`); session and CSRF cookies are https-only when `DEBUG` is off.
+- **Lockdown and join-code questions could be read early** by opening `/s/<school>/api/assignments/` in an ordinary browser (the checks only guarded the Open button). For a pupil who hasn't handed in, question text, answer options and text resources are now held back (`contentWithheld: true`) until Safe Exam Browser is confirmed (Lockdown) or the join code has been entered (join code); join-code papers' PDF / image / video / resource files return 403 `join_code_required` until then. The exam page fetches the paper again once the gate is passed. Teachers and admins (including previews) always see everything. (`pupil_content_withheld()`, `_pupil_join_code_pending()` in `views.py`.)
+- **An ordinary account with no school could open any school's `/s/<slug>/` pages** (the middleware skipped the check when `school_id` was empty). Now refused with 403 unless the account is a platform superuser.
+- **Database password removed from `settings.py`**: the database now comes from `DATABASE_URL` (via `dj-database-url`; SSL required on Railway's public proxy, not on its private network). `SECRET_KEY` must be set when `DEBUG` is off — the old default (which is public) only works locally.
+- `sync_media_to_db` also copies **exam resource** files into the database (it only did items and logos).
+- Known limitation, unchanged: Safe Exam Browser's Config Key can be worked out from the downloadable `.seb` file, so a determined pupil could fake the SEB check outside SEB. Supervision / school-managed devices, or SEB Server, are the real controls.
+
+### Added — Graphing calculator (graphing phase)
+- **Teachers choose per exam:** "Allow scientific calculator" (the existing one) and/or "Allow graphing calculator" — the "(not yet available to pupils)" note is gone. The delivery summary shows both.
+- **Pupils get a "Graphing calculator" button** in the exam toolbar when allowed: a draggable window laid out like a handheld graphing calculator, with 2nd functions (blue labels) and keyboard input (arrows, Enter, Backspace, Esc).
+  - **Y=**: Y1–Y0 in their own colours; click "=" (or ◀ to it + ENTER) to turn a graph on / off.
+  - **WINDOW** (Xmin, Xmax, Xscl, Ymin, Ymax, Yscl — accepts expressions like `-2π`), **ZOOM** (ZStandard, Zoom In / Out, ZDecimal, ZSquare, ZTrig, ZInteger, ZoomFit), **GRAPH** with a free cursor (arrows or click).
+  - **TRACE**: arrows along the curve (pans the window at the edge), ▲▼ switch curve, type a number to jump to that X.
+  - **2nd TABLE / TBLSET** (TblStart, ΔTbl).
+  - **2nd CALC**: value, zero, minimum, maximum, intersect, dy/dx, ∫f(x)dx — with the handheld steps (Left Bound? / Right Bound? / Guess?, First curve? / Second curve?) and ∫ shading.
+  - **MODE**: radian / degree. **Home screen**: calculations with Ans, history recall (▲ / 2nd ENTRY), starting a line with an operator continues from Ans, errors like `ERR: DIVIDE BY 0`.
+  - Handheld order of operations: `-2²` = −4, `^` left to right, implied multiplication (`2X`, `3sin(X)`), odd roots of negatives (`(-8)^(1/3)` = −2). Graphs break at asymptotes (no false line on 1/x); zero ignores sign changes across a pole.
+  - All in `templates/_graphcalc.html` (markup, styles, `GCMath` parser/numerics, `GraphCalc` screens) — no outside service, no `eval`. Uses the existing `allow_graphing_calculator` field (no migration).
+  - Not yet: stats lists, regressions and probability functions (normalcdf, invNorm, binompdf/cdf) — next phase.
+
+### Changed — Long lists of subjects and pupils
+- **Exam "Assign to" (create and Edit exam):** each subject / year group is one line, **closed by default** — click its name to open it; its checkbox still ticks everyone without opening it. A badge shows how many are picked in each ("4 selected" / "all selected"), a running total ("15 pupils selected"), **Open all / Close all**, and a **search box** for subjects, year groups or pupils (a pupil match opens their groups with just the matching pupils). The search bar stays visible while scrolling; groups you opened stay open when re-sorting. With one or two groups they start open.
+- **Subjects and Year groups pages:** the list on the left scrolls on its own and stays in view while the details scroll; search at the top and the "New subject / year group" box at the bottom stay visible; a count ("40 subjects", "3 of 40 subjects"). The selected subject is scrolled into view.
+- **Subjects → "Add pupils from any year group":** each year group starts closed (tick to take everyone not yet in the subject, click the name to pick pupils); searching or choosing one year group opens them; a "n ticked" badge per group.
+
+### Fixed — 2026-10-08
+- The graphing calculator's template note showed as text at the bottom of every page (a multi-line `{# … #}` comment, which Django only supports on one line; now `{% comment %}`).
 
 ### Added — Resources for pupils, zoom, simpler marking tools
 - **Exam resources** (migration `0029_examresource`): besides questions, a teacher can attach guide material to an exam — **PDF**, **image** or **text** (e.g. a source, a formula sheet, a map). Add them in the builder ("Resources for pupils", step 1) or any time later from **Settings** (the Edit exam dialog — takes effect straight away, even mid-exam). Pupils open them from a **Resources** button in the exam toolbar: a floating window like the Notepad that can be dragged, resized and minimised, with a tab per resource, page-by-page PDFs with zoom, zoomable images and plain text. Resources aren't marked and don't appear in the question navigator. They're listed on the exam's Content tab. Files are served with the same access rules as the exam's own files (assigned pupils, the exam's teacher, admins).
@@ -44,6 +82,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Tests
 - New: `test_sections_subjects.py`, `test_marking.py`, `test_resources.py`, `test_seb.py` (SEB hashes behind `/s/<slug>/`, launch link, JavaScript API, quit address); `test_invites.py` checks the new invite email. Full suite: 125 tests, only the 3 known Roles failures (see SYSTEM_CHECKS.md).
+- 2026-10-08: `test_url_access.py` (10 tests — `/media/` not public, logos still public, school-less account and slug switching refused, signed-out → login, pupils kept out of teacher pages and other pupils' work, join-code and Lockdown questions held back, teachers see everything, hand-in unlocks reading back) and `test_graphcalc.py` (page carries the calculator, exam flag reaches the pupil, template note not shown). Full suite: 136 tests, still only the 3 known Roles failures.
 
 ### Changed — New invite email
 - Invite email rewritten (subject "Your ExamHub account at <school>"): greeting, username and temporary password, how to change the password, what to do if they forget it ("Email me a code" with their username, then Change password), and the website (https://digitalexamhub.up.railway.app/) at the end. The separate "Sign in here" link is gone. The address can be changed with the `SITE_URL` environment variable.
