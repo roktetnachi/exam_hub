@@ -1,0 +1,1183 @@
+{% comment %}
+  Graphing calculator for exams — the familiar handheld layout: Y=, WINDOW, ZOOM, TRACE, GRAPH,
+   2nd TABLE / TBLSET / CALC, MODE, and a home screen. Shown to pupils only when the exam allows it
+   (Assignment.allow_graphing_calculator). Everything runs here in the page: no outside service, no
+   eval() — expressions go through the small parser in GCMath below.
+{% endcomment %}
+<style>
+  #graphCalcModal{width:372px;top:60px;right:40px;max-height:calc(100vh - 16px);}
+  #graphCalcModal .notepad-modal-header{padding:8px 12px;font-size:15px;}
+  .gc-body{padding:10px 12px 12px;background:#2f3338;overflow-y:auto;outline:none;}
+  .gc-frame{background:#1d2023;border-radius:8px;padding:6px;margin-bottom:10px;}
+  .gc-status{display:flex;gap:10px;align-items:center;height:16px;padding:0 4px;font:700 10px/16px system-ui,sans-serif;
+    letter-spacing:.05em;color:#c9d3dc;background:#3a4a5a;border-radius:4px 4px 0 0;}
+  .gc-status .gc-2nd{background:#3fa7d6;color:#fff;border-radius:3px;padding:0 4px;}
+  .gc-status .gc-where{margin-left:auto;color:#9fb0bf;}
+  .gc-screen{position:relative;height:190px;background:#fff;overflow:hidden;border-radius:0 0 4px 4px;}
+  .gc-screen canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .gc-text{position:absolute;inset:0;overflow:hidden;padding:3px 6px;font:15px/21px Consolas,"Cascadia Mono","Courier New",monospace;
+    color:#111;white-space:pre-wrap;word-break:break-all;}
+  .gc-text .gc-line{min-height:21px;}
+  .gc-text .gc-right{text-align:right;}
+  .gc-text .gc-inv{background:#111;color:#fff;}
+  .gc-text .gc-sel{background:#cfe3f5;}
+  .gc-text .gc-pick{outline:2px solid #3fa7d6;outline-offset:1px;}
+  .gc-text .gc-dim{color:#8a8f96;}
+  .gc-text .gc-err{color:#b3261e;font-weight:700;}
+  .gc-text .gc-head{font-weight:700;border-bottom:1px solid #d7dbe0;margin-bottom:2px;}
+  .gc-cur{background:#111;color:#fff;animation:gcBlink 1s steps(1) infinite;}
+  @keyframes gcBlink{50%{background:transparent;color:inherit;}}
+  .gc-swatch{display:inline-block;width:5px;height:15px;vertical-align:-2px;margin-right:3px;border-radius:1px;}
+  .gc-ovl{position:absolute;left:4px;right:4px;font:13px/17px Consolas,"Cascadia Mono","Courier New",monospace;color:#111;
+    pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .gc-ovl span{background:rgba(255,255,255,.88);padding:0 2px;}
+  .gc-ovl.top{top:2px;} .gc-ovl.bottom{bottom:2px;}
+  .gc-table{width:100%;border-collapse:collapse;table-layout:fixed;font:14px/19px Consolas,"Cascadia Mono","Courier New",monospace;}
+  .gc-table th{font-weight:700;border-bottom:1px solid #9aa3ad;text-align:center;}
+  .gc-table td{text-align:right;padding:0 3px;border-left:1px solid #e1e5ea;overflow:hidden;white-space:nowrap;}
+  .gc-table td:first-child{border-left:none;}
+  .gc-keys{display:grid;grid-template-columns:repeat(5,1fr);gap:4px 6px;}
+  .gc-key{position:relative;border:none;border-radius:6px;height:25px;margin-top:8px;background:#4a4f56;color:#fff;font:700 12.5px/1 system-ui,sans-serif;
+    cursor:pointer;box-shadow:0 2px 0 #1f2226;padding:0;user-select:none;}
+  .gc-key:active{transform:translateY(1px);box-shadow:0 1px 0 #1f2226;}
+  .gc-key[data-second]::before{content:attr(data-second);position:absolute;left:0;right:0;top:-11px;font:700 8.5px/10px system-ui,sans-serif;
+    color:#5ec2ef;letter-spacing:.02em;white-space:nowrap;overflow:hidden;}
+  .gc-key.num{background:#e9ecef;color:#1d2023;font-size:14px;}
+  .gc-key.op{background:#6b7a8a;}
+  .gc-key.menu{background:#2a2d31;font-size:10.5px;height:21px;margin-top:8px;}
+  .gc-key.second{background:#3fa7d6;}
+  .gc-key.second.on{background:#ffd34d;color:#1d2023;}
+  .gc-key.enter{background:#6b7a8a;font-size:11px;}
+  .gc-pad{grid-column:4 / span 2;grid-row:span 2;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    gap:2px;margin-top:8px;justify-items:center;align-items:center;}
+  .gc-pad .gc-key{width:100%;height:22px;margin:0;font-size:12px;background:#5a6068;border-radius:12px;}
+  .gc-pad .up{grid-column:2;grid-row:1;} .gc-pad .left{grid-column:1;grid-row:2;}
+  .gc-pad .right{grid-column:3;grid-row:2;} .gc-pad .down{grid-column:2;grid-row:3;}
+  .gc-hint{margin-top:6px;font:11px/1.35 system-ui,sans-serif;color:#aab4bd;}
+</style>
+
+<div class="notepad-modal hidden" id="graphCalcModal" role="dialog" aria-label="Graphing calculator">
+  <div class="notepad-modal-header" id="graphCalcHeader">
+    <span>Graphing calculator</span>
+    <button type="button" id="closeGraphCalcBtn" title="Close">&times;</button>
+  </div>
+  <div class="gc-body" id="gcBody" tabindex="0">
+    <div class="gc-frame">
+      <div class="gc-status"><span id="gcAngle">RADIAN</span><span id="gcSecond" class="gc-2nd" hidden>2ND</span><span class="gc-where" id="gcWhere"></span></div>
+      <div class="gc-screen" id="gcScreen">
+        <canvas id="gcCanvas"></canvas>
+        <div class="gc-ovl top" id="gcOvlTop"></div>
+        <div class="gc-ovl bottom" id="gcOvlBottom"></div>
+        <div class="gc-text" id="gcText"></div>
+      </div>
+    </div>
+    <div class="gc-keys" id="gcKeys"></div>
+    <div class="gc-hint">Blue labels: press <b>2nd</b> first. You can also type on your keyboard — arrows, Enter, Backspace, Esc (clear).</div>
+  </div>
+</div>
+
+<script>
+// ============================ GCMath: parser + numerics (no DOM) ============================
+// GCMATH-START
+const GCMath = (function(){
+  class CalcError extends Error { constructor(kind){ super(kind); this.kind = kind; } }
+  const NAMES = ['sin⁻¹', 'cos⁻¹', 'tan⁻¹', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'sin', 'cos', 'tan',
+                 'sqrt', 'abs', 'exp', 'ln', 'log', 'ans', 'pi'];
+  const FN_ALIAS = {'sin⁻¹': 'asin', 'cos⁻¹': 'acos', 'tan⁻¹': 'atan'};
+  const FUNCS = new Set(['asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'sin', 'cos', 'tan', 'sqrt', 'abs', 'exp', 'ln', 'log']);
+  const Y_INDEX = {Y1: 0, Y2: 1, Y3: 2, Y4: 3, Y5: 4, Y6: 5, Y7: 6, Y8: 7, Y9: 8, Y0: 9};
+
+  function tokenize(src){
+    const s = String(src).replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/').replace(/π/g, 'pi');
+    const out = [];
+    let i = 0;
+    while(i < s.length){
+      const c = s[i];
+      if(c === ' '){ i++; continue; }
+      const num = /^(\d+\.?\d*|\.\d+)((?:ᴇ|E)-?\d+)?/.exec(s.slice(i));
+      if(num){
+        if(num[0] === '.') throw new CalcError('SYNTAX');
+        out.push({t: 'num', v: parseFloat(num[0].replace('ᴇ', 'e').replace('E', 'e'))});
+        i += num[0].length; continue;
+      }
+      if(c === 'ᴇ'){  // "ᴇ5" on its own means 1ᴇ5
+        const m = /^ᴇ(-?\d+)/.exec(s.slice(i));
+        if(!m) throw new CalcError('SYNTAX');
+        out.push({t: 'num', v: Math.pow(10, parseInt(m[1], 10))}); i += m[0].length; continue;
+      }
+      if('+-*/^(),'.includes(c)){ out.push({t: c}); i++; continue; }
+      if(c === '²' || c === '³' || c === '!'){ out.push({t: 'post', v: c}); i++; continue; }
+      if(s.startsWith('⁻¹', i)){ out.push({t: 'post', v: '⁻¹'}); i += 2; continue; }
+      if(c === '√'){ out.push({t: 'fn', v: 'sqrt'}); i++; continue; }
+      const yref = /^[Yy]([0-9])/.exec(s.slice(i));
+      if(yref){ out.push({t: 'y', v: Y_INDEX['Y' + yref[1]]}); i += 2; continue; }
+      const rest = s.slice(i).toLowerCase();
+      const name = NAMES.find(n => rest.startsWith(n));
+      if(name){
+        const n = FN_ALIAS[name] || name;
+        if(n === 'ans') out.push({t: 'ans'});
+        else if(n === 'pi') out.push({t: 'num', v: Math.PI});
+        else out.push({t: 'fn', v: n});
+        i += name.length; continue;
+      }
+      if(c === 'x' || c === 'X'){ out.push({t: 'x'}); i++; continue; }
+      if(c === 'e'){ out.push({t: 'num', v: Math.E}); i++; continue; }
+      throw new CalcError('SYNTAX');
+    }
+    return out;
+  }
+
+  // Grammar (handheld order of operations): + −  <  × ÷ and implied ×  <  negation  <  ^ (left to right)
+  //   <  postfix ² ³ ⁻¹ !  <  functions and brackets. Missing ")" at the end are closed automatically.
+  function parse(src){
+    const toks = tokenize(src);
+    let p = 0;
+    const peek = () => toks[p];
+    const take = () => toks[p++];
+    const startsPrimary = tk => tk && (tk.t === 'num' || tk.t === 'x' || tk.t === 'ans' || tk.t === 'fn' || tk.t === 'y' || tk.t === '(');
+    function expr(){
+      let node = term();
+      while(peek() && (peek().t === '+' || peek().t === '-')){ const op = take().t; node = {op, a: node, b: term()}; }
+      return node;
+    }
+    function term(){
+      let node = unary();
+      for(;;){
+        const tk = peek();
+        if(tk && (tk.t === '*' || tk.t === '/')){ take(); node = {op: tk.t, a: node, b: unary()}; }
+        else if(startsPrimary(tk)){ node = {op: '*', a: node, b: power()}; }   // implied multiplication
+        else return node;
+      }
+    }
+    function unary(){
+      if(peek() && peek().t === '-'){ take(); return {op: 'neg', a: unary()}; }
+      if(peek() && peek().t === '+'){ take(); return unary(); }
+      return power();
+    }
+    function power(){
+      let node = postfix();
+      while(peek() && peek().t === '^'){
+        take();
+        let neg = false;
+        while(peek() && (peek().t === '-' || peek().t === '+')){ if(take().t === '-') neg = !neg; }
+        const b = postfix();
+        node = {op: '^', a: node, b: neg ? {op: 'neg', a: b} : b};
+      }
+      return node;
+    }
+    function postfix(){
+      let node = primary();
+      while(peek() && peek().t === 'post'){ node = {op: 'post', v: take().v, a: node}; }
+      return node;
+    }
+    function closeParen(){
+      if(peek() && peek().t === ')'){ take(); return; }
+      if(peek()) throw new CalcError('SYNTAX');   // only an unclosed bracket at the very end is allowed
+    }
+    function primary(){
+      const tk = take();
+      if(!tk) throw new CalcError('SYNTAX');
+      if(tk.t === 'num') return {op: 'num', v: tk.v};
+      if(tk.t === 'x') return {op: 'x'};
+      if(tk.t === 'ans') return {op: 'ans'};
+      if(tk.t === '('){ const e = expr(); closeParen(); return e; }
+      if(tk.t === 'fn'){
+        if(peek() && peek().t === '('){ take(); const e = expr(); closeParen(); return {op: 'fn', v: tk.v, a: e}; }
+        return {op: 'fn', v: tk.v, a: unaryArg()};
+      }
+      if(tk.t === 'y'){
+        if(peek() && peek().t === '('){ take(); const e = expr(); closeParen(); return {op: 'y', v: tk.v, a: e}; }
+        return {op: 'y', v: tk.v, a: null};
+      }
+      throw new CalcError('SYNTAX');
+    }
+    function unaryArg(){
+      if(peek() && peek().t === '-'){ take(); return {op: 'neg', a: unaryArg()}; }
+      return power();
+    }
+    if(!toks.length) throw new CalcError('SYNTAX');
+    const tree = expr();
+    if(p < toks.length) throw new CalcError('SYNTAX');
+    return tree;
+  }
+
+  function fact(n){
+    if(n < 0 || !Number.isInteger(n)) return NaN;
+    if(n > 170) return Infinity;
+    let r = 1; for(let k = 2; k <= n; k++) r *= k; return r;
+  }
+  const clean = v => (Math.abs(v) < 1e-15 ? 0 : v);
+
+  // env: {x, ans, deg, strict, yFn(index, x, depth), depth}
+  function evaluate(node, env){
+    switch(node.op){
+      case 'num': return node.v;
+      case 'x': return env.x;
+      case 'ans': return env.ans;
+      case 'neg': return -evaluate(node.a, env);
+      case '+': return evaluate(node.a, env) + evaluate(node.b, env);
+      case '-': return evaluate(node.a, env) - evaluate(node.b, env);
+      case '*': return evaluate(node.a, env) * evaluate(node.b, env);
+      case '/': {
+        const a = evaluate(node.a, env), b = evaluate(node.b, env);
+        if(b === 0 && env.strict) throw new CalcError('DIVIDE BY 0');
+        return a / b;
+      }
+      case '^': {
+        const a = evaluate(node.a, env), b = evaluate(node.b, env);
+        if(a < 0 && !Number.isInteger(b)){
+          // Odd roots of negatives are real: (-8)^(1/3) = -2.
+          const inv = 1 / b, r = Math.round(inv);
+          if(Math.abs(inv - r) < 1e-9 && r % 2 !== 0) return -Math.pow(-a, b);
+          return NaN;
+        }
+        return Math.pow(a, b);
+      }
+      case 'post': {
+        const a = evaluate(node.a, env);
+        if(node.v === '²') return a * a;
+        if(node.v === '³') return a * a * a;
+        if(node.v === '⁻¹'){ if(a === 0 && env.strict) throw new CalcError('DIVIDE BY 0'); return 1 / a; }
+        return fact(a);
+      }
+      case 'y': {
+        const x = node.a ? evaluate(node.a, env) : env.x;
+        return env.yFn(node.v, x, (env.depth || 0) + 1);
+      }
+      case 'fn': {
+        const a = evaluate(node.a, env);
+        const toRad = env.deg ? Math.PI / 180 : 1;
+        switch(node.v){
+          case 'sin': return clean(Math.sin(a * toRad));
+          case 'cos': return clean(Math.cos(a * toRad));
+          case 'tan': {
+            if(env.deg && Math.abs(((a % 180) + 180) % 180 - 90) < 1e-12) return NaN;
+            return clean(Math.tan(a * toRad));
+          }
+          case 'asin': return Math.asin(a) / toRad;
+          case 'acos': return Math.acos(a) / toRad;
+          case 'atan': return Math.atan(a) / toRad;
+          case 'sinh': return Math.sinh(a);
+          case 'cosh': return Math.cosh(a);
+          case 'tanh': return Math.tanh(a);
+          case 'sqrt': return Math.sqrt(a);
+          case 'abs': return Math.abs(a);
+          case 'exp': return Math.exp(a);
+          case 'ln': return a > 0 ? Math.log(a) : NaN;
+          case 'log': return a > 0 ? Math.log10(a) : NaN;
+        }
+      }
+    }
+    throw new CalcError('SYNTAX');
+  }
+
+  // Display like a handheld: up to 10 significant digits, ᴇ notation for very big / small numbers.
+  function format(v){
+    if(typeof v !== 'number' || Number.isNaN(v)) return 'ERROR';
+    if(!Number.isFinite(v)) return 'OVERFLOW';
+    if(v === 0 || Math.abs(v) < 1e-99) return '0';
+    const a = Math.abs(v);
+    if(a >= 1e10 || a < 1e-3){
+      let [m, e] = v.toExponential(9).split('e');
+      m = m.replace(/\.?0+$/, '');
+      return m + 'ᴇ' + parseInt(e, 10);
+    }
+    return String(Number(v.toPrecision(10)));
+  }
+  // Short form for table cells (fits ~7 characters).
+  function formatShort(v){
+    if(typeof v !== 'number' || Number.isNaN(v)) return 'ERROR';
+    if(!Number.isFinite(v)) return 'ERROR';
+    if(v === 0) return '0';
+    const a = Math.abs(v);
+    if(a >= 1e6 || a < 1e-3){
+      let [m, e] = v.toExponential(a >= 1e100 || a < 1e-99 ? 0 : 1).split('e');
+      m = m.replace(/\.?0+$/, '');
+      return m + 'ᴇ' + parseInt(e, 10);
+    }
+    for(let d = 7; d >= 1; d--){
+      const s = String(Number(v.toPrecision(d)));
+      if(s.length <= 7) return s;
+    }
+    return String(Math.round(v));
+  }
+
+  // ---- numerics used by CALC ----
+  function bisect(f, a, b){
+    let fa = f(a), fb = f(b);
+    if(fa === 0) return a;
+    if(fb === 0) return b;
+    for(let k = 0; k < 200; k++){
+      const m = (a + b) / 2, fm = f(m);
+      if(fm === 0 || Math.abs(b - a) <= 1e-15 * Math.max(1, Math.abs(m))) return m;
+      if((fa < 0) === (fm < 0)){ a = m; fa = fm; } else { b = m; fb = fm; }
+    }
+    return (a + b) / 2;
+  }
+  function goldenMin(f, a, b){
+    const g = (Math.sqrt(5) - 1) / 2;
+    let c = b - g * (b - a), d = a + g * (b - a), fc = f(c), fd = f(d);
+    for(let k = 0; k < 200 && Math.abs(b - a) > 1e-12 * Math.max(1, Math.abs(c)); k++){
+      if(fc < fd || Number.isNaN(fd)){ b = d; d = c; fd = fc; c = b - g * (b - a); fc = f(c); }
+      else { a = c; c = d; fc = fd; d = a + g * (b - a); fd = f(d); }
+    }
+    return (a + b) / 2;
+  }
+  // Zero of f in [a, b]. Needs a sign change, except for a touching root (like x² at 0).
+  function zero(f, a, b, guess){
+    if(!(a < b)) throw new CalcError('INVALID BOUNDS');
+    const n = 400, h = (b - a) / n;
+    const brackets = [];
+    let px = a, pv = f(a);
+    for(let k = 1; k <= n; k++){
+      const x = k === n ? b : a + k * h, v = f(x);
+      if(Number.isFinite(pv) && Number.isFinite(v) && (pv === 0 || (pv < 0) !== (v < 0))) brackets.push([px, x, Math.abs(pv) + Math.abs(v)]);
+      px = x; pv = v;
+    }
+    const g = guess == null ? (a + b) / 2 : guess;
+    brackets.sort((p, q) => Math.abs((p[0] + p[1]) / 2 - g) - Math.abs((q[0] + q[1]) / 2 - g));
+    for(const [lo, hi, scale] of brackets){
+      const r = bisect(f, lo, hi), fr = Math.abs(f(r));
+      if(Number.isFinite(fr) && fr <= 1e-6 * Math.max(1, scale)) return r;   // a sign change across a pole (1/x) isn't a zero
+    }
+    const m = goldenMin(x => Math.abs(f(x)), a, b);
+    const fm = Math.abs(f(m));
+    if(fm < 1e-9 * Math.max(1, Math.abs(f(a)), Math.abs(f(b)))) return m;
+    throw new CalcError('NO SIGN CHANGE');
+  }
+  function extremum(f, a, b, wantMax){
+    if(!(a < b)) throw new CalcError('INVALID BOUNDS');
+    const g = wantMax ? (x => { const v = f(x); return Number.isFinite(v) ? -v : Infinity; })
+                      : (x => { const v = f(x); return Number.isFinite(v) ? v : Infinity; });
+    // Coarse scan first so a wide interval still finds the true extreme, then refine.
+    const n = 400, h = (b - a) / n;
+    let best = a, bestV = g(a);
+    for(let k = 1; k <= n; k++){ const x = a + k * h, v = g(x); if(v < bestV){ bestV = v; best = x; } }
+    const lo = Math.max(a, best - h), hi = Math.min(b, best + h);
+    let x = goldenMin(g, lo, hi);
+    // Golden-section only pins a smooth minimum to ~1e-8; finish on the slope (dy/dx = 0) for full precision.
+    const d = t => derivative(g, t), w = Math.max(h, 1e-6);
+    const l2 = Math.max(lo, x - w), r2 = Math.min(hi, x + w), dl = d(l2), dr = d(r2);
+    if(Number.isFinite(dl) && Number.isFinite(dr) && dl < 0 && dr > 0){
+      const r = bisect(d, l2, r2);
+      if(g(r) <= g(x) + 1e-12 * Math.max(1, Math.abs(g(x)))) x = r;
+    }
+    return g(x) <= bestV ? x : best;
+  }
+  function derivative(f, x){
+    const h = 1e-5 * Math.max(1, Math.abs(x));
+    return (f(x + h) - f(x - h)) / (2 * h);
+  }
+  function integral(f, a, b){
+    if(a === b) return 0;
+    const sign = a < b ? 1 : -1;
+    if(sign < 0){ const t = a; a = b; b = t; }
+    let bad = false;
+    const F = x => { const v = f(x); if(!Number.isFinite(v)) bad = true; return Number.isFinite(v) ? v : 0; };
+    function simpson(a, b, fa, fm, fb){ return (b - a) / 6 * (fa + 4 * fm + fb); }
+    function rec(a, b, fa, fm, fb, whole, eps, depth){
+      const m = (a + b) / 2, lm = (a + m) / 2, rm = (m + b) / 2;
+      const flm = F(lm), frm = F(rm);
+      const left = simpson(a, m, fa, flm, fm), right = simpson(m, b, fm, frm, fb);
+      if(depth <= 0 || Math.abs(left + right - whole) <= 15 * eps) return left + right + (left + right - whole) / 15;
+      return rec(a, m, fa, flm, fm, left, eps / 2, depth - 1) + rec(m, b, fm, frm, fb, right, eps / 2, depth - 1);
+    }
+    // Split into pieces so a narrow feature isn't missed by the first estimate.
+    const pieces = 16, w = (b - a) / pieces;
+    let total = 0;
+    for(let k = 0; k < pieces; k++){
+      const x0 = a + k * w, x1 = k === pieces - 1 ? b : x0 + w, fa = F(x0), fb = F(x1), fm = F((x0 + x1) / 2);
+      total += rec(x0, x1, fa, fm, fb, simpson(x0, x1, fa, fm, fb), 1e-11, 40);
+    }
+    if(bad) throw new CalcError('DOMAIN');
+    return sign * total;
+  }
+  return {CalcError, parse, evaluate, format, formatShort, zero, extremum, derivative, integral};
+})();
+// GCMATH-END
+
+// ============================ GraphCalc: screens, keys and drawing ============================
+const GraphCalc = (function(){
+  const M = GCMath;
+  const el = id => document.getElementById(id);
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const Y_NAMES = ['Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8', 'Y9', 'Y0'];
+  const COLORS = ['#1f5fd1', '#d12a2a', '#111111', '#c2187a', '#1b8a3a', '#e07b00', '#7a4a1e', '#1b2f7a', '#2aa7d6', '#9a8a00'];
+  const STANDARD = {xmin: -10, xmax: 10, xscl: 1, ymin: -10, ymax: 10, yscl: 1};
+  const WIN_FIELDS = [['xmin', 'Xmin'], ['xmax', 'Xmax'], ['xscl', 'Xscl'], ['ymin', 'Ymin'], ['ymax', 'Ymax'], ['yscl', 'Yscl']];
+  const ZOOM_ITEMS = ['ZStandard', 'Zoom In', 'Zoom Out', 'ZDecimal', 'ZSquare', 'ZTrig', 'ZInteger', 'ZoomFit'];
+  const CALC_ITEMS = ['value', 'zero', 'minimum', 'maximum', 'intersect', 'dy/dx', '∫f(x)dx'];
+  const st = {
+    screen: 'home', shift: false, deg: false,
+    funcs: Y_NAMES.map(() => ({expr: '', on: true})),
+    win: Object.assign({}, STANDARD),
+    tbl: {start: 0, step: 1},
+    home: {hist: [], buf: '', cur: 0, recall: -1, ans: 0},
+    edit: {row: 0, buf: '', cur: 0, eqSel: false, err: ''},   // Y=, WINDOW, TBLSET
+    menu: {kind: 'zoom', sel: 0},
+    g: {mode: 'free', px: null, py: null, fi: 0, k: null, entry: null, calc: null, marks: [], msg: '', shade: null},
+    table: {top: 0, row: 0, col: 0},
+    modeSel: 0, X: 0, yRow: 0,
+  };
+  const cache = new Map();
+  function compiled(expr){
+    if(!cache.has(expr)){
+      let v;
+      try { v = {ast: M.parse(expr)}; } catch(e){ v = {err: e.kind || 'SYNTAX'}; }
+      cache.set(expr, v);
+    }
+    return cache.get(expr);
+  }
+  function yValue(i, x, depth, strict){
+    if(depth > 6) throw new M.CalcError('RECURSION');
+    const f = st.funcs[i];
+    if(!f.expr.trim()){ if(strict) throw new M.CalcError('UNDEFINED'); return NaN; }
+    const c = compiled(f.expr);
+    if(c.err){ if(strict) throw new M.CalcError(c.err); return NaN; }
+    return M.evaluate(c.ast, {x, ans: st.home.ans, deg: st.deg, strict, depth, yFn: (j, xx, d) => yValue(j, xx, d, strict)});
+  }
+  const yf = i => x => { try { return yValue(i, x, 0, false); } catch(_){ return NaN; } };
+  function graphable(){
+    return st.funcs.map((f, i) => i).filter(i => st.funcs[i].on && st.funcs[i].expr.trim() && !compiled(st.funcs[i].expr).err);
+  }
+
+  // ---------- editing a line (home entry and Y= / WINDOW / TBLSET fields) ----------
+  const MULTI = ['sin⁻¹(', 'cos⁻¹(', 'tan⁻¹(', 'sin(', 'cos(', 'tan(', 'ln(', 'log(', '√(', 'abs(', 'e^(', '10^(', 'Ans', '⁻¹',
+                 'Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8', 'Y9', 'Y0'];
+  function lineInsert(o, text){ o.buf = o.buf.slice(0, o.cur) + text + o.buf.slice(o.cur); o.cur += text.length; }
+  function lineBackspace(o){
+    if(o.cur <= 0) return;
+    const before = o.buf.slice(0, o.cur);
+    const tok = MULTI.find(t => before.endsWith(t));
+    const n = tok ? tok.length : 1;
+    o.buf = o.buf.slice(0, o.cur - n) + o.buf.slice(o.cur); o.cur -= n;
+  }
+  function lineDeleteForward(o){
+    if(o.cur >= o.buf.length) return;
+    const after = o.buf.slice(o.cur);
+    const tok = MULTI.find(t => after.startsWith(t));
+    o.buf = o.buf.slice(0, o.cur) + after.slice(tok ? tok.length : 1);
+  }
+  function lineRender(o, active){
+    if(!active) return esc(o.buf);
+    const b = o.buf, c = o.cur;
+    return esc(b.slice(0, c)) + '<span class="gc-cur">' + (c < b.length ? esc(b[c]) : '&nbsp;') + '</span>' + esc(b.slice(c + 1));
+  }
+  function evalStrict(text){
+    const ast = M.parse(text);
+    const v = M.evaluate(ast, {x: st.X, ans: st.home.ans, deg: st.deg, strict: true, depth: 0, yFn: (j, xx, d) => yValue(j, xx, d, true)});
+    if(Number.isNaN(v)) throw new M.CalcError('NONREAL ANS');
+    if(!Number.isFinite(v)) throw new M.CalcError('OVERFLOW');
+    return v;
+  }
+
+  // ---------- screens ----------
+  function go(screen){
+    commitEdit();
+    st.screen = screen;
+    st.shift = false;
+    if(screen === 'yeq') editYRow(st.yRow);
+    if(screen === 'window'){ loadField(0); }
+    if(screen === 'tblset'){ loadField(0); }
+    if(screen === 'graph'){ st.g.mode = 'free'; st.g.px = null; st.g.entry = null; st.g.calc = null; st.g.marks = []; st.g.msg = ''; st.g.shade = null; }
+    if(screen === 'trace'){ startTrace(); }
+    if(screen === 'table'){ st.table = {top: 0, row: 0, col: -1}; }
+    if(screen === 'zoom' || screen === 'calc'){ st.menu = {kind: screen, sel: 0}; }
+    render();
+  }
+  function editYRow(row){
+    st.yRow = row;
+    st.edit = {row, buf: st.funcs[row].expr, cur: st.funcs[row].expr.length, eqSel: false, err: ''};
+  }
+  function fieldList(){ return st.screen === 'window' ? WIN_FIELDS : [['start', 'TblStart'], ['step', 'ΔTbl']]; }
+  function fieldObj(){ return st.screen === 'window' ? st.win : st.tbl; }
+  function loadField(row){
+    const [key] = fieldList()[row];
+    const text = M.format(fieldObj()[key]);
+    st.edit = {row, buf: text, cur: text.length, err: '', dirty: false};
+  }
+  // Save whatever is being edited (Y= row text, or a WINDOW / TBLSET number). Returns false on a bad number.
+  function commitEdit(){
+    if(st.screen === 'yeq'){
+      st.funcs[st.edit.row].expr = st.edit.buf;
+      return true;
+    }
+    if(st.screen === 'window' || st.screen === 'tblset'){
+      if(!st.edit.dirty) return true;
+      const [key] = fieldList()[st.edit.row];
+      try {
+        const v = evalStrict(st.edit.buf);
+        if(st.screen === 'tblset' && key === 'step' && v === 0) throw new M.CalcError('INVALID');
+        fieldObj()[key] = v; st.edit.err = ''; st.edit.dirty = false; return true;
+      } catch(e){ st.edit.err = 'ERR: ' + (e.kind || 'SYNTAX'); return false; }
+    }
+    return true;
+  }
+
+  // ---------- graph geometry ----------
+  function size(){
+    const c = el('gcCanvas');
+    return {W: Math.max(50, c.clientWidth || 340), H: Math.max(50, c.clientHeight || 206)};
+  }
+  function windowOk(){ const w = st.win; return w.xmin < w.xmax && w.ymin < w.ymax; }
+  function toPx(x){ const {W} = size(); return (x - st.win.xmin) / (st.win.xmax - st.win.xmin) * (W - 1); }
+  function toPy(y){ const {H} = size(); return (st.win.ymax - y) / (st.win.ymax - st.win.ymin) * (H - 1); }
+  function fromPx(px){ const {W} = size(); return st.win.xmin + px / (W - 1) * (st.win.xmax - st.win.xmin); }
+  function fromPy(py){ const {H} = size(); return st.win.ymax - py / (H - 1) * (st.win.ymax - st.win.ymin); }
+  function dx(){ const {W} = size(); return (st.win.xmax - st.win.xmin) / (W - 1); }
+
+  function drawGraph(){
+    const c = el('gcCanvas'), {W, H} = size(), dpr = window.devicePixelRatio || 1;
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    if(!windowOk()) return;
+    const w = st.win;
+    // shaded ∫ region
+    if(st.g.shade){
+      const {fi, a, b} = st.g.shade, f = yf(fi);
+      g.fillStyle = 'rgba(31,95,209,.22)';
+      const p0 = Math.max(0, Math.floor(toPx(a))), p1 = Math.min(W - 1, Math.ceil(toPx(b)));
+      const y0 = Math.min(H, Math.max(0, toPy(0)));
+      for(let px = p0; px <= p1; px++){
+        const v = f(fromPx(px)); if(!Number.isFinite(v)) continue;
+        const py = Math.min(H + 5, Math.max(-5, toPy(v)));
+        g.fillRect(px, Math.min(py, y0), 1, Math.abs(y0 - py));
+      }
+    }
+    // axes + tick marks
+    g.strokeStyle = '#444'; g.lineWidth = 1;
+    const ax = toPy(0), ay = toPx(0);
+    g.beginPath();
+    if(ax >= 0 && ax <= H){ g.moveTo(0, Math.round(ax) + .5); g.lineTo(W, Math.round(ax) + .5); }
+    if(ay >= 0 && ay <= W){ g.moveTo(Math.round(ay) + .5, 0); g.lineTo(Math.round(ay) + .5, H); }
+    g.stroke();
+    g.beginPath();
+    if(w.xscl > 0 && (w.xmax - w.xmin) / w.xscl < W / 2 && ax >= -3 && ax <= H + 3){
+      for(let t = Math.ceil(w.xmin / w.xscl) * w.xscl; t <= w.xmax; t += w.xscl){
+        const px = Math.round(toPx(t)) + .5; g.moveTo(px, ax - 3); g.lineTo(px, ax + 3);
+      }
+    }
+    if(w.yscl > 0 && (w.ymax - w.ymin) / w.yscl < H / 2 && ay >= -3 && ay <= W + 3){
+      for(let t = Math.ceil(w.ymin / w.yscl) * w.yscl; t <= w.ymax; t += w.yscl){
+        const py = Math.round(toPy(t)) + .5; g.moveTo(ay - 3, py); g.lineTo(ay + 3, py);
+      }
+    }
+    g.stroke();
+    // functions
+    g.lineWidth = 2; g.lineJoin = 'round';
+    for(const i of graphable()){
+      const f = yf(i);
+      g.strokeStyle = COLORS[i];
+      g.beginPath();
+      let prev = null;
+      const steps = W * 2;
+      for(let s = 0; s <= steps; s++){
+        const px = s / 2, x = fromPx(px), v = f(x);
+        if(!Number.isFinite(v)){ prev = null; continue; }
+        let py = toPy(v);
+        if(prev){
+          // Break the line at a vertical asymptote: a huge jump whose midpoint isn't in between.
+          if(Math.abs(py - prev.py) > H){
+            const mv = f(fromPx(px - .25));
+            const mpy = Number.isFinite(mv) ? toPy(mv) : NaN;
+            if(!(mpy >= Math.min(py, prev.py) && mpy <= Math.max(py, prev.py))){ prev = null; }
+          }
+        }
+        const cy = Math.max(-H * 4, Math.min(H * 5, py));
+        if(prev) g.lineTo(px, cy); else g.moveTo(px, cy);
+        prev = {py};
+      }
+      g.stroke();
+    }
+    // bound markers (CALC)
+    g.fillStyle = '#111';
+    g.font = '12px sans-serif';
+    for(const m of st.g.marks){   // ▶ left bound, ◀ right bound
+      const px = toPx(m.x), py = Number.isFinite(m.y) ? Math.max(14, Math.min(H - 4, toPy(m.y))) : H / 2;
+      g.fillText(m.dir === 'L' ? '▶' : '◀', px - 6, py - 8);
+    }
+    // cursor
+    const cur = cursorPoint();
+    if(cur && Number.isFinite(cur.py)){
+      g.strokeStyle = '#111'; g.lineWidth = 1.5;
+      const {px, py} = cur;
+      g.beginPath();
+      if(st.g.mode === 'free'){
+        g.moveTo(px - 6, py); g.lineTo(px + 6, py); g.moveTo(px, py - 6); g.lineTo(px, py + 6);
+      } else {
+        g.rect(px - 4, py - 4, 8, 8); g.moveTo(px - 7, py); g.lineTo(px + 7, py); g.moveTo(px, py - 7); g.lineTo(px, py + 7);
+      }
+      g.stroke();
+    }
+  }
+  function cursorPoint(){
+    if(st.g.mode === 'free'){
+      if(st.g.px == null) return null;
+      return {px: st.g.px, py: st.g.py};
+    }
+    if(st.g.k == null) return null;
+    const x = traceX(), v = yf(st.g.fi)(x);
+    return {px: toPx(x), py: Number.isFinite(v) ? toPy(v) : NaN};
+  }
+  function traceX(){ return st.g.exactX != null ? st.g.exactX : st.win.xmin + st.g.k * dx(); }
+  function startTrace(fi){
+    const list = graphable();
+    st.g = {mode: 'trace', fi: fi != null ? fi : (list.includes(st.g.fi) ? st.g.fi : list[0]), k: null, exactX: null, entry: null,
+            calc: null, marks: [], msg: '', shade: null, px: null, py: null, result: null};
+    if(st.g.fi == null){ st.g.mode = 'free'; st.g.msg = 'No functions to trace — enter one in Y='; return; }
+    const {W} = size();
+    st.g.k = Math.round((W - 1) / 2);
+    st.X = traceX();
+  }
+  function moveTrace(step){
+    const {W} = size();
+    st.g.exactX = null;
+    st.g.k += step;
+    if(st.g.k < 0 || st.g.k > W - 1){
+      // Pan the window, keeping the cursor on screen.
+      const shift = (st.win.xmax - st.win.xmin) / 2 * (step < 0 ? -1 : 1);
+      st.win.xmin += shift; st.win.xmax += shift;
+      st.g.k = step < 0 ? Math.round((W - 1) / 2) - 1 : Math.round((W - 1) / 2) + 1;
+    }
+    st.X = traceX();
+  }
+  function setTraceX(x){
+    if(x < st.win.xmin || x > st.win.xmax){ st.g.msg = 'ERR: value is outside the window'; return false; }
+    st.g.k = Math.round((x - st.win.xmin) / dx());
+    st.g.exactX = x; st.X = x;
+    return true;
+  }
+  function switchTraceFn(step){
+    const list = graphable();
+    if(!list.length) return;
+    const at = list.indexOf(st.g.fi);
+    st.g.fi = list[(at + step + list.length) % list.length];
+  }
+
+  // ---------- CALC (2nd TRACE) ----------
+  function startCalc(n){
+    const list = graphable();
+    if(!list.length){ st.screen = 'graph'; st.g = {mode: 'free', px: null, marks: [], msg: 'No functions graphed — enter one in Y='}; render(); return; }
+    st.screen = 'graph';
+    const op = CALC_ITEMS[n];
+    startTrace();
+    st.g.calc = {op, step: 0, vals: []};
+    st.g.marks = [];
+    if(op === 'intersect' && list.length < 2){ st.g.calc = null; st.g.msg = 'Intersect needs two graphs in Y='; }
+    if(op === 'value') st.g.entry = '';
+    render();
+  }
+  function calcPrompt(){
+    const c = st.g.calc;
+    if(!c) return '';
+    if(c.op === 'value') return 'X=';
+    if(c.op === 'zero' || c.op === 'minimum' || c.op === 'maximum') return ['Left Bound?', 'Right Bound?', 'Guess?'][c.step];
+    if(c.op === 'intersect') return ['First curve?', 'Second curve?', 'Guess?'][c.step];
+    if(c.op === 'dy/dx') return '';
+    if(c.op === '∫f(x)dx') return ['Lower Limit?', 'Upper Limit?'][c.step];
+    return '';
+  }
+  function calcEnter(){
+    const c = st.g.calc, x = traceX(), fi = st.g.fi, f = yf(fi);
+    const done = (label, rx, ry) => {
+      st.g.calc = null; st.g.marks = [];
+      if(rx != null){ setTraceX(Math.min(st.win.xmax, Math.max(st.win.xmin, rx))); st.g.exactX = rx; st.X = rx; }
+      st.g.result = {label, x: rx, y: ry};
+    };
+    try {
+      if(c.op === 'zero' || c.op === 'minimum' || c.op === 'maximum'){
+        if(c.step < 2){ c.vals.push(x); st.g.marks.push({x, y: f(x), dir: c.step === 0 ? 'L' : 'R'}); c.step++; return; }
+        const [a, b] = c.vals;
+        if(!(a < b)) throw new M.CalcError('INVALID BOUNDS');
+        const r = c.op === 'zero' ? M.zero(f, a, b, x) : M.extremum(f, a, b, c.op === 'maximum');
+        done(c.op === 'zero' ? 'Zero' : (c.op === 'minimum' ? 'Minimum' : 'Maximum'), r, c.op === 'zero' ? 0 : f(r));
+        if(c.op === 'zero') st.g.result.y = Math.abs(f(r)) < 1e-12 ? 0 : f(r);
+        return;
+      }
+      if(c.op === 'intersect'){
+        if(c.step === 0){ c.vals.push(fi); c.step = 1; switchTraceFn(1); return; }
+        if(c.step === 1){ c.vals.push(fi); c.step = 2; if(c.vals[0] === c.vals[1]) switchTraceFn(1); return; }
+        const f1 = yf(c.vals[0]), f2 = yf(c.vals[1]);
+        if(c.vals[0] === c.vals[1]) throw new M.CalcError('PICK TWO CURVES');
+        const span = st.win.xmax - st.win.xmin;
+        const r = M.zero(t => f1(t) - f2(t), Math.max(st.win.xmin, x - span), Math.min(st.win.xmax, x + span), x);
+        st.g.fi = c.vals[0];
+        done('Intersection', r, f1(r));
+        return;
+      }
+      if(c.op === 'dy/dx'){ const d = M.derivative(f, x); if(!Number.isFinite(d)) throw new M.CalcError('DOMAIN'); done('dy/dx=' + M.format(d), x, f(x)); st.g.result.only = true; return; }
+      if(c.op === '∫f(x)dx'){
+        if(c.step === 0){ c.vals.push(x); st.g.marks.push({x, y: f(x), dir: 'L'}); c.step = 1; return; }
+        const a = c.vals[0], b = x;
+        const v = M.integral(f, a, b);
+        st.g.shade = {fi, a: Math.min(a, b), b: Math.max(a, b)};
+        done('∫f(x)dx=' + M.format(v), null, null); st.g.result.only = true;
+        return;
+      }
+    } catch(e){
+      st.g.calc = null; st.g.marks = []; st.g.msg = 'ERR: ' + (e.kind || 'INVALID');
+    }
+  }
+
+  // ---------- zoom ----------
+  function zoom(n){
+    const w = st.win, {W, H} = size();
+    const cx = (w.xmin + w.xmax) / 2, cy = (w.ymin + w.ymax) / 2;
+    const name = ZOOM_ITEMS[n];
+    if(name === 'ZStandard') Object.assign(w, STANDARD);
+    if(name === 'Zoom In' || name === 'Zoom Out'){
+      const f = name === 'Zoom In' ? 1 / 4 : 4;
+      const hx = (w.xmax - w.xmin) / 2 * f, hy = (w.ymax - w.ymin) / 2 * f;
+      Object.assign(w, {xmin: cx - hx, xmax: cx + hx, ymin: cy - hy, ymax: cy + hy});
+    }
+    if(name === 'ZDecimal'){ const hx = (W - 1) / 2 * 0.1, hy = (H - 1) / 2 * 0.1; Object.assign(w, {xmin: -hx, xmax: hx, xscl: 1, ymin: -hy, ymax: hy, yscl: 1}); }
+    if(name === 'ZSquare'){
+      const hy = (w.ymax - w.ymin) / 2, hx = hy * (W - 1) / (H - 1);
+      Object.assign(w, {xmin: cx - hx, xmax: cx + hx});
+    }
+    if(name === 'ZTrig') Object.assign(w, st.deg ? {xmin: -352.5, xmax: 352.5, xscl: 90, ymin: -4, ymax: 4, yscl: 1}
+                                                 : {xmin: -2 * Math.PI * 1.125, xmax: 2 * Math.PI * 1.125, xscl: Math.PI / 2, ymin: -4, ymax: 4, yscl: 1});
+    if(name === 'ZInteger'){ const hx = (W - 1) / 2, hy = (H - 1) / 2; Object.assign(w, {xmin: Math.round(cx) - hx, xmax: Math.round(cx) + hx, xscl: 10, ymin: Math.round(cy) - hy, ymax: Math.round(cy) + hy, yscl: 10}); }
+    if(name === 'ZoomFit'){
+      let lo = Infinity, hi = -Infinity;
+      for(const i of graphable()){
+        const f = yf(i);
+        for(let px = 0; px < W; px++){ const v = f(fromPx(px)); if(Number.isFinite(v)){ lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+      }
+      if(Number.isFinite(lo)){
+        if(hi - lo < 1e-9){ lo -= 1; hi += 1; }
+        const pad = (hi - lo) * 0.05; Object.assign(w, {ymin: lo - pad, ymax: hi + pad});
+      }
+    }
+    st.screen = 'graph'; st.g = {mode: 'free', px: null, marks: [], msg: ''};
+    render();
+  }
+
+  // ---------- rendering ----------
+  function setText(html){ el('gcText').hidden = false; el('gcText').innerHTML = html; }
+  function render(){
+    el('gcAngle').textContent = st.deg ? 'DEGREE' : 'RADIAN';
+    el('gcSecond').hidden = !st.shift;
+    document.querySelectorAll('#gcKeys .gc-key.second').forEach(b => b.classList.toggle('on', st.shift));
+    const where = {home: '', yeq: 'Y=', window: 'WINDOW', tblset: 'TABLE SETUP', zoom: 'ZOOM', calc: 'CALCULATE', graph: 'GRAPH',
+                   trace: 'TRACE', table: 'TABLE', mode: 'MODE'}[st.screen] || '';
+    el('gcWhere').textContent = where;
+    const graphish = st.screen === 'graph' || st.screen === 'trace';
+    el('gcCanvas').style.visibility = graphish ? 'visible' : 'hidden';
+    el('gcOvlTop').innerHTML = ''; el('gcOvlBottom').innerHTML = '';
+    if(graphish){ el('gcText').hidden = true; renderGraph(); return; }
+    if(st.screen === 'home') return renderHome();
+    if(st.screen === 'yeq') return renderYeq();
+    if(st.screen === 'window' || st.screen === 'tblset') return renderFields();
+    if(st.screen === 'zoom' || st.screen === 'calc') return renderMenu();
+    if(st.screen === 'table') return renderTable();
+    if(st.screen === 'mode') return renderMode();
+  }
+  function renderHome(){
+    const h = st.home;
+    let html = '';
+    for(const e of h.hist.slice(-30)){
+      html += `<div class="gc-line">${esc(e.input)}</div>`;
+      html += `<div class="gc-line gc-right${e.err ? ' gc-err' : ''}">${esc(e.out)}</div>`;
+    }
+    html += `<div class="gc-line">${lineRender(h, true)}</div>`;
+    setText(html);
+    const t = el('gcText'); t.scrollTop = t.scrollHeight;
+  }
+  function renderYeq(){
+    let html = '';
+    st.funcs.forEach((f, i) => {
+      const active = i === st.edit.row;
+      const eq = `<span class="${f.on ? 'gc-inv' : ''}${active && st.edit.eqSel ? ' gc-cur' : ''}">=</span>`;
+      const body = active && !st.edit.eqSel ? lineRender(st.edit, true) : esc(active ? st.edit.buf : f.expr);
+      const bad = (active ? st.edit.buf : f.expr).trim() && compiled(active ? st.edit.buf : f.expr).err;
+      html += `<div class="gc-line${active ? ' gc-sel' : ''}" data-yrow="${i}"><span class="gc-swatch" style="background:${COLORS[i]}"></span>` +
+              `${Y_NAMES[i]}${eq}${body}${bad && !active ? ' <span class="gc-err">✕</span>' : ''}</div>`;
+    });
+    setText(html);
+    const row = el('gcText').querySelector('.gc-sel');
+    if(row){ const t = el('gcText'); if(row.offsetTop + row.offsetHeight > t.scrollTop + t.clientHeight) t.scrollTop = row.offsetTop + row.offsetHeight - t.clientHeight; if(row.offsetTop < t.scrollTop) t.scrollTop = row.offsetTop; }
+  }
+  function renderFields(){
+    const fields = fieldList(), obj = fieldObj();
+    let html = `<div class="gc-line gc-head">${st.screen === 'window' ? 'WINDOW' : 'TABLE SETUP'}</div>`;
+    fields.forEach(([key, label], i) => {
+      const active = i === st.edit.row;
+      html += `<div class="gc-line${active ? ' gc-sel' : ''}" data-frow="${i}">${label}=${active ? lineRender(st.edit, true) : esc(M.format(obj[key]))}</div>`;
+    });
+    if(st.edit.err) html += `<div class="gc-line gc-err">${esc(st.edit.err)}</div>`;
+    if(st.screen === 'window' && !windowOk()) html += `<div class="gc-line gc-err">Xmin must be below Xmax, Ymin below Ymax</div>`;
+    setText(html);
+  }
+  function renderMenu(){
+    const items = st.menu.kind === 'zoom' ? ZOOM_ITEMS : CALC_ITEMS;
+    let html = `<div class="gc-line gc-head">${st.menu.kind === 'zoom' ? 'ZOOM' : 'CALCULATE'}</div>`;
+    items.forEach((name, i) => {
+      html += `<div class="gc-line" data-mrow="${i}"><span class="${i === st.menu.sel ? 'gc-inv' : ''}">${i + 1}:</span>${esc(name)}</div>`;
+    });
+    setText(html);
+  }
+  function tableCols(){ return graphable().length ? graphable() : st.funcs.map((f, i) => i).filter(i => st.funcs[i].on && st.funcs[i].expr.trim()); }
+  function renderTable(){
+    const cols = tableCols(), t = st.table, rows = 7;
+    if(!cols.length){ setText('<div class="gc-line">No functions turned on in Y=.</div><div class="gc-line gc-dim">Enter one in Y= first.</div>'); return; }
+    const first = Math.min(Math.max(0, t.col - 1), Math.max(0, cols.length - 2));
+    const shown = cols.slice(first, first + 2);
+    let html = `<table class="gc-table"><tr><th>X</th>${shown.map(i => `<th style="color:${COLORS[i]}">${Y_NAMES[i]}</th>`).join('')}</tr>`;
+    for(let r = 0; r < rows; r++){
+      const x = st.tbl.start + (t.top + r) * st.tbl.step;
+      html += '<tr>';
+      html += `<td class="${t.row === r && t.col === -1 ? 'gc-inv' : ''}">${esc(M.formatShort(clean0(x)))}</td>`;
+      shown.forEach((i, ci) => {
+        const v = yf(i)(x);
+        html += `<td class="${t.row === r && t.col === first + ci ? 'gc-inv' : ''}">${esc(M.formatShort(v))}</td>`;
+      });
+      html += '</tr>';
+    }
+    html += '</table>';
+    const x = st.tbl.start + (t.top + t.row) * st.tbl.step;
+    const label = t.col === -1 ? `X=${M.format(clean0(x))}` : `${Y_NAMES[cols[t.col]]}=${M.format(yf(cols[t.col])(x))}`;
+    html += `<div class="gc-line" style="border-top:1px solid #9aa3ad;margin-top:2px;">${esc(label)}</div>`;
+    setText(html);
+  }
+  const clean0 = v => (Math.abs(v) < 1e-12 ? 0 : v);
+  function renderMode(){
+    const opt = (label, on, i) => `<span class="${on ? 'gc-inv' : ''}${st.modeSel === i ? ' gc-pick' : ''}">${label}</span>`;
+    setText(`<div class="gc-line gc-head">MODE</div>` +
+      `<div class="gc-line">Angle:  ${opt('RADIAN', !st.deg, 0)}  ${opt('DEGREE', st.deg, 1)}</div>` +
+      `<div class="gc-line gc-dim">Graph:  FUNCTION</div>` +
+      `<div class="gc-line gc-dim">◀ ▶ then ENTER to choose</div>`);
+  }
+  function renderGraph(){
+    if(!windowOk()){ el('gcText').hidden = false; setText('<div class="gc-line gc-err">ERR: WINDOW RANGE</div><div class="gc-line gc-dim">Fix Xmin/Xmax or Ymin/Ymax in WINDOW.</div>'); return; }
+    drawGraph();
+    const g = st.g, top = [], bottom = [];
+    if(g.mode === 'trace' && g.fi != null){
+      top.push(`${Y_NAMES[g.fi]}=${st.funcs[g.fi].expr}`);
+    }
+    if(g.msg) bottom.push(g.msg);
+    else if(g.entry != null) bottom.push(`X=${g.entry}▮`);
+    else if(g.calc && calcPrompt()){
+      bottom.push(calcPrompt() + '  ' + coordText());
+    } else if(g.result){
+      bottom.push(g.result.only ? g.result.label : `${g.result.label}  X=${M.format(clean0(g.result.x))}  Y=${M.format(clean0(g.result.y))}`);
+    } else if(g.mode === 'trace' || g.px != null){
+      bottom.push(coordText());
+    }
+    el('gcOvlTop').innerHTML = top.length ? `<span style="color:${COLORS[g.fi] || '#111'}">${esc(top[0])}</span>` : '';
+    el('gcOvlBottom').innerHTML = bottom.length ? `<span>${esc(bottom[0])}</span>` : '';
+  }
+  function coordText(){
+    if(st.g.mode === 'free'){
+      if(st.g.px == null) return '';
+      return `X=${M.format(clean0(fromPx(st.g.px)))}  Y=${M.format(clean0(fromPy(st.g.py)))}`;
+    }
+    const x = traceX(), v = yf(st.g.fi)(x);
+    return `X=${M.format(clean0(x))}  Y=${Number.isFinite(v) ? M.format(clean0(v)) : ''}`;
+  }
+
+  // ---------- key handling ----------
+  function insert(text){
+    const s = st.screen;
+    if(s === 'home'){
+      const h = st.home;
+      // Starting a new line with an operator carries on from the last answer (as on a handheld).
+      if(!h.buf && h.hist.length && ['+', '−', '*', '/', '^', '²', '³', '!', '⁻¹'].includes(text)) lineInsert(h, 'Ans');
+      lineInsert(h, text); h.recall = -1; return render();
+    }
+    if(s === 'yeq'){ st.edit.eqSel = false; lineInsert(st.edit, text); return render(); }
+    if(s === 'window' || s === 'tblset'){
+      if(!st.edit.dirty){ st.edit.buf = ''; st.edit.cur = 0; st.edit.dirty = true; }
+      lineInsert(st.edit, text); st.edit.err = ''; return render();
+    }
+    if(s === 'zoom' || s === 'calc'){
+      const n = parseInt(text, 10);
+      const items = s === 'zoom' ? ZOOM_ITEMS : CALC_ITEMS;
+      if(n >= 1 && n <= items.length) return s === 'zoom' ? zoom(n - 1) : startCalc(n - 1);
+      return;
+    }
+    if(s === 'trace' || (s === 'graph' && (st.g.calc || st.g.mode === 'trace'))){
+      if(!/^[0-9.\-−ᴇ]$|^π$|^e$/.test(text)) return;
+      if(st.g.mode !== 'trace') startTrace();
+      st.g.msg = ''; st.g.result = null;
+      st.g.entry = (st.g.entry || '') + text;
+      return render();
+    }
+  }
+  function key(id){
+    if(id === '2nd'){ st.shift = !st.shift; return render(); }
+    const shifted = st.shift;
+    st.shift = false;
+    const s = st.screen;
+    switch(id){
+      case 'yeq': return go('yeq');
+      case 'window': return go('window');
+      case 'tblset': return go('tblset');
+      case 'zoom': return go('zoom');
+      case 'calc': return go('calc');
+      case 'graph': return go('graph');
+      case 'table': return go('table');
+      case 'mode': st.modeSel = st.deg ? 1 : 0; return go('mode');
+      case 'quit': return go('home');
+      case 'trace': {
+        if(s !== 'graph' && s !== 'trace'){ st.screen = 'trace'; startTrace(); return render(); }
+        st.screen = 'trace';
+        startTrace(st.g.mode === 'trace' ? st.g.fi : undefined); return render();
+      }
+      case 'del': return del();
+      case 'clear': return clear();
+      case 'enter': return enter();
+      case 'entry': return recall(1);
+      case 'left': case 'right': case 'up': case 'down': return arrow(id);
+    }
+  }
+  function del(){
+    const s = st.screen;
+    if(s === 'home'){ lineBackspace(st.home); return render(); }
+    if(s === 'yeq'){ if(st.edit.eqSel) return; lineBackspace(st.edit); return render(); }
+    if(s === 'window' || s === 'tblset'){ st.edit.dirty = true; lineBackspace(st.edit); return render(); }
+    if((s === 'graph' || s === 'trace') && st.g.entry != null){ st.g.entry = st.g.entry.slice(0, -1); return render(); }
+  }
+  function delForward(){
+    if(st.screen === 'home'){ lineDeleteForward(st.home); return render(); }
+    if(st.screen === 'yeq' && !st.edit.eqSel){ lineDeleteForward(st.edit); return render(); }
+    if(st.screen === 'window' || st.screen === 'tblset'){ st.edit.dirty = true; lineDeleteForward(st.edit); return render(); }
+  }
+  function clear(){
+    const s = st.screen;
+    if(s === 'home'){ if(st.home.buf){ st.home.buf = ''; st.home.cur = 0; } else st.home.hist = []; return render(); }
+    if(s === 'yeq'){ st.edit.buf = ''; st.edit.cur = 0; st.edit.eqSel = false; return render(); }
+    if(s === 'window' || s === 'tblset'){ st.edit.buf = ''; st.edit.cur = 0; st.edit.dirty = true; return render(); }
+    if(s === 'graph' || s === 'trace'){
+      if(st.g.entry != null || st.g.calc || st.g.msg || st.g.result || st.g.shade){ st.g.entry = null; st.g.calc = null; st.g.marks = []; st.g.msg = ''; st.g.result = null; st.g.shade = null; return render(); }
+      st.screen = 'graph'; st.g = {mode: 'free', px: null, marks: []}; return render();
+    }
+    return go('home');
+  }
+  function recall(dir){
+    if(st.screen !== 'home') return;
+    const h = st.home, n = h.hist.length;
+    if(!n) return;
+    h.recall = Math.max(0, Math.min(n - 1, h.recall + dir));
+    h.buf = h.hist[n - 1 - h.recall].input; h.cur = h.buf.length;
+    render();
+  }
+  function enter(){
+    const s = st.screen;
+    if(s === 'home'){
+      const h = st.home;
+      let input = h.buf;
+      if(!input.trim()){ if(!h.hist.length) return; input = h.hist[h.hist.length - 1].input; }
+      let out, err = false;
+      try { const v = evalStrict(input); h.ans = v; out = M.format(v); }
+      catch(e){ out = 'ERR: ' + (e.kind || 'SYNTAX'); err = true; }
+      h.hist.push({input, out, err});
+      if(h.hist.length > 60) h.hist.shift();
+      h.buf = ''; h.cur = 0; h.recall = -1;
+      return render();
+    }
+    if(s === 'yeq'){
+      if(st.edit.eqSel){ const f = st.funcs[st.edit.row]; f.on = !f.on; return render(); }
+      return arrow('down');
+    }
+    if(s === 'window' || s === 'tblset'){ return arrow('down'); }
+    if(s === 'zoom'){ return zoom(st.menu.sel); }
+    if(s === 'calc'){ return startCalc(st.menu.sel); }
+    if(s === 'mode'){ st.deg = st.modeSel === 1; cache.clear(); return render(); }
+    if(s === 'graph' || s === 'trace'){
+      if(st.g.entry != null){
+        let x;
+        try { x = evalStrict(st.g.entry || '0'); } catch(e){ st.g.entry = null; st.g.msg = 'ERR: ' + (e.kind || 'SYNTAX'); return render(); }
+        st.g.entry = null;
+        if(st.g.mode !== 'trace') startTrace();
+        if(!setTraceX(x)) return render();
+        if(st.g.calc && st.g.calc.op === 'value'){
+          const v = yf(st.g.fi)(x);
+          st.g.calc = null;
+          st.g.result = {label: Y_NAMES[st.g.fi], x, y: v};
+          if(!Number.isFinite(v)) { st.g.result = null; st.g.msg = `${Y_NAMES[st.g.fi]} is undefined at X=${M.format(x)}`; }
+          return render();
+        }
+        if(!st.g.calc) return render();
+      }
+      if(st.g.calc && st.g.calc.op !== 'value'){ calcEnter(); return render(); }
+      if(st.g.mode === 'free' && st.g.px != null){ st.X = fromPx(st.g.px); }
+      return render();
+    }
+  }
+  function arrow(dir){
+    const s = st.screen;
+    if(s === 'home'){
+      const h = st.home;
+      if(dir === 'left') h.cur = Math.max(0, h.cur - 1);
+      if(dir === 'right') h.cur = Math.min(h.buf.length, h.cur + 1);
+      if(dir === 'up') return recall(1);
+      if(dir === 'down'){ if(h.recall <= 0){ h.recall = -1; h.buf = ''; h.cur = 0; } else return recall(-1); }
+      return render();
+    }
+    if(s === 'yeq'){
+      const e = st.edit;
+      if(dir === 'left'){ if(e.eqSel) return; if(e.cur === 0) e.eqSel = true; else e.cur--; }
+      if(dir === 'right'){ if(e.eqSel){ e.eqSel = false; e.cur = 0; } else e.cur = Math.min(e.buf.length, e.cur + 1); }
+      if(dir === 'up' || dir === 'down'){
+        st.funcs[e.row].expr = e.buf;
+        editYRow(Math.max(0, Math.min(9, e.row + (dir === 'up' ? -1 : 1))));
+      }
+      return render();
+    }
+    if(s === 'window' || s === 'tblset'){
+      const e = st.edit;
+      if(dir === 'left'){ e.cur = Math.max(0, e.cur - 1); e.dirty = true; }
+      if(dir === 'right'){ e.cur = Math.min(e.buf.length, e.cur + 1); e.dirty = true; }
+      if(dir === 'up' || dir === 'down'){
+        if(!commitEdit()) return render();
+        const n = fieldList().length;
+        loadField(Math.max(0, Math.min(n - 1, e.row + (dir === 'up' ? -1 : 1))));
+      }
+      return render();
+    }
+    if(s === 'zoom' || s === 'calc'){
+      const n = (s === 'zoom' ? ZOOM_ITEMS : CALC_ITEMS).length;
+      if(dir === 'up') st.menu.sel = (st.menu.sel + n - 1) % n;
+      if(dir === 'down') st.menu.sel = (st.menu.sel + 1) % n;
+      return render();
+    }
+    if(s === 'mode'){ if(dir === 'left') st.modeSel = 0; if(dir === 'right') st.modeSel = 1; return render(); }
+    if(s === 'table'){
+      const t = st.table, cols = tableCols();
+      if(dir === 'up'){ if(t.row > 0) t.row--; else t.top--; }
+      if(dir === 'down'){ if(t.row < 6) t.row++; else t.top++; }
+      if(dir === 'left') t.col = Math.max(-1, t.col - 1);
+      if(dir === 'right') t.col = Math.min(cols.length - 1, t.col + 1);
+      return render();
+    }
+    if(s === 'graph' || s === 'trace'){
+      const g = st.g;
+      if(g.entry != null) return;
+      g.result = null; g.msg = '';
+      if(g.mode === 'trace'){
+        if(dir === 'left') moveTrace(-1);
+        if(dir === 'right') moveTrace(1);
+        if(dir === 'up' || dir === 'down'){
+          if(g.calc && (g.calc.op === 'zero' || g.calc.op === 'minimum' || g.calc.op === 'maximum' || g.calc.op === '∫f(x)dx') && g.calc.step > 0) return render();
+          switchTraceFn(dir === 'up' ? -1 : 1);
+        }
+        return render();
+      }
+      const {W, H} = size();
+      if(g.px == null){ g.px = Math.round((W - 1) / 2); g.py = Math.round((H - 1) / 2); }
+      if(dir === 'left') g.px = Math.max(0, g.px - 1);
+      if(dir === 'right') g.px = Math.min(W - 1, g.px + 1);
+      if(dir === 'up') g.py = Math.max(0, g.py - 1);
+      if(dir === 'down') g.py = Math.min(H - 1, g.py + 1);
+      return render();
+    }
+  }
+  // Clicking the screen: graph = put the cursor there; trace = jump along the curve; lists = pick a row.
+  function screenClick(e){
+    const s = st.screen;
+    if(s === 'graph' || s === 'trace'){
+      const r = el('gcCanvas').getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      st.g.result = null; st.g.msg = ''; st.g.entry = null;
+      if(st.g.mode === 'trace'){ st.g.exactX = null; st.g.k = Math.round(px); st.X = traceX(); }
+      else { st.g.px = Math.round(px); st.g.py = Math.round(py); }
+      return render();
+    }
+    const yrow = e.target.closest('[data-yrow]');
+    if(s === 'yeq' && yrow){
+      const row = +yrow.dataset.yrow;
+      st.funcs[st.edit.row].expr = st.edit.buf;
+      if(e.target.tagName === 'SPAN' && e.target.textContent === '='){ st.funcs[row].on = !st.funcs[row].on; }   // click "=" to switch a graph on/off
+      editYRow(row);
+      return render();
+    }
+    const frow = e.target.closest('[data-frow]');
+    if((s === 'window' || s === 'tblset') && frow){ if(commitEdit()) loadField(+frow.dataset.frow); return render(); }
+    const mrow = e.target.closest('[data-mrow]');
+    if((s === 'zoom' || s === 'calc') && mrow){ st.menu.sel = +mrow.dataset.mrow; return enter(); }
+  }
+
+  // ---------- keypad ----------
+  // [label, action, second label, second action, class]. Actions starting with ":" insert text.
+  const KEYS = [
+    ['Y=', 'yeq', '', '', 'menu'], ['WINDOW', 'window', 'TBLSET', 'tblset', 'menu'], ['ZOOM', 'zoom', '', '', 'menu'],
+    ['TRACE', 'trace', 'CALC', 'calc', 'menu'], ['GRAPH', 'graph', 'TABLE', 'table', 'menu'],
+    ['2nd', '2nd', '', '', 'second'], ['MODE', 'mode', 'QUIT', 'quit', ''], ['DEL', 'del', '', '', ''], 'PAD',
+    ['X,T,θ,n', ':X', '', '', ''], ['CLEAR', 'clear', '', '', ''], ['abs', ':abs(', '', '', ''],
+    ['x⁻¹', ':⁻¹', '', '', ''], ['sin', ':sin(', 'sin⁻¹', ':sin⁻¹(', ''], ['cos', ':cos(', 'cos⁻¹', ':cos⁻¹(', ''], ['tan', ':tan(', 'tan⁻¹', ':tan⁻¹(', ''], ['^', ':^', 'π', ':π', 'op'],
+    ['x²', ':²', '√', ':√(', ''], ['EE', ':ᴇ', '', '', ''], ['(', ':(', '', '', ''], [')', ':)', '', '', ''], ['÷', ':/', 'e', ':e', 'op'],
+    ['log', ':log(', '10ˣ', ':10^(', ''], ['7', ':7', '', '', 'num'], ['8', ':8', '', '', 'num'], ['9', ':9', '', '', 'num'], ['×', ':*', '', '', 'op'],
+    ['ln', ':ln(', 'eˣ', ':e^(', ''], ['4', ':4', '', '', 'num'], ['5', ':5', '', '', 'num'], ['6', ':6', '', '', 'num'], ['−', ':−', '', '', 'op'],
+    ['π', ':π', '', '', ''], ['1', ':1', '', '', 'num'], ['2', ':2', '', '', 'num'], ['3', ':3', '', '', 'num'], ['+', ':+', '', '', 'op'],
+    ['Ans', ':Ans', '', '', ''], ['0', ':0', '', '', 'num'], ['.', ':.', '', '', 'num'], ['(−)', ':-', 'ANS', ':Ans', 'num'], ['ENTER', 'enter', 'ENTRY', 'entry', 'enter'],
+  ];
+  function press(action, second){
+    const use = st.shift && second ? second : action;
+    if(use === '2nd') return key('2nd');
+    st.shift = false;   // any other key uses up a pending 2nd
+    if(use.startsWith(':')) return insert(use.slice(1));
+    return key(use);
+  }
+  function buildKeys(){
+    const host = el('gcKeys');
+    let html = '';
+    for(const k of KEYS){
+      if(k === 'PAD'){
+        html += '<div class="gc-pad">' + [['up', '▲'], ['left', '◀'], ['right', '▶'], ['down', '▼']]
+          .map(([d, l]) => `<button type="button" class="gc-key ${d}" data-act="${d}" data-repeat="1" title="${d}">${l}</button>`).join('') + '</div>';
+        continue;
+      }
+      const [label, act, l2, a2, cls] = k;
+      html += `<button type="button" class="gc-key ${cls}" data-act="${esc(act)}"${a2 ? ` data-act2="${esc(a2)}" data-second="${esc(l2)}"` : ''}${act === 'del' ? ' data-repeat="1"' : ''}>${esc(label)}</button>`;
+    }
+    host.innerHTML = html;
+    let timer = null;
+    const stop = () => { clearTimeout(timer); clearInterval(timer); timer = null; };
+    host.addEventListener('pointerdown', e => {
+      const b = e.target.closest('.gc-key'); if(!b) return;
+      e.preventDefault();
+      el('gcBody').focus({preventScroll: true});
+      press(b.dataset.act, b.dataset.act2);
+      if(b.dataset.repeat){ stop(); timer = setTimeout(() => { timer = setInterval(() => press(b.dataset.act), 45); }, 380); }
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => host.addEventListener(t, stop));
+  }
+  function onKeydown(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    const map = {Enter: 'enter', Backspace: 'del', Escape: 'clear', ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down'};
+    let handled = true;
+    if(map[e.key]) key(map[e.key]);
+    else if(e.key === 'Delete') delForward();
+    else if(/^[0-9.+\-*/^(),!]$/.test(e.key)) insert(e.key);
+    else if(e.key === 'x' || e.key === 'X') insert('X');
+    else if(/^[a-zA-Z]$/.test(e.key) && (st.screen === 'home' || st.screen === 'yeq' || st.screen === 'window' || st.screen === 'tblset')) insert(e.key);
+    else handled = false;
+    if(handled){ e.preventDefault(); e.stopPropagation(); }
+  }
+  function wire(){
+    if(!el('graphCalcModal')) return;
+    buildKeys();
+    el('gcBody').addEventListener('keydown', onKeydown);
+    el('gcScreen').addEventListener('click', screenClick);
+    window.addEventListener('resize', () => { if(!el('graphCalcModal').classList.contains('hidden')) render(); });
+    render();
+  }
+  return {wire, render, state: st, key, insert, press};
+})();
+
+(function(){
+  if(!document.getElementById('graphCalcModal')) return;
+  GraphCalc.wire();
+  if(typeof makeModalDraggable === 'function') makeModalDraggable('graphCalcModal', 'graphCalcHeader', 'closeGraphCalcBtn');
+  const open = document.getElementById('openGraphCalcBtn');
+  if(open) open.addEventListener('click', () => {
+    document.getElementById('graphCalcModal').classList.remove('hidden');
+    GraphCalc.render();
+    setTimeout(() => document.getElementById('gcBody').focus({preventScroll: true}), 30);
+  });
+  document.getElementById('closeGraphCalcBtn').addEventListener('click', () => document.getElementById('graphCalcModal').classList.add('hidden'));
+})();
+</script>
