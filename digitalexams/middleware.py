@@ -21,7 +21,7 @@ Exempt paths
 Some paths must work *without* a school slug:
 
 * ``/admin/``                — Django admin (platform super-admins)
-* ``/superadmin/``          — ExamHub super-admin dashboard (Step 6)
+* ``/superadmin/``          — ExamNook super-admin dashboard (Step 6)
 * ``/__debug__/``           — Django Debug Toolbar (dev only)
 * Any path listed in the ``TENANT_EXEMPT_PATHS`` setting
 
@@ -96,7 +96,11 @@ class SchoolTenantMiddleware:
                 if request.user.is_superuser:
                     return redirect('/superadmin/')
                 return redirect('/admin/')
-            return redirect('login')
+            # Signed out: the public landing page (what ExamNook is + a way into each school).
+            from digitalexams.views import landing
+            request.school = None
+            request.school_url_prefix = ''
+            return landing(request)
 
         # ----------------------------------------------------------------
         # 1. Check exempt paths first — no tenant resolution required.

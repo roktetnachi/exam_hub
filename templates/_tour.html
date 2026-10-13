@@ -40,7 +40,7 @@
   const nav = (path) => `.topnav a[href="{{ request.school_url_prefix|default:'' }}${path}"]`;
   const ACCOUNT = '#accountMenuBtn, .who';
 
-  const welcome = (who, line) => ({icon:'wave', title:`Welcome to ExamHub${NAME ? ', ' + NAME : ''}!`,
+  const welcome = (who, line) => ({icon:'wave', title:`Welcome to ExamNook${NAME ? ', ' + NAME : ''}!`,
     body:`You're signed in as <strong>${who}</strong>. ${line} This quick tour takes under a minute — use <strong>Next</strong> or your arrow keys.`});
   const assignmentsStep = {target: nav('/'), title:'Exams', body:'Your home page. Every exam lives here — open one to monitor pupils live, chat with them, and grade and publish results.'};
   const activityStep = {target: nav('/activity/'), title:'Activity', body:'A timeline of what\'s happened — exams created, submissions, grading and year group/subject changes. Filter it by year group or type.'};

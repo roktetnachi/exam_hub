@@ -1,6 +1,6 @@
 """File storage that keeps every upload on local disk AND in the database.
 
-Why: ExamHub runs from more than one place against one shared database (a local copy and
+Why: ExamNook runs from more than one place against one shared database (a local copy and
 the Railway deployment), and Railway's disk is wiped on every deploy. With plain disk
 storage, a PDF uploaded on one machine (or before a redeploy) is missing everywhere else —
 pupils' and teachers' viewers then fail to open it. Reading here prefers the local disk

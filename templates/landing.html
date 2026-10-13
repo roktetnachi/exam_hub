@@ -1,0 +1,1091 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ExamNook — digital exams for schools</title>
+<meta name="description" content="ExamNook is where pupils sit timed exams on a laptop or iPad — highlighting the text, making notes and writing their answers — and where teachers set, watch over and mark them.">
+<meta name="theme-color" content="#1c3a6e">
+<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}">
+<link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
+<link rel="preload" href="{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Every font, image and script on this page is served by ExamNook itself — nothing loads from outside. */
+  @font-face{font-family:'Outfit Var';font-weight:100 900;font-style:normal;font-display:swap;src:url("{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'Inter Var';font-weight:100 900;font-style:normal;font-display:swap;src:url("{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'Atkinson Hyperlegible';font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-400-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'OpenDyslexic';font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-normal.woff2' %}") format('woff2');}
+
+  /* ExamNook colours. Deep blue leads, ash red is kept for actions, egg white is the card,
+     slate ink is the text, and a cool blue mist sits behind it all so the warm cards lift off it. */
+  :root{
+    --navy:#1c3a6e; --navy-deep:#122a52; --navy-mid:#2c5291; --navy-soft:#dce4f1;
+    --ash:#b2554b; --ash-deep:#954238; --ash-soft:#f3dcd6;
+    --egg:#f7f1e4; --egg-deep:#efe5d1; --egg-line:#e4d8c1;
+    --mist:#edf0f5; --mist-line:#d5dce8;
+    --ink:#1d2433; --text:#4a5263; --soft:#687083;
+    --hl:#ffe36e;
+    --display:'Outfit Var','Inter Var',system-ui,sans-serif;
+    --font:'Inter Var',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --wrap:1240px; --r:28px;
+    --ease:cubic-bezier(.22,.8,.24,1);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  html.lenis,html.lenis body{height:auto;}
+  .lenis.lenis-smooth{scroll-behavior:auto !important;}
+  body{margin:0;background:var(--mist);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  img{display:block;max-width:100%;}
+  a{color:inherit;}
+  button{font:inherit;}
+  :focus-visible{outline:3px solid var(--ash);outline-offset:3px;border-radius:10px;}
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 32px;}
+  h1,h2,h3{margin:0;font-family:var(--display);font-weight:500;letter-spacing:-.03em;color:var(--ink);}
+  h2{font-size:clamp(34px,4.4vw,58px);line-height:1.04;}
+  h3{font-size:24px;line-height:1.2;letter-spacing:-.02em;}
+  p{margin:0;}
+  .lede{font-size:19px;line-height:1.55;color:var(--text);max-width:54ch;}
+  .skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;z-index:100;}
+  .skip:focus{left:12px;}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  section{padding:120px 0;scroll-margin-top:90px;position:relative;}
+  @media (max-width:900px){ section{padding:84px 0;} }
+
+  /* small label pill above a heading */
+  .tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 10px;border-radius:999px;background:var(--egg);border:1px solid var(--egg-line);font-size:14.5px;font-weight:500;color:var(--navy);}
+  .tag svg{width:15px;height:15px;color:var(--ash);}
+  .tag.on-navy{background:rgba(247,241,228,.1);border-color:rgba(247,241,228,.28);color:var(--egg);}
+  .tag.on-navy svg{color:#f0b2a8;}
+
+  /* buttons: ash red for actions, an egg-white chip carries the arrow */
+  .btn{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:6px 6px 6px 24px;border-radius:999px;border:0;background:var(--ash);color:#fff;font:600 16.5px/1 var(--font);text-decoration:none;cursor:pointer;
+       box-shadow:inset 0 -2px 0 rgba(0,0,0,.22),0 12px 20px -10px rgba(149,66,56,.55);transition:background .2s,transform .25s var(--ease);}
+  .btn:hover{background:var(--ash-deep);}
+  .btn:active{transform:translateY(1px);}
+  .btn .chip{width:42px;height:42px;border-radius:50%;background:var(--egg);color:var(--ash-deep);display:grid;place-items:center;flex-shrink:0;transition:transform .35s var(--ease);}
+  .btn .chip svg{width:17px;height:17px;}
+  .btn:hover .chip{transform:translateX(3px) rotate(-45deg);}
+  .btn.small{min-height:44px;padding:4px 4px 4px 18px;font-size:15px;gap:10px;}
+  .btn.small .chip{width:36px;height:36px;}
+  .btn-ghost{display:inline-flex;align-items:center;gap:10px;min-height:54px;padding:0 24px;border-radius:999px;font:600 16.5px/1 var(--font);text-decoration:none;color:var(--egg);border:1.5px solid rgba(247,241,228,.45);background:transparent;cursor:pointer;transition:background .2s,border-color .2s;}
+  .btn-ghost:hover{background:rgba(247,241,228,.1);border-color:var(--egg);}
+  .btn-ghost svg{width:18px;height:18px;}
+
+  /* ---------- header ---------- */
+  .top{position:fixed;left:0;right:0;top:14px;z-index:50;padding:0 16px;transition:transform .45s var(--ease);}
+  .top.hide{transform:translateY(-130%);}
+  .top-pill{max-width:var(--wrap);margin:0 auto;display:flex;align-items:center;gap:18px;padding:7px 7px 7px 18px;background:var(--egg);border:1px solid var(--egg-line);border-radius:999px;box-shadow:0 14px 34px -18px rgba(18,42,82,.45);}
+  .logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:-.035em;text-decoration:none;color:var(--navy);}
+  .logo img{width:32px;height:32px;flex-shrink:0;}
+  .nav{display:flex;gap:2px;margin:0 auto;}
+  .nav a{padding:9px 14px;border-radius:999px;font-size:15.5px;font-weight:500;color:var(--text);text-decoration:none;transition:background .2s,color .2s;}
+  .nav a:hover{background:var(--egg-deep);color:var(--navy);}
+  .menu-btn{display:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--egg-line);background:#fff;cursor:pointer;position:relative;flex-shrink:0;}
+  .menu-btn span{position:absolute;left:13px;right:13px;height:2px;background:var(--navy);border-radius:2px;transition:transform .3s var(--ease),top .3s var(--ease);}
+  .menu-btn span:first-child{top:17px;} .menu-btn span:last-child{top:25px;}
+  .menu-btn[aria-expanded="true"] span:first-child{top:21px;transform:rotate(45deg);}
+  .menu-btn[aria-expanded="true"] span:last-child{top:21px;transform:rotate(-45deg);}
+  .mobile-nav{max-width:var(--wrap);margin:8px auto 0;background:var(--egg);border:1px solid var(--egg-line);border-radius:24px;padding:10px;box-shadow:0 20px 40px -16px rgba(18,42,82,.35);display:none;}
+  .mobile-nav.open{display:grid;}
+  .mobile-nav a{padding:14px 16px;border-radius:14px;text-decoration:none;font-size:18px;font-weight:500;color:var(--ink);}
+  .mobile-nav a:hover{background:var(--egg-deep);}
+  .mobile-nav .btn{margin:6px 6px 4px;}
+  @media (max-width:960px){ .nav{display:none;} .top-pill .btn{margin-left:auto;} .menu-btn{display:block;} }
+  @media (max-width:480px){ .top-pill .btn{display:none;} .menu-btn{margin-left:auto;} }
+  @media (min-width:481px){ .mobile-nav .btn{display:none;} }
+
+  /* ---------- hero: a navy sheet of ruled exam paper ---------- */
+  .hero{position:relative;margin:10px;border-radius:var(--r);overflow:hidden;color:var(--egg);padding:150px 0 110px;isolation:isolate;
+        background:
+          repeating-linear-gradient(180deg,transparent 0,transparent 39px,rgba(247,241,228,.07) 39px,rgba(247,241,228,.07) 40px),
+          radial-gradient(120% 90% at 85% 10%,var(--navy-mid) 0%,var(--navy) 45%,var(--navy-deep) 100%);}
+  /* the red margin rule of an exam answer sheet, just left of the text */
+  .hero::before{content:"";position:absolute;top:0;bottom:0;width:2px;left:max(12px,calc((100% - var(--wrap)) / 2 + 4px));background:rgba(240,150,138,.5);z-index:-1;}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:56px;align-items:center;}
+  .hero h1{color:var(--egg);font-size:clamp(44px,6vw,82px);line-height:.98;letter-spacing:-.045em;margin-top:22px;max-width:11.5ch;}
+  .hero .lede{color:rgba(247,241,228,.84);margin-top:24px;}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px;align-items:center;}
+  @media (max-width:1000px){ .hero{padding:124px 0 80px;} .hero-grid{grid-template-columns:minmax(0,1fr);gap:48px;} }
+
+  .w{display:inline-block;}
+  .rise .w{opacity:0;transform:translateY(.45em);transition:opacity .7s var(--ease),transform .9s var(--ease);transition-delay:calc(var(--i) * 55ms);}
+  .rise.in .w{opacity:1;transform:none;}
+  .fade-up{opacity:0;transform:translateY(18px);transition:opacity .8s var(--ease) .35s,transform .9s var(--ease) .35s;}
+  .rise.in ~ .fade-up{opacity:1;transform:none;}
+
+  /* the exam paper you can actually highlight */
+  .stage{position:relative;padding:64px 40px 44px 0;}
+  .paper{position:relative;margin:0;background:#fffdf8;color:#1f2430;border-radius:20px;box-shadow:0 2px 3px rgba(0,0,0,.06),0 44px 70px -30px rgba(5,15,35,.75);overflow:hidden;transform:rotate(-1deg);}
+  .paper-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #ece6d8;font-size:13.5px;color:#5a6170;flex-wrap:wrap;}
+  .sw{width:26px;height:26px;border-radius:8px;border:1px solid rgba(0,0,0,.1);cursor:pointer;padding:0;transition:transform .2s var(--ease);}
+  .sw:hover{transform:translateY(-2px);}
+  .sw[aria-pressed="true"]{outline:2px solid #1f2430;outline-offset:2px;}
+  .sw.clear{background:#fff;display:grid;place-items:center;color:#b2554b;font-size:15px;line-height:1;}
+  .timer{margin-left:auto;background:var(--navy-soft);color:var(--navy);border-radius:999px;padding:5px 12px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .paper-body{padding:24px 30px 32px;}
+  .paper-label{font-size:13.5px;color:#7a8190;}
+  .paper-title{font-family:var(--display);font-size:24px;font-weight:600;letter-spacing:-.02em;margin:2px 0 12px;}
+  .passage{font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.85;color:#2b2f3a;cursor:text;}
+  .passage mark{color:inherit;border-radius:2px;padding:0 1px;background:transparent;transition:background-color .25s;}
+  .passage mark.y{background-color:rgba(255,227,110,.95);} .passage mark.g{background-color:rgba(139,220,122,.75);}
+  .passage mark.c{background-color:rgba(127,224,240,.75);} .passage mark.p{background-color:rgba(245,111,208,.45);}
+  .passage mark.sweep{background-color:transparent;background-image:linear-gradient(rgba(255,227,110,.95),rgba(255,227,110,.95));background-repeat:no-repeat;background-size:0% 100%;}
+  .play .passage mark.sweep{animation:sweep .9s cubic-bezier(.6,.05,.3,1) .9s forwards;}
+  @keyframes sweep{to{background-size:100% 100%;}}
+  .try-hint{position:absolute;left:0;top:10px;display:flex;align-items:center;gap:8px;font-size:14px;color:rgba(247,241,228,.85);}
+  .try-hint svg{width:18px;height:18px;color:#f0b2a8;}
+  .float-card{position:absolute;z-index:3;border-radius:16px;padding:12px 15px;font-size:14px;line-height:1.4;box-shadow:0 20px 40px -18px rgba(5,15,35,.6);opacity:0;transform:translateY(14px);transition:opacity .7s var(--ease),transform .8s var(--ease);}
+  .play .float-card{opacity:1;transform:none;}
+  .f-note{right:-6px;top:170px;width:200px;background:#fff6c4;border:1px solid #efe08a;color:#3d3500;transition-delay:2.4s;transform:translateY(14px) rotate(2deg);}
+  .play .f-note{transform:rotate(2deg);}
+  .f-note b{display:block;font-size:12.5px;font-weight:600;color:#7a6a00;margin-bottom:2px;}
+  .f-saved{left:-30px;bottom:6px;display:flex;align-items:center;gap:12px;max-width:310px;background:var(--egg);color:var(--ink);border:1px solid var(--egg-line);transition-delay:1.3s;}
+  .f-saved .dot{width:32px;height:32px;border-radius:50%;background:var(--navy);color:var(--egg);display:grid;place-items:center;flex-shrink:0;}
+  .f-saved .dot svg{width:15px;height:15px;}
+  .f-saved small{display:block;color:var(--soft);font-size:12.5px;}
+  @media (max-width:1180px){ .f-saved{left:-8px;} }
+  @media (max-width:560px){
+    .stage{padding:48px 0 70px;}
+    .paper-body{padding:18px 18px 22px;} .passage{font-size:15.5px;}
+    .f-note{position:relative;right:auto;top:auto;width:auto;max-width:240px;margin:-24px 8px 0 auto;}
+    .f-saved{left:8px;right:8px;bottom:0;max-width:none;}
+  }
+
+  /* ---------- what it is ---------- */
+  .statement{font-family:var(--display);font-size:clamp(30px,4.2vw,56px);line-height:1.1;letter-spacing:-.035em;font-weight:500;max-width:23ch;margin-top:26px;}
+  .fill .w{color:#b9c2d3;transition:color .35s;}
+  .fill .w.on{color:var(--ink);}
+  .bento{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;margin-top:64px;}
+  .card{background:var(--egg);border:1px solid var(--egg-line);border-radius:var(--r);padding:34px;position:relative;overflow:hidden;}
+  .card.navy{background:var(--navy);border-color:var(--navy);color:var(--egg);}
+  .big-num{font-family:var(--display);font-size:clamp(76px,8.5vw,120px);line-height:.9;font-weight:500;letter-spacing:-.06em;font-variant-numeric:tabular-nums;color:var(--navy);}
+  .card.navy .big-num{color:var(--egg);}
+  .card .label{font-family:var(--display);font-size:22px;font-weight:500;letter-spacing:-.02em;margin-top:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px;}
+  .chips button{border:1px solid var(--egg-line);background:#fffdf8;color:var(--ink);border-radius:999px;padding:9px 15px;font-size:15px;font-weight:500;cursor:pointer;transition:background .2s,color .2s,border-color .2s;}
+  .chips button:hover{border-color:var(--navy);}
+  .chips button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--egg);}
+  .explain{margin-top:18px;padding:16px 18px;border-radius:18px;background:#fffdf8;border:1px solid var(--egg-line);color:var(--text);min-height:82px;}
+  .explain b{color:var(--ink);font-weight:600;}
+  .modes{display:grid;gap:8px;margin-top:22px;}
+  .modes button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 16px;border-radius:16px;border:1px solid rgba(247,241,228,.16);background:rgba(247,241,228,.06);color:var(--egg);font-weight:500;cursor:pointer;transition:background .2s,border-color .2s;}
+  .modes button:hover{background:rgba(247,241,228,.12);}
+  .modes button[aria-pressed="true"]{background:var(--egg);color:var(--navy);border-color:var(--egg);}
+  .modes button svg{width:18px;height:18px;flex-shrink:0;}
+  .card.navy .explain{background:rgba(247,241,228,.08);border-color:rgba(247,241,228,.16);color:rgba(247,241,228,.86);}
+  .card.navy .explain b{color:var(--egg);}
+  @media (max-width:900px){ .bento{grid-template-columns:minmax(0,1fr);} .card{padding:26px;} }
+
+  /* ---------- screens tour ---------- */
+  #screens{padding-top:40px;}
+  .tour-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:40px;}
+  .tour-head h2{max-width:15ch;margin-top:20px;}
+  .who-switch{display:inline-flex;padding:5px;border-radius:999px;background:var(--egg);border:1px solid var(--egg-line);}
+  .who-switch button{border:0;background:transparent;border-radius:999px;padding:11px 22px;font-size:16px;font-weight:600;color:var(--text);cursor:pointer;transition:background .25s,color .25s;}
+  .who-switch button[aria-pressed="true"]{background:var(--navy);color:var(--egg);}
+  .tour{display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,2fr);gap:22px;align-items:start;}
+  .feats{display:grid;gap:8px;list-style:none;margin:0;padding:0;}
+  .feat{width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:20px;padding:16px 18px 16px;cursor:pointer;color:var(--ink);position:relative;overflow:hidden;transition:background .25s,border-color .25s;}
+  .feat:hover{background:rgba(247,241,228,.6);}
+  .feat[aria-selected="true"]{background:var(--egg);border-color:var(--egg-line);}
+  .feat strong{display:block;font-family:var(--display);font-size:20px;font-weight:500;letter-spacing:-.02em;}
+  .feat span{display:block;color:var(--text);font-size:15.5px;margin-top:4px;max-height:0;opacity:0;overflow:hidden;transition:max-height .45s var(--ease),opacity .35s;}
+  .feat[aria-selected="true"] span{max-height:90px;opacity:1;}
+  .feat .bar{position:absolute;left:18px;right:18px;bottom:8px;height:3px;border-radius:3px;background:var(--egg-line);opacity:0;}
+  .feat[aria-selected="true"] .bar{opacity:1;}
+  .feat .bar i{display:block;height:100%;width:0;border-radius:3px;background:var(--ash);}
+  .viewer{position:relative;border-radius:var(--r);background:var(--egg);border:1px solid var(--egg-line);padding:12px;box-shadow:0 40px 70px -40px rgba(18,42,82,.5);}
+  .viewer-frame{position:relative;border-radius:18px;overflow:hidden;background:var(--mist);aspect-ratio:1600/937;cursor:zoom-in;}
+  .viewer-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;opacity:0;transform:scale(1.015);transition:opacity .55s var(--ease),transform .9s var(--ease);}
+  .viewer-frame img.contain{object-fit:contain;background:var(--mist);}
+  .viewer-frame img.on{opacity:1;transform:none;}
+  .viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 6px 2px;font-size:14.5px;color:var(--soft);}
+  .zoom{border:0;background:transparent;color:var(--navy);font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;}
+  .zoom:hover{background:var(--egg-deep);}
+  .zoom svg{width:16px;height:16px;}
+  @media (max-width:900px){
+    .tour{grid-template-columns:minmax(0,1fr);}
+    .feats{display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;scrollbar-width:none;margin:0 -20px;padding-left:20px;padding-right:20px;}
+    .feats::-webkit-scrollbar{display:none;}
+    .feats li{flex:0 0 auto;}
+    .feat{padding:11px 16px 14px;border-color:var(--egg-line);background:rgba(247,241,228,.5);}
+    .feat strong{font-size:16px;white-space:nowrap;}
+    .feat span{display:none;}
+    .feat .bar{left:14px;right:14px;bottom:5px;}
+    .tour .viewer{order:2;}
+    .mobile-desc{display:block !important;}
+  }
+  .mobile-desc{display:none;color:var(--text);margin-top:6px;padding:0 6px;}
+
+  /* ---------- how it works: stacked cards, each its own colour, each with a real screen ---------- */
+  .head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px 60px;align-items:end;margin-bottom:56px;}
+  .head .tag{grid-column:1/-1;justify-self:start;}
+  @media (max-width:900px){ .head{grid-template-columns:minmax(0,1fr);margin-bottom:40px;} }
+  .stack{display:grid;gap:24px;list-style:none;margin:0;padding:0;}
+  .step{position:sticky;top:calc(100px + var(--n) * 14px);border-radius:var(--r);padding:38px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:40px;align-items:center;min-height:440px;
+        transform-origin:50% 0;will-change:transform;box-shadow:0 -24px 50px -34px rgba(18,42,82,.45);border:1px solid transparent;}
+  .step.t-egg{background:var(--egg);border-color:var(--egg-line);}
+  .step.t-navy{background:var(--navy);color:var(--egg);}
+  .step.t-sky{background:var(--navy-soft);border-color:#c8d4e8;}
+  .step-num{font-family:var(--display);font-size:clamp(64px,7vw,100px);font-weight:600;line-height:.85;letter-spacing:-.05em;color:transparent;-webkit-text-stroke:1.6px var(--navy);}
+  .t-navy .step-num{-webkit-text-stroke-color:rgba(247,241,228,.7);}
+  .step h3{font-size:clamp(32px,3.4vw,46px);letter-spacing:-.04em;margin-top:18px;}
+  .t-navy h3{color:var(--egg);}
+  .step p{color:var(--text);margin-top:10px;font-size:18px;max-width:40ch;}
+  .t-navy p{color:rgba(247,241,228,.82);}
+  .ticks{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:10px;}
+  .ticks li{display:flex;gap:12px;align-items:flex-start;font-size:16.5px;opacity:.35;transform:translateX(-6px);transition:opacity .5s var(--ease),transform .5s var(--ease);}
+  .ticks li:nth-child(2){transition-delay:.12s;} .ticks li:nth-child(3){transition-delay:.24s;}
+  .step.live .ticks li{opacity:1;transform:none;}
+  .ticks svg{width:22px;height:22px;flex-shrink:0;color:var(--ash);}
+  .t-navy .ticks svg{color:#f0b2a8;}
+  .step-shot{position:relative;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 26px 50px -30px rgba(18,42,82,.6);cursor:zoom-in;border:0;padding:0;display:block;width:100%;}
+  .step-shot img{width:100%;height:auto;transition:transform .8s var(--ease);}
+  .step-shot:hover img{transform:scale(1.025);}
+  .step-shot.tall{max-height:400px;}
+  .step-shot.tall img{object-fit:cover;object-position:top;height:400px;}
+  @media (max-width:900px){
+    .step{grid-template-columns:minmax(0,1fr);padding:28px 22px;gap:24px;min-height:0;position:relative;top:auto;transform:none !important;filter:none !important;}
+    .step-shot.tall,.step-shot.tall img{height:300px;max-height:300px;}
+  }
+
+  /* ---------- fair: try leaving the exam ---------- */
+  .band{margin:0 10px;border-radius:var(--r);color:var(--egg);
+        background:repeating-linear-gradient(180deg,transparent 0,transparent 39px,rgba(247,241,228,.06) 39px,rgba(247,241,228,.06) 40px),linear-gradient(160deg,var(--navy-deep),var(--navy) 60%,var(--navy-mid));}
+  .band h2{color:var(--egg);}
+  .band .lede{color:rgba(247,241,228,.82);}
+  .fair-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start;}
+  .lockdemo{background:var(--egg);color:var(--ink);border-radius:var(--r);padding:16px;}
+  .lockdemo-cap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 6px 14px;font-size:14.5px;color:var(--text);}
+  .mini{position:relative;border-radius:18px;background:#fffdf8;border:1px solid var(--egg-line);overflow:hidden;min-height:260px;}
+  .mini-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--egg-line);font-size:13.5px;color:var(--soft);}
+  .mini-bar .timer{font-size:13px;}
+  .mini-body{padding:18px 20px;}
+  .mini-body .q{font-weight:600;}
+  .mini-lines{margin-top:14px;display:grid;gap:9px;}
+  .mini-lines i{display:block;height:9px;border-radius:5px;background:#ece6d8;}
+  .locked{position:absolute;inset:0;background:#15305e;color:var(--egg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:10px;opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s;}
+  .mini.is-locked .locked{opacity:1;visibility:visible;}
+  .locked .ico{width:46px;height:46px;border-radius:50%;background:var(--ash);display:grid;place-items:center;}
+  .locked .ico svg{width:22px;height:22px;color:#fff;}
+  .locked strong{font-family:var(--display);font-size:22px;font-weight:500;}
+  .locked form{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center;}
+  .locked input{min-height:44px;border-radius:12px;border:1px solid rgba(247,241,228,.4);background:rgba(247,241,228,.1);color:var(--egg);padding:0 14px;font-size:16px;width:170px;}
+  .locked input::placeholder{color:rgba(247,241,228,.55);}
+  .locked .err{min-height:20px;font-size:14px;color:#f6c1b8;}
+  .lock-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;padding:0 4px;}
+  .teacher-peek{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px 14px;border-radius:16px;background:var(--mist);border:1px solid var(--mist-line);font-size:14.5px;opacity:.45;transition:opacity .35s;}
+  .teacher-peek.on{opacity:1;}
+  .teacher-peek .pill{padding:3px 10px;border-radius:999px;background:#e8eef6;color:var(--navy);font-weight:600;font-size:13px;}
+  .teacher-peek.on .pill{background:var(--ash);color:#fff;}
+  .teacher-peek code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;color:var(--ash-deep);}
+  .fair-list{list-style:none;margin:0;padding:0;display:grid;gap:10px;}
+  .fair-list li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:4px 14px;padding:16px;border-radius:20px;background:rgba(247,241,228,.06);border:1px solid rgba(247,241,228,.14);}
+  .fair-list .ico{width:44px;height:44px;border-radius:14px;background:var(--egg);color:var(--navy);display:grid;place-items:center;grid-row:span 2;}
+  .fair-list .ico svg{width:21px;height:21px;}
+  .fair-list b{font-family:var(--display);font-size:19px;font-weight:500;color:var(--egg);}
+  .fair-list span{color:rgba(247,241,228,.78);font-size:15.5px;}
+  @media (max-width:980px){ .fair-wrap{grid-template-columns:minmax(0,1fr);} }
+
+  /* ---------- accessibility demo ---------- */
+  .try{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:16px;}
+  .controls{display:flex;flex-direction:column;gap:24px;}
+  .ctl-label{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:10px;}
+  .seg{display:flex;flex-wrap:wrap;gap:6px;padding:5px;background:#fffdf8;border:1px solid var(--egg-line);border-radius:18px;}
+  .seg button{flex:1 1 auto;min-height:44px;padding:0 14px;border-radius:13px;border:0;background:transparent;font:500 15px/1 var(--font);color:var(--text);cursor:pointer;transition:background .2s,color .2s;}
+  .seg button:hover{color:var(--navy);}
+  .seg button[aria-pressed="true"]{background:var(--navy);color:var(--egg);}
+  .sample-card{background:var(--navy);border-color:var(--navy);padding:16px;display:flex;}
+  .sample{flex:1;border-radius:18px;padding:34px;background:#fffdf8;position:relative;transition:background .3s,color .3s;font-size:calc(18px * var(--s,1));line-height:1.65;color:#1f2430;}
+  .sample .q-label{font-size:14px;color:#7a8190;font-family:var(--font);}
+  .sample .q{margin-top:8px;}
+  .sample .opts{margin-top:18px;display:grid;gap:8px;}
+  .sample .opt{border:1px solid #e3e7ee;border-radius:14px;padding:11px 15px;display:flex;gap:12px;}
+  .sample .opt b{font-weight:600;}
+  .sample.f-readable{font-family:'Atkinson Hyperlegible',sans-serif;}
+  .sample.f-dyslexic{font-family:'OpenDyslexic',sans-serif;letter-spacing:.02em;}
+  .sample.f-standard{font-family:Arial,Helvetica,sans-serif;}
+  .sample.t-night{background:#121026;color:#ece9ff;}
+  .sample.t-night .q-label{color:#a9a3d0;} .sample.t-night .opt{border-color:#3a3566;}
+  .sample::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:multiply;}
+  .sample.o-cream::after{background:rgba(255,232,150,.4);}
+  .sample.o-blue::after{background:rgba(150,195,255,.36);}
+  .speak{align-self:flex-start;}
+  @media (max-width:900px){ .try{grid-template-columns:minmax(0,1fr);} .sample{padding:24px;} }
+
+  /* ---------- schools ---------- */
+  .fan-card{text-align:center;padding:70px 40px 60px;}
+  .fan{position:relative;height:330px;max-width:720px;margin:0 auto 30px;}
+  .fan img{position:absolute;left:50%;bottom:0;width:220px;height:auto;border-radius:14px;border:6px solid #fff;box-shadow:0 24px 50px -24px rgba(18,42,82,.55);transition:transform .7s var(--ease);}
+  .fan img.mid{width:420px;bottom:20px;z-index:2;transform:translateX(-50%);}
+  .fan img.l{transform:translateX(-112%) rotate(-9deg);}
+  .fan img.r{transform:translateX(12%) rotate(9deg);}
+  .fan:hover img.l,.fan-card:focus-within img.l{transform:translateX(-142%) rotate(-14deg) translateY(-8px);}
+  .fan:hover img.r,.fan-card:focus-within img.r{transform:translateX(42%) rotate(14deg) translateY(-8px);}
+  .fan:hover img.mid{transform:translateX(-50%) translateY(-10px) scale(1.03);}
+  .fan-card h2{max-width:16ch;margin:18px auto 0;}
+  .fan-card .lede{margin:16px auto 0;}
+  .points{list-style:none;padding:0;margin:32px auto 34px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:860px;text-align:left;}
+  .points li{display:flex;gap:12px;padding:16px 18px;border-radius:18px;background:#fffdf8;border:1px solid var(--egg-line);font-size:16.5px;}
+  .points svg{width:21px;height:21px;flex-shrink:0;margin-top:2px;color:var(--ash);}
+  @media (max-width:760px){ .fan-card{padding:44px 20px 40px;} .fan{height:220px;} .fan img{width:130px;} .fan img.mid{width:260px;} .points{grid-template-columns:minmax(0,1fr);} }
+
+  /* ---------- FAQ ---------- */
+  .faq-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:40px 70px;align-items:start;}
+  .faq-grid h2{margin-top:20px;}
+  .faq-list{display:grid;gap:10px;}
+  .qa{background:var(--egg);border:1px solid var(--egg-line);border-radius:22px;overflow:hidden;}
+  .qa button{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 24px;cursor:pointer;font-size:19px;font-weight:500;letter-spacing:-.01em;}
+  .qa button:focus-visible{outline:3px solid var(--ash);outline-offset:-3px;border-radius:22px;}
+  .qa .pm{width:38px;height:38px;border-radius:50%;background:#fffdf8;border:1px solid var(--egg-line);display:grid;place-items:center;flex-shrink:0;transition:transform .4s var(--ease),background .3s,color .3s;color:var(--navy);}
+  .qa .pm svg{width:16px;height:16px;}
+  .qa[data-open="true"] .pm{transform:rotate(45deg);background:var(--navy);color:var(--egg);border-color:var(--navy);}
+  .qa .ans{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease);}
+  .qa[data-open="true"] .ans{grid-template-rows:1fr;}
+  .qa .ans > div{overflow:hidden;}
+  .qa .ans p{padding:0 24px 24px;color:var(--text);max-width:62ch;}
+  @media (max-width:900px){ .faq-grid{grid-template-columns:minmax(0,1fr);} }
+
+  /* ---------- footer with sign-in ---------- */
+  footer{margin:0 10px 10px;border-radius:var(--r);background:var(--navy-deep);color:#d9dfea;padding:90px 0 0;overflow:hidden;scroll-margin-top:90px;}
+  .signin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px 60px;align-items:start;}
+  .signin h2{color:var(--egg);margin-top:20px;}
+  .signin .lede{color:#b4c0d4;margin-top:16px;}
+  .schools{display:grid;gap:10px;list-style:none;padding:0;margin:0;}
+  .school{display:flex;align-items:center;gap:14px;padding:12px 12px 12px 14px;border-radius:20px;background:rgba(247,241,228,.06);border:1px solid rgba(247,241,228,.14);text-decoration:none;color:var(--egg);font-size:18px;font-weight:500;transition:background .25s,border-color .25s;}
+  .school:hover{background:rgba(247,241,228,.1);border-color:rgba(247,241,228,.4);}
+  .school img{height:40px;width:40px;object-fit:contain;border-radius:10px;background:#fff;padding:3px;}
+  .school .init{width:40px;height:40px;border-radius:12px;background:var(--egg);color:var(--navy);display:grid;place-items:center;font-weight:600;}
+  .school .go{margin-left:auto;width:40px;height:40px;border-radius:50%;background:rgba(247,241,228,.1);display:grid;place-items:center;transition:background .25s,transform .35s var(--ease);}
+  .school .go svg{width:16px;height:16px;}
+  .school:hover .go{background:var(--ash);color:#fff;transform:rotate(-45deg);}
+  .signin select{width:100%;min-height:56px;border-radius:18px;padding:0 16px;font:inherit;font-size:17px;background:rgba(247,241,228,.06);color:var(--egg);border:1px solid rgba(247,241,228,.2);}
+  .signin select option{color:var(--ink);}
+  .signin label{display:block;color:#b4c0d4;font-size:15px;margin-bottom:10px;}
+  .help{margin-top:16px;color:#9aa8bf;font-size:15px;}
+  .foot-cols{display:flex;flex-wrap:wrap;gap:20px 46px;margin-top:80px;padding:30px 0 36px;border-top:1px solid rgba(247,241,228,.12);font-size:15px;align-items:center;}
+  .foot-cols .logo{color:var(--egg);}
+  .foot-cols nav{display:flex;flex-wrap:wrap;gap:8px 24px;}
+  .foot-cols a{color:#b4c0d4;text-decoration:none;}
+  .foot-cols a:hover{color:var(--egg);}
+  .foot-cols .copy{margin-left:auto;color:#8695ae;}
+  @media (max-width:860px){ .signin{grid-template-columns:minmax(0,1fr);} footer{padding-top:64px;} .foot-cols .copy{margin-left:0;} }
+
+  /* ---------- full-size screenshot viewer ---------- */
+  .lightbox{position:fixed;inset:0;z-index:80;background:rgba(10,20,40,.86);display:flex;align-items:center;justify-content:center;padding:28px;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;}
+  .lightbox.open{opacity:1;visibility:visible;}
+  .lightbox img{max-width:min(1500px,100%);max-height:calc(100vh - 110px);width:auto;height:auto;border-radius:16px;box-shadow:0 40px 80px -30px rgba(0,0,0,.7);background:#fff;}
+  .lightbox figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .lightbox figcaption{color:var(--egg);font-size:15.5px;text-align:center;}
+  .lightbox .close{position:absolute;top:18px;right:18px;width:48px;height:48px;border-radius:50%;border:0;background:var(--egg);color:var(--navy);cursor:pointer;display:grid;place-items:center;}
+  .lightbox .close svg{width:18px;height:18px;transform:rotate(45deg);}
+
+  @media (max-width:560px){
+    .wrap{padding:0 20px;}
+    body{font-size:16.5px;}
+    .lede{font-size:17.5px;}
+    .hero,.band{margin:6px;}
+    .hero::before{display:none;}
+    #viewerCaption{font-size:13px;}
+    footer{margin:0 6px 6px;}
+    .top{padding:0 8px;top:8px;}
+    .cta-row .btn,.cta-row .btn-ghost{width:100%;}
+    .cta-row .btn-ghost{justify-content:center;}
+    .card{padding:22px;}
+    .qa button{font-size:17px;padding:18px;}
+    .qa .ans p{padding:0 18px 20px;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;}
+    .rise .w,.fade-up,.float-card{opacity:1;transform:none;}
+    .f-note{transform:rotate(2deg);}
+    .passage mark.sweep{background-size:100% 100%;}
+    .fill .w{color:var(--ink);}
+    .step{transform:none !important;filter:none !important;}
+    .ticks li{opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2c.6 4.8 2.9 8.2 10 10-7.1 1.8-9.4 5.2-10 10-.6-4.8-2.9-8.2-10-10 7.1-1.8 9.4-5.2 10-10z" fill="currentColor"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".14"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-zoom" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top" id="top">
+  <div class="top-pill">
+    <a class="logo" href="/" aria-label="ExamNook home"><img src="{% static 'digitalexams/brand/examnook-mark.svg' %}" alt="" width="32" height="32">ExamNook</a>
+    <nav class="nav" aria-label="On this page">
+      <a href="#screens">Screens</a>
+      <a href="#how">How it works</a>
+      <a href="#fair">Fair and secure</a>
+      <a href="#access">Accessibility</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn small" href="#signin">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+    <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Menu"><span></span><span></span></button>
+  </div>
+  <nav class="mobile-nav" id="mobileNav" aria-label="On this page">
+    <a href="#screens">Screens</a>
+    <a href="#how">How it works</a>
+    <a href="#fair">Fair and secure</a>
+    <a href="#access">Accessibility</a>
+    <a href="#faq">FAQ</a>
+    <a class="btn" href="#signin">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+  </nav>
+</header>
+
+<main id="main">
+  <div class="hero" id="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Digital exams for schools</span>
+          <h1 class="rise" data-split aria-label="Exams on screen that still feel like paper.">Exams on screen that still feel like paper.</h1>
+          <p class="lede fade-up">ExamNook is where pupils sit timed exams on a laptop or iPad — highlighting the text, making notes and writing their answers — and where teachers set, watch over and mark them.</p>
+          <div class="cta-row fade-up">
+            <a class="btn" href="#signin">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+            <a class="btn-ghost" href="#screens"><svg><use href="#i-play"/></svg>See it in action</a>
+          </div>
+        </div>
+
+        <div class="stage" id="stage">
+          <p class="try-hint"><svg><use href="#i-pen"/></svg>Try it: pick a colour, then select words to highlight them.</p>
+          <figure class="paper">
+            <div class="paper-bar" role="group" aria-label="Highlighter colour">
+              <button type="button" class="sw" data-hl="y" aria-pressed="true" aria-label="Yellow highlighter" style="background:#ffe36e"></button>
+              <button type="button" class="sw" data-hl="g" aria-pressed="false" aria-label="Green highlighter" style="background:#8bdc7a"></button>
+              <button type="button" class="sw" data-hl="c" aria-pressed="false" aria-label="Blue highlighter" style="background:#7fe0f0"></button>
+              <button type="button" class="sw" data-hl="p" aria-pressed="false" aria-label="Pink highlighter" style="background:#f56fd0"></button>
+              <button type="button" class="sw clear" id="hlClear" aria-label="Remove your highlights">&times;</button>
+              <span class="timer" id="heroTimer" aria-hidden="true">1:14:32</span>
+            </div>
+            <div class="paper-body">
+              <div class="paper-label">Paper 1, Text 1</div>
+              <div class="paper-title">The Keeper</div>
+              <p class="passage" id="passage">Every evening the keeper climbed the hundred and twelve steps, <mark class="sweep">counting them aloud as if the tower might have changed its mind</mark>. Below him the sea kept its own count, wave after wave, patient and unhurried. When the lamp finally caught, the whole coast seemed to lean towards it.</p>
+            </div>
+          </figure>
+          <div class="float-card f-note" aria-hidden="true"><b>My note</b>The tower seems to decide things. Personification?</div>
+          <div class="float-card f-saved" aria-hidden="true"><span class="dot"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Saved a few seconds ago<small>Kept on this device if the Wi-Fi drops</small></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="about" aria-labelledby="about-h">
+    <div class="wrap">
+      <span class="tag"><svg><use href="#i-spark"/></svg>What it is</span>
+      <h2 id="about-h" class="statement fill" data-split>Pupils highlight, annotate and write. Teachers set, watch over and mark. Everything a paper exam does, plus what paper can't.</h2>
+
+      <div class="bento">
+        <div class="card">
+          <div class="big-num" data-count="10">10</div>
+          <div class="label">kinds of question and material</div>
+          <div class="chips" id="typeChips" role="group" aria-label="Question and material types">
+            <button type="button" aria-pressed="true" data-explain="Pupils write with bold, lists and tables, and see a live word count (counted by character for Chinese).">Long answer</button>
+            <button type="button" aria-pressed="false" data-explain="A PDF text pupils can highlight in four colours and pin notes to, with their answer written beside it.">PDF text</button>
+            <button type="button" aria-pressed="false" data-explain="One correct answer, or several. Marked automatically.">Multiple choice</button>
+            <button type="button" aria-pressed="false" data-explain="Quick checks of understanding. Marked automatically.">True or false</button>
+            <button type="button" aria-pressed="false" data-explain="Gaps inside a sentence or passage for pupils to complete.">Fill in the blank</button>
+            <button type="button" aria-pressed="false" data-explain="A grid pupils fill in, for data, comparisons or calculations.">Table</button>
+            <button type="button" aria-pressed="false" data-explain="Listening questions. The recording plays as many times as the teacher sets, and keeps playing while pupils answer.">Audio</button>
+            <button type="button" aria-pressed="false" data-explain="A clip pupils watch before answering.">Video</button>
+            <button type="button" aria-pressed="false" data-explain="A diagram, map or source to look closely at, with zoom.">Image</button>
+          </div>
+          <p class="explain" id="typeExplain" aria-live="polite"><b>Long answer.</b> Pupils write with bold, lists and tables, and see a live word count (counted by character for Chinese).</p>
+        </div>
+        <div class="card navy">
+          <div class="big-num" data-count="4">4</div>
+          <div class="label">ways to deliver it</div>
+          <div class="modes" id="modeBtns" role="group" aria-label="Delivery modes">
+            <button type="button" aria-pressed="true" data-explain="Pupils open the exam in any browser, on any device. Good for quizzes and practice."><svg><use href="#i-check"/></svg>Any browser</button>
+            <button type="button" aria-pressed="false" data-explain="Full screen, and leaving the exam pauses it until the teacher reads out a one-word code."><svg><use href="#i-check"/></svg>Monitored browser</button>
+            <button type="button" aria-pressed="false" data-explain="Locked down on the device. Pupils open it straight from ExamNook, with no settings to type."><svg><use href="#i-check"/></svg>Safe Exam Browser</button>
+            <button type="button" aria-pressed="false" data-explain="Pupils sit it on paper. The exam is recorded in ExamNook and marked there."><svg><use href="#i-check"/></svg>Paper</button>
+          </div>
+          <p class="explain" id="modeExplain" aria-live="polite"><b>Any browser.</b> Pupils open the exam in any browser, on any device. Good for quizzes and practice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens" aria-labelledby="screens-h">
+    <div class="wrap">
+      <div class="tour-head">
+        <div>
+          <span class="tag"><svg><use href="#i-spark"/></svg>Screens</span>
+          <h2 id="screens-h">What pupils and teachers actually see</h2>
+        </div>
+        <div class="who-switch" role="group" aria-label="Show screens for">
+          <button type="button" data-who="pupil" aria-pressed="true">Pupils</button>
+          <button type="button" data-who="teacher" aria-pressed="false">Teachers</button>
+        </div>
+      </div>
+      <div class="tour" id="tour">
+        <ul class="feats" id="feats" role="tablist" aria-label="Screens">
+          <li data-who="pupil"><button type="button" class="feat" role="tab" aria-selected="true" data-shot="0"><strong>Read and annotate</strong><span>The text on one side, the answer on the other. Highlight, pin notes, flag questions.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="pupil"><button type="button" class="feat" role="tab" aria-selected="false" data-shot="1"><strong>Plan in the notepad</strong><span>A private space to outline the answer before writing it.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="pupil"><button type="button" class="feat" role="tab" aria-selected="false" data-shot="2"><strong>Open resources</strong><span>Key terms, formula sheets or sources from the teacher, open any time.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="pupil"><button type="button" class="feat" role="tab" aria-selected="false" data-shot="3"><strong>Use a calculator</strong><span>Scientific and graphing calculators, when the teacher allows them.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="pupil"><button type="button" class="feat" role="tab" aria-selected="false" data-shot="4"><strong>Change how it looks</strong><span>Larger text, an easy-read font, colour overlays and read aloud.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="teacher" hidden><button type="button" class="feat" role="tab" aria-selected="false" data-shot="5"><strong>Build the exam</strong><span>Texts, questions and resources in the order pupils meet them.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="teacher" hidden><button type="button" class="feat" role="tab" aria-selected="false" data-shot="6"><strong>Watch the room</strong><span>Who has started, who has handed in, who left the exam window.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="teacher" hidden><button type="button" class="feat" role="tab" aria-selected="false" data-shot="7"><strong>Mark on the answer</strong><span>Comments pinned to the exact sentence, marks and a grade.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+          <li data-who="teacher" hidden><button type="button" class="feat" role="tab" aria-selected="false" data-shot="8"><strong>Export the papers</strong><span>Each pupil's work as a PDF with your comments, or the whole class.</span><em class="bar" aria-hidden="true"><i></i></em></button></li>
+        </ul>
+        <div class="viewer">
+          <div class="viewer-frame" id="viewerFrame" role="tabpanel" aria-live="polite" tabindex="0" title="Open full size">
+            <img class="on" src="{% static 'digitalexams/landing/shots/pupil-exam.webp' %}" width="1600" height="937" alt="A pupil's exam: the PDF text with highlights and a note on the left, the written answer on the right.">
+            <img src="{% static 'digitalexams/landing/shots/notepad.webp' %}" width="1600" height="937" alt="The notepad open beside the exam, with a pupil's plan for their answer." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/resources.webp' %}" width="1600" height="937" alt="The Resources panel open over the exam, showing key terms from the teacher." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/calculator.webp' %}" width="1600" height="937" alt="The scientific calculator open beside the exam, showing a worked sum." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/accessibility.webp' %}" width="1600" height="937" alt="The Accessibility menu: text size, easy-read font, a cream overlay and read aloud settings." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/step-build.webp' %}" class="contain" width="1200" height="424" alt="The exam's content: a PDF text, a multiple-choice question and resources for pupils." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/monitor.webp' %}" width="1600" height="937" alt="The teacher's monitor page: pupils in progress, submitted and locked, with time left." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/marking.webp' %}" width="1600" height="937" alt="Marking: the pupil's annotated text, their answer with teacher comments, and the total mark." loading="lazy">
+            <img src="{% static 'digitalexams/landing/shots/export-paper.webp' %}" class="contain" width="900" height="1272" alt="An exported PDF page of a pupil's highlighted text." loading="lazy">
+          </div>
+          <div class="viewer-bar"><span id="viewerCaption">Pupil view · SSC sample exam with made-up pupils</span><button type="button" class="zoom" id="zoomBtn"><svg><use href="#i-zoom"/></svg>Full size</button></div>
+          <p class="mobile-desc" id="mobileDesc"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="tag"><svg><use href="#i-spark"/></svg>How it works</span>
+        <h2 id="how-h">From a blank paper to released grades</h2>
+        <p class="lede">Everything a teacher does with an exam happens in one place, in the order it happens in real life.</p>
+      </div>
+      <ol class="stack">
+        <li class="step t-egg" style="--n:0">
+          <div>
+            <div class="step-num" aria-hidden="true">01</div>
+            <h3>Build</h3>
+            <p>Upload the texts and add questions in the order pupils will meet them.</p>
+            <ul class="ticks">
+              <li><svg><use href="#i-check"/></svg>PDF texts pupils can highlight and annotate</li>
+              <li><svg><use href="#i-check"/></svg>Long answers, multiple choice, tables, fill in the blank</li>
+              <li><svg><use href="#i-check"/></svg>Audio and video, with a limit on plays</li>
+            </ul>
+          </div>
+          <button type="button" class="step-shot" data-full="{% static 'digitalexams/landing/shots/step-build.webp' %}" aria-label="Open the Build screen full size"><img src="{% static 'digitalexams/landing/shots/step-build.webp' %}" width="1200" height="424" alt="The exam's content list: Text 1, question 2 and resources for pupils." loading="lazy"></button>
+        </li>
+        <li class="step t-navy" style="--n:1">
+          <div>
+            <div class="step-num" aria-hidden="true">02</div>
+            <h3>Deliver</h3>
+            <p>Open it now, at a set time or when you say — on laptops, Chromebooks or iPads.</p>
+            <ul class="ticks">
+              <li><svg><use href="#i-check"/></svg>Any browser, monitored, Safe Exam Browser or paper</li>
+              <li><svg><use href="#i-check"/></svg>Extra time for individual pupils</li>
+              <li><svg><use href="#i-check"/></svg>Spell check, calculators and read aloud set per exam</li>
+            </ul>
+          </div>
+          <button type="button" class="step-shot" data-full="{% static 'digitalexams/landing/shots/step-deliver.webp' %}" aria-label="Open the Deliver screen full size"><img src="{% static 'digitalexams/landing/shots/step-deliver.webp' %}" width="1200" height="424" alt="Delivery settings: mode, opening and closing times, join code and tools pupils get." loading="lazy"></button>
+        </li>
+        <li class="step t-sky" style="--n:2">
+          <div>
+            <div class="step-num" aria-hidden="true">03</div>
+            <h3>Monitor</h3>
+            <p>See the whole room at a glance while the exam is running.</p>
+            <ul class="ticks">
+              <li><svg><use href="#i-check"/></svg>Who has started, handed in or gone offline</li>
+              <li><svg><use href="#i-check"/></svg>Who left the exam, and the code to let them back in</li>
+              <li><svg><use href="#i-check"/></svg>Messages to one pupil or the whole room</li>
+            </ul>
+          </div>
+          <button type="button" class="step-shot" data-full="{% static 'digitalexams/landing/shots/step-monitor.webp' %}" aria-label="Open the Monitor screen full size"><img src="{% static 'digitalexams/landing/shots/step-monitor.webp' %}" width="1200" height="601" alt="Monitor: pupils in progress and submitted, and one locked pupil with the resume code lantern." loading="lazy"></button>
+        </li>
+        <li class="step t-egg" style="--n:3">
+          <div>
+            <div class="step-num" aria-hidden="true">04</div>
+            <h3>Mark</h3>
+            <p>Comment on the words pupils wrote and on their PDF, then release grades when you're ready.</p>
+            <ul class="ticks">
+              <li><svg><use href="#i-check"/></svg>Comments pinned to the exact sentence</li>
+              <li><svg><use href="#i-check"/></svg>Objective questions mark themselves</li>
+              <li><svg><use href="#i-check"/></svg>Pupils see feedback only once you release it</li>
+            </ul>
+          </div>
+          <button type="button" class="step-shot tall" data-full="{% static 'digitalexams/landing/shots/step-mark.webp' %}" aria-label="Open the Mark screen full size"><img src="{% static 'digitalexams/landing/shots/step-mark.webp' %}" width="1000" height="911" alt="Marking: the pupil's answer with two numbered teacher comments." loading="lazy"></button>
+        </li>
+        <li class="step t-navy" style="--n:4">
+          <div>
+            <div class="step-num" aria-hidden="true">05</div>
+            <h3>Export</h3>
+            <p>Keep a copy of every paper for moderation and records.</p>
+            <ul class="ticks">
+              <li><svg><use href="#i-check"/></svg>Each pupil's work as a PDF, with your comments</li>
+              <li><svg><use href="#i-check"/></svg>The whole class in one file or a zip</li>
+              <li><svg><use href="#i-check"/></svg>With or without marks</li>
+            </ul>
+          </div>
+          <button type="button" class="step-shot tall" data-full="{% static 'digitalexams/landing/shots/export-summary.webp' %}" aria-label="Open the exported PDF full size"><img src="{% static 'digitalexams/landing/shots/export-summary.webp' %}" width="900" height="1272" alt="The first page of an exported PDF: the pupil's details, mark, answer and teacher comments." loading="lazy"></button>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band" id="fair" aria-labelledby="fair-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Fair and secure</span>
+        <h2 id="fair-h">Fair for every pupil in the room</h2>
+        <p class="lede">The rules of the exam are checked by the server, not just shown on the screen. Try leaving this exam.</p>
+      </div>
+      <div class="fair-wrap">
+        <div class="lockdemo">
+          <div class="lockdemo-cap"><span>A pupil's screen, in monitored mode</span><span class="timer" id="lockTimer">0:42:10</span></div>
+          <div class="mini" id="mini">
+            <div class="mini-bar"><span>Question 3 of 6</span></div>
+            <div class="mini-body" aria-hidden="true">
+              <p class="q">How does the writer show that the keeper feels unimportant?</p>
+              <div class="mini-lines"><i style="width:96%"></i><i style="width:88%"></i><i style="width:92%"></i><i style="width:54%"></i></div>
+            </div>
+            <div class="locked" id="lockedPanel" aria-live="polite">
+              <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              <strong>Exam paused</strong>
+              <span>You left the exam. Ask your teacher for the code to carry on.</span>
+              <form id="codeForm" autocomplete="off">
+                <label class="sr" for="codeInput">Resume code</label>
+                <input id="codeInput" placeholder="Resume code" spellcheck="false" autocapitalize="off">
+                <button class="btn small" type="submit">Carry on<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+              </form>
+              <span class="err" id="codeErr"></span>
+            </div>
+          </div>
+          <div class="lock-actions">
+            <button class="btn small" type="button" id="leaveBtn">Switch to another tab<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+            <span id="lockStatus" style="font-size:14.5px;color:var(--text)">Pupils can't just leave and come back.</span>
+          </div>
+          <div class="teacher-peek" id="teacherPeek">
+            <span>Teacher's monitor:</span><b>Felix Ong</b><span class="pill" id="peekPill">In progress</span><span id="peekCode"></span>
+          </div>
+        </div>
+        <ul class="fair-list">
+          <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><b>Locked down when it matters</b><span>Safe Exam Browser is built in, with nothing for pupils to set up.</span></li>
+          <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h7M4 17h9"/><path d="M16 14l5 5M21 14l-5 5"/></svg></span><b>No spelling help unless allowed</b><span>Spell check and autocorrect are switched on or off for each exam.</span></li>
+          <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10 10 0 0 1 12 20C5 20 2 12 2 12a18 18 0 0 1 4.1-5.1M9.9 4.2A9 9 0 0 1 12 4c7 0 10 8 10 8a18 18 0 0 1-2.2 3.2M3 3l18 18"/></svg></span><b>Hidden until it starts</b><span>Papers only reach the pupils they're for, once the exam opens.</span></li>
+          <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg></span><b>Limits that hold</b><span>Time, join codes and recording plays can't be reset by reloading.</span></li>
+          <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M10 21v-6h4v6"/></svg></span><b>Each school kept separate</b><span>Its own address, accounts and exams. Nobody sees another school's data.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="access" aria-labelledby="access-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="tag"><svg><use href="#i-spark"/></svg>Accessibility</span>
+        <h2 id="access-h">Same paper, read the way each pupil needs</h2>
+        <p class="lede">Any pupil can change how the exam looks and sounds — no special arrangement needed. Try it on this question.</p>
+      </div>
+      <div class="try">
+        <div class="card controls">
+          <div><div class="ctl-label" id="lblSize">Text size</div>
+            <div class="seg" role="group" aria-labelledby="lblSize">
+              <button type="button" data-k="size" data-v="1" aria-pressed="true">Standard</button>
+              <button type="button" data-k="size" data-v="1.25" aria-pressed="false">Larger</button>
+              <button type="button" data-k="size" data-v="1.5" aria-pressed="false">Largest</button>
+            </div></div>
+          <div><div class="ctl-label" id="lblFont">Font</div>
+            <div class="seg" role="group" aria-labelledby="lblFont">
+              <button type="button" data-k="font" data-v="standard" aria-pressed="true">Standard</button>
+              <button type="button" data-k="font" data-v="readable" aria-pressed="false" style="font-family:'Atkinson Hyperlegible'">Easy-read</button>
+              <button type="button" data-k="font" data-v="dyslexic" aria-pressed="false" style="font-family:'OpenDyslexic'">Dyslexia-friendly</button>
+            </div></div>
+          <div><div class="ctl-label" id="lblColour">Colours</div>
+            <div class="seg" role="group" aria-labelledby="lblColour">
+              <button type="button" data-k="colour" data-v="standard" aria-pressed="true">Standard</button>
+              <button type="button" data-k="colour" data-v="night" aria-pressed="false">Night</button>
+              <button type="button" data-k="colour" data-v="cream" aria-pressed="false">Cream</button>
+              <button type="button" data-k="colour" data-v="blue" aria-pressed="false">Blue</button>
+            </div></div>
+          <button type="button" class="btn small speak" id="speakBtn" hidden><span id="speakLabel">Read aloud</span><span class="chip" aria-hidden="true"><svg><use href="#i-play"/></svg></span></button>
+        </div>
+        <div class="card sample-card">
+          <div class="sample f-standard" id="sample">
+            <div class="q-label">Question 4</div>
+            <p class="q">Which phrase best shows that the keeper feels unimportant?</p>
+            <div class="opts">
+              <div class="opt"><b>A</b><span>“climbed the hundred and twelve steps”</span></div>
+              <div class="opt"><b>B</b><span>“the sea kept its own count”</span></div>
+              <div class="opt"><b>C</b><span>“nobody knew his name”</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="schools" aria-labelledby="schools-h" style="padding-top:10px">
+    <div class="wrap">
+      <div class="card fan-card">
+        <div class="fan" aria-hidden="true">
+          <img class="l" src="{% static 'digitalexams/landing/shots/export-summary.webp' %}" width="900" height="1272" alt="" loading="lazy">
+          <img class="mid" src="{% static 'digitalexams/landing/shots/monitor.webp' %}" width="1600" height="937" alt="" loading="lazy">
+          <img class="r" src="{% static 'digitalexams/landing/shots/export-paper.webp' %}" width="900" height="1272" alt="" loading="lazy">
+        </div>
+        <span class="tag"><svg><use href="#i-spark"/></svg>Hosting more than one school</span>
+        <h2 id="schools-h">Want ExamNook at your school?</h2>
+        <p class="lede">Each school is set up separately and run by its own admins.</p>
+        <ul class="points">
+          <li><svg><use href="#i-check"/></svg>Your school's own web address, logo and colours on every page.</li>
+          <li><svg><use href="#i-check"/></svg>Year groups, subjects, teachers and pupils added from a spreadsheet.</li>
+          <li><svg><use href="#i-check"/></svg>Accounts sent by email. Sign in with a password or a one-time emailed code.</li>
+          <li><svg><use href="#i-check"/></svg>School admins see every exam and the activity log. Teachers see their own.</li>
+        </ul>
+        {% if contact_email %}<a class="btn" href="mailto:{{ contact_email }}?subject=ExamNook%20for%20our%20school">Email us about your school<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>{% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-h" style="padding-top:40px">
+    <div class="wrap">
+      <div class="faq-grid">
+        <div>
+          <span class="tag"><svg><use href="#i-spark"/></svg>FAQ</span>
+          <h2 id="faq-h">Questions schools ask</h2>
+          <p class="lede" style="margin-top:16px">The practical things teachers and IT want to know before the first exam.</p>
+        </div>
+        <div class="faq-list">
+          <div class="qa" data-open="true"><button type="button" aria-expanded="true">Does it work on iPads and Chromebooks?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Yes. ExamNook runs in the browser on laptops, Chromebooks and iPads, so there's nothing to install. For locked-down exams on Windows, Mac or iPad, pupils can use Safe Exam Browser.</p></div></div></div>
+          <div class="qa" data-open="false"><button type="button" aria-expanded="false">What happens if the Wi-Fi drops?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Pupils keep working. Their answers are kept on the device and sent as soon as the connection is back, and the teacher sees who is offline.</p></div></div></div>
+          <div class="qa" data-open="false"><button type="button" aria-expanded="false">Can some pupils get extra time?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Yes. Extra time can be given to individual pupils, and their timer reflects it.</p></div></div></div>
+          <div class="qa" data-open="false"><button type="button" aria-expanded="false">Can pupils use spell check or other apps?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Only if you allow it. Spell check, calculators and read aloud are switched on or off for each exam. In monitored mode or Safe Exam Browser, leaving the exam is noticed or blocked.</p></div></div></div>
+          <div class="qa" data-open="false"><button type="button" aria-expanded="false">How do pupils and teachers get accounts?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>School admins add them from a spreadsheet, and each person gets an email with their sign-in link. They can sign in with a password or a one-time code sent by email.</p></div></div></div>
+          <div class="qa" data-open="false"><button type="button" aria-expanded="false">Can we keep a copy of the work?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Yes. Download any pupil's paper as a PDF with your comments, or the whole class at once, with or without marks.</p></div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="signin" aria-labelledby="signin-h">
+  <div class="wrap">
+    <div class="signin">
+      <div>
+        <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Sign in</span>
+        <h2 id="signin-h">Choose your school</h2>
+        <p class="lede">Pupils and teachers use the same page.</p>
+      </div>
+      <div>
+        {% if schools|length > 8 %}
+          <form id="schoolForm" action="/login/" method="get">
+            <label for="schoolSelect">Your school</label>
+            <select id="schoolSelect" name="school">
+              {% for s in schools %}<option value="{{ s.slug }}">{{ s.name }}</option>{% endfor %}
+            </select>
+            <button class="btn" type="submit" style="margin-top:14px;">Go to sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+          </form>
+        {% elif schools %}
+          <ul class="schools">
+            {% for s in schools %}
+            <li><a class="school" href="/s/{{ s.slug }}/login/">
+              {% if s.logo %}<img src="{{ s.logo.url }}" alt="">{% else %}<span class="init" aria-hidden="true">{{ s.name|slice:":1" }}</span>{% endif %}
+              <span>{{ s.name }}</span><span class="go" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <a class="btn" href="/login/">Go to sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+        {% endif %}
+        {% if schools|length > 1 %}<p class="help">Not sure which one? Your invite email has your school's ExamNook link.</p>{% endif %}
+      </div>
+    </div>
+    <div class="foot-cols">
+      <span class="logo"><img src="{% static 'digitalexams/brand/examnook-mark-on-blue.svg' %}" alt="" width="32" height="32">ExamNook</span>
+      <nav aria-label="Footer">
+        <a href="#screens">Screens</a><a href="#how">How it works</a><a href="#fair">Fair and secure</a><a href="#access">Accessibility</a><a href="#faq">FAQ</a>
+        {% if contact_email %}<a href="mailto:{{ contact_email }}">Contact</a>{% endif %}
+      </nav>
+      <span class="copy">© {% now "Y" %} ExamNook</span>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot, full size" hidden>
+  <button type="button" class="close" id="lbClose" aria-label="Close"><svg><use href="#i-plus"/></svg></button>
+  <figure><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
+</div>
+
+<script src="{% static 'digitalexams/landing/lenis.min.js' %}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  // Smooth scrolling (skipped when the visitor prefers less motion).
+  var lenis = null;
+  if(!reduce && window.Lenis){
+    try{
+      lenis = new Lenis({lerp: .1, smoothWheel: true});
+      var raf = function(t){ lenis.raf(t); requestAnimationFrame(raf); };
+      requestAnimationFrame(raf);
+    }catch(e){ lenis = null; }
+  }
+  function goTo(el){
+    if(lenis) lenis.scrollTo(el, {offset: -20});
+    else el.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+  }
+  var menuBtn = $('#menuBtn'), mobileNav = $('#mobileNav');
+  function closeMenu(){ mobileNav.classList.remove('open'); menuBtn.setAttribute('aria-expanded','false'); }
+  menuBtn.addEventListener('click', function(){
+    var open = !mobileNav.classList.contains('open');
+    mobileNav.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', String(open));
+  });
+  $$('a[href^="#"]:not(.skip)').forEach(function(a){
+    a.addEventListener('click', function(e){
+      var id = a.getAttribute('href').slice(1); if(!id) return;
+      var el = document.getElementById(id); if(!el) return;
+      e.preventDefault(); closeMenu(); goTo(el);
+    });
+  });
+
+  // Split headings into words so they can rise in or fill in.
+  $$('[data-split]').forEach(function(el){
+    var words = el.textContent.trim().split(/\s+/);
+    el.textContent = '';
+    words.forEach(function(w, i){
+      var s = document.createElement('span'); s.className = 'w'; s.style.setProperty('--i', i); s.textContent = w;
+      s.setAttribute('aria-hidden', 'true');
+      el.appendChild(s); if(i < words.length - 1) el.appendChild(document.createTextNode(' '));
+    });
+    if(!el.getAttribute('aria-label')) el.setAttribute('aria-label', words.join(' '));
+  });
+
+  // Hero: words rise, the first highlight sweeps in, the cards arrive.
+  var h1 = $('.hero h1'), stage = $('#stage');
+  setTimeout(function(){ h1.classList.add('in'); stage.classList.add('play'); }, 120);
+
+  // The countdowns tick, as they do in an exam.
+  function ticker(el, start){
+    var left = start;
+    if(!reduce) setInterval(function(){
+      left = left > 0 ? left - 1 : start;
+      var h = Math.floor(left/3600), m = Math.floor(left%3600/60), s = left%60;
+      el.textContent = h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }, 1000);
+  }
+  ticker($('#heroTimer'), 4472); ticker($('#lockTimer'), 2530);
+
+  // Hero paper: pick a highlighter, select words, and they're highlighted.
+  var passage = $('#passage'), colour = 'y';
+  $$('.sw[data-hl]').forEach(function(b){
+    b.addEventListener('click', function(){
+      colour = b.getAttribute('data-hl');
+      $$('.sw[data-hl]').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+    });
+  });
+  function highlightSelection(){
+    var sel = window.getSelection ? window.getSelection() : null;
+    if(!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    var range = sel.getRangeAt(0);
+    if(!passage.contains(range.commonAncestorContainer)) return;
+    var mark = document.createElement('mark'); mark.className = colour + ' mine';
+    try{ range.surroundContents(mark); }
+    catch(e){
+      // The selection crosses an existing highlight: highlight it as plain text instead.
+      var text = range.toString(); range.deleteContents(); mark.textContent = text; range.insertNode(mark);
+    }
+    sel.removeAllRanges();
+  }
+  passage.addEventListener('mouseup', function(){ setTimeout(highlightSelection, 0); });
+  passage.addEventListener('touchend', function(){ setTimeout(highlightSelection, 350); });
+  $('#hlClear').addEventListener('click', function(){
+    $$('mark.mine', passage).forEach(function(m){ m.replaceWith(document.createTextNode(m.textContent)); });
+    passage.normalize();
+  });
+
+  // Numbers count up once when they come on screen.
+  function countUp(el){
+    var to = parseInt(el.getAttribute('data-count'), 10), t0 = null;
+    if(reduce){ el.textContent = to; return; }
+    function step(t){ if(!t0) t0 = t; var p = Math.min(1, (t - t0) / 1100); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if(p < 1) requestAnimationFrame(step); }
+    el.textContent = '0'; requestAnimationFrame(step);
+  }
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting){ countUp(e.target); io.unobserve(e.target); } });
+    }, {threshold: .6});
+    $$('[data-count]').forEach(function(el){ io.observe(el); });
+  }
+
+  // "What it is": click a question type or a delivery mode to read what it does.
+  function explainer(groupSel, outSel){
+    var out = $(outSel);
+    $$(groupSel + ' button').forEach(function(b){
+      b.addEventListener('click', function(){
+        $$(groupSel + ' button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+        out.innerHTML = '';
+        var t = document.createElement('b'); t.textContent = b.textContent.trim() + '.';
+        out.appendChild(t); out.appendChild(document.createTextNode(' ' + b.getAttribute('data-explain')));
+      });
+    });
+  }
+  explainer('#typeChips', '#typeExplain'); explainer('#modeBtns', '#modeExplain');
+
+  // Screens tour: pupil / teacher switch, features that swap the screen, auto-advance while visible.
+  var feats = $$('.feat'), shots = $$('#viewerFrame img'), who = 'pupil', current = 0, auto = !reduce, timer = null, started = 0, DURATION = 6500, inView = false;
+  var caption = $('#viewerCaption'), mobileDesc = $('#mobileDesc');
+  function visibleFeats(){ return feats.filter(function(f){ return !f.parentNode.hidden; }); }
+  function show(btn){
+    var idx = parseInt(btn.getAttribute('data-shot'), 10);
+    feats.forEach(function(f){ f.setAttribute('aria-selected', String(f === btn)); var i = $('.bar i', f); if(i) i.style.width = '0'; });
+    shots.forEach(function(img, i){ img.classList.toggle('on', i === idx); });
+    current = visibleFeats().indexOf(btn);
+    caption.textContent = (who === 'pupil' ? 'Pupil' : 'Teacher') + ' view · SSC sample exam with made-up pupils';
+    mobileDesc.textContent = $('span', btn).textContent;
+    started = performance.now();
+  }
+  function tick(now){
+    if(auto && inView){
+      var list = visibleFeats(), btn = list[current], p = Math.min(1, (now - started) / DURATION);
+      var bar = btn && $('.bar i', btn); if(bar) bar.style.width = (p * 100) + '%';
+      if(p >= 1) show(list[(current + 1) % list.length]);
+    } else { started = now - 0; }
+    timer = requestAnimationFrame(tick);
+  }
+  function stopAuto(){ auto = false; feats.forEach(function(f){ var i = $('.bar i', f); if(i) i.style.width = '0'; }); }
+  feats.forEach(function(f){ f.addEventListener('click', function(){ stopAuto(); show(f); }); });
+  $$('.who-switch button').forEach(function(b){
+    b.addEventListener('click', function(){
+      who = b.getAttribute('data-who');
+      $$('.who-switch button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+      feats.forEach(function(f){ f.parentNode.hidden = f.parentNode.getAttribute('data-who') !== who; });
+      show(visibleFeats()[0]);
+    });
+  });
+  $('#feats').addEventListener('keydown', function(e){
+    if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault(); stopAuto();
+    var list = visibleFeats(), d = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+    var next = list[(current + d + list.length) % list.length]; show(next); next.focus();
+  });
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){ es.forEach(function(e){ inView = e.isIntersecting; if(inView) started = performance.now(); }); }, {threshold: .45}).observe($('#tour'));
+  }
+  show(feats[0]); requestAnimationFrame(tick);
+
+  // Full-size viewer for any screenshot.
+  var lb = $('#lightbox'), lbImg = $('#lbImg'), lbCap = $('#lbCap'), lastFocus = null;
+  function openLb(src, alt){
+    lastFocus = document.activeElement; lbImg.src = src; lbImg.alt = alt || ''; lbCap.textContent = alt || '';
+    lb.hidden = false; requestAnimationFrame(function(){ lb.classList.add('open'); }); $('#lbClose').focus();
+    if(lenis) lenis.stop();
+  }
+  function closeLb(){ lb.classList.remove('open'); setTimeout(function(){ lb.hidden = true; }, 300); if(lenis) lenis.start(); if(lastFocus) lastFocus.focus(); }
+  function openCurrent(){ var img = $('#viewerFrame img.on'); stopAuto(); openLb(img.currentSrc || img.src, img.alt); }
+  $('#viewerFrame').addEventListener('click', openCurrent);
+  $('#viewerFrame').addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openCurrent(); } });
+  $('#zoomBtn').addEventListener('click', openCurrent);
+  $$('.step-shot').forEach(function(b){ b.addEventListener('click', function(){ var img = $('img', b); openLb(b.getAttribute('data-full'), img.alt); }); });
+  $('#lbClose').addEventListener('click', closeLb);
+  lb.addEventListener('click', function(e){ if(e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !lb.hidden) closeLb(); });
+
+  // Scroll-linked: header hides on the way down, statement fills in, step cards tuck under each other.
+  var fillWords = $$('.fill .w'), fillEl = $('.fill'), steps = $$('.step'), top = $('#top'), lastY = 0, ticking = false;
+  function onScroll(){
+    ticking = false;
+    var y = window.scrollY || window.pageYOffset, vh = window.innerHeight;
+    top.classList.toggle('hide', y > 400 && y > lastY && !mobileNav.classList.contains('open'));
+    lastY = y;
+    for(var j = 0; j < steps.length; j++){
+      var r0 = steps[j].getBoundingClientRect();
+      if(r0.top < vh * .7) steps[j].classList.add('live');
+    }
+    if(reduce) return;
+    if(fillEl){
+      var r = fillEl.getBoundingClientRect();
+      var p = (vh * .85 - r.top) / (r.height + vh * .45);
+      var n = Math.round(Math.max(0, Math.min(1, p)) * fillWords.length);
+      for(var i = 0; i < fillWords.length; i++) fillWords[i].classList.toggle('on', i < n);
+    }
+    for(var k = 0; k < steps.length - 1; k++){
+      var next = steps[k + 1].getBoundingClientRect(), cur = steps[k].getBoundingClientRect();
+      var overlap = Math.max(0, Math.min(1, (cur.bottom - next.top) / cur.height));
+      steps[k].style.transform = 'scale(' + (1 - overlap * .05) + ')';
+      steps[k].style.filter = 'brightness(' + (1 - overlap * .1) + ')';
+    }
+  }
+  window.addEventListener('scroll', function(){ if(!ticking){ ticking = true; requestAnimationFrame(onScroll); } }, {passive: true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // Fair and secure: leaving the exam pauses it until the teacher's code is typed in.
+  var mini = $('#mini'), leaveBtn = $('#leaveBtn'), peek = $('#teacherPeek'), peekPill = $('#peekPill'), peekCode = $('#peekCode');
+  var codeInput = $('#codeInput'), codeErr = $('#codeErr'), lockStatus = $('#lockStatus');
+  function setLocked(on){
+    mini.classList.toggle('is-locked', on); peek.classList.toggle('on', on);
+    peekPill.textContent = on ? 'Locked' : 'In progress';
+    peekCode.innerHTML = on ? 'resume code: <code>lantern</code>' : '';
+    leaveBtn.disabled = on; leaveBtn.style.opacity = on ? .5 : 1;
+    lockStatus.textContent = on ? 'The teacher reads the code out — try typing it.' : 'Pupils can\'t just leave and come back.';
+    codeErr.textContent = ''; codeInput.value = '';
+    if(on) setTimeout(function(){ codeInput.focus(); }, 300);
+  }
+  leaveBtn.addEventListener('click', function(){ setLocked(true); });
+  $('#codeForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    if(codeInput.value.trim().toLowerCase() === 'lantern'){ setLocked(false); lockStatus.textContent = 'Back in. The teacher can see it happened.'; leaveBtn.focus(); }
+    else { codeErr.textContent = 'That isn\'t the code. Look at the teacher\'s monitor below.'; }
+  });
+
+  // FAQ accordion
+  $$('.qa').forEach(function(qa){
+    var b = $('button', qa);
+    b.addEventListener('click', function(){
+      var open = qa.getAttribute('data-open') !== 'true';
+      qa.setAttribute('data-open', String(open)); b.setAttribute('aria-expanded', String(open));
+    });
+  });
+
+  // Accessibility sample: the same options pupils get in the exam's Accessibility menu.
+  var sample = $('#sample'), state = {size: '1', font: 'standard', colour: 'standard'};
+  function apply(){
+    sample.style.setProperty('--s', state.size);
+    sample.className = 'sample f-' + state.font
+      + (state.colour === 'night' ? ' t-night' : '')
+      + (state.colour === 'cream' ? ' o-cream' : '') + (state.colour === 'blue' ? ' o-blue' : '');
+    $$('.seg button').forEach(function(b){ b.setAttribute('aria-pressed', String(state[b.getAttribute('data-k')] === b.getAttribute('data-v'))); });
+  }
+  $$('.seg button').forEach(function(b){
+    b.addEventListener('click', function(){ state[b.getAttribute('data-k')] = b.getAttribute('data-v'); apply(); });
+  });
+  var speak = $('#speakBtn'), speakLabel = $('#speakLabel');
+  if('speechSynthesis' in window){
+    speak.hidden = false;
+    speak.addEventListener('click', function(){
+      if(speechSynthesis.speaking){ speechSynthesis.cancel(); speakLabel.textContent = 'Read aloud'; return; }
+      var parts = [$('.q', sample).textContent];
+      $$('.opt', sample).forEach(function(o, i){ parts.push('Option ' + 'ABC'[i] + ': ' + $('span', o).textContent); });
+      var u = new SpeechSynthesisUtterance(parts.join(' '));
+      u.onend = u.onerror = function(){ speakLabel.textContent = 'Read aloud'; };
+      speechSynthesis.speak(u);
+      speakLabel.textContent = 'Stop reading';
+    });
+  }
+
+  // Many schools: the picker goes straight to that school's sign-in page.
+  var form = $('#schoolForm');
+  if(form) form.addEventListener('submit', function(e){
+    e.preventDefault();
+    location.href = '/s/' + encodeURIComponent($('#schoolSelect').value) + '/login/';
+  });
+});
+</script>
+</body>
+</html>

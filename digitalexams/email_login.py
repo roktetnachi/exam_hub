@@ -59,7 +59,7 @@ def issue_code(user):
     code = f'{secrets.randbelow(1_000_000):06d}'
     user.login_codes.filter(used_at__isnull=True).update(used_at=now)
     EmailLoginCode.objects.create(user=user, code_hash=_hash(user, code), expires_at=now + CODE_LIFETIME)
-    school_name = user.school.name if user.school else 'ExamHub'
+    school_name = user.school.name if user.school else 'ExamNook'
     minutes = int(CODE_LIFETIME.total_seconds() // 60)
     try:
         send_mail(
@@ -68,7 +68,7 @@ def issue_code(user):
                      f'Your sign-in code is: {code}\n\n'
                      f'It expires in {minutes} minutes and can only be used once.\n'
                      f"If you didn't try to sign in, you can ignore this email.\n\n"
-                     f'— {school_name} ExamHub'),
+                     f'— {school_name} ExamNook'),
             from_email=None,
             recipient_list=[user.email],
         )

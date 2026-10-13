@@ -1,5 +1,5 @@
 """Copy uploaded files that exist only on this machine's disk into the database, so every
-copy of ExamHub (local and Railway) can serve them. Safe to run more than once.
+copy of ExamNook (local and Railway) can serve them. Safe to run more than once.
 
     python manage.py sync_media_to_db
 """

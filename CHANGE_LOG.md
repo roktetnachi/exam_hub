@@ -1,6 +1,6 @@
-# ExamHub — Change Log
+# ExamNook — Change Log
 
-All notable changes to ExamHub are documented here, in reverse-chronological order.
+(Called ExamHub until 13 Oct 2026.) All notable changes to ExamNook are documented here, in reverse-chronological order.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
@@ -25,6 +25,40 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Commit the migrations `0027`–`0029` and the new test files and templates (`test_seb.py`, `test_url_access.py`, `test_graphcalc.py`, `templates/_graphcalc.html`) — they were not yet in git.
 - The 2026-10-09 changes (comment-only marking, notifications, dashboard tabs, navigation, flag for review, pupil task sections) need **no migration and no new settings**. Existing highlights / underlines stay as they are and still show. One new address, `POST /api/notifications/read-all/`, ships with `urls.py`.
 - Pupils' "Flag for review" marks are kept in their browser only (per exam), so they don't carry over to another device.
+
+### Changed — Landing page rebuilt: interactive, screenshots first (2026-10-13, sixth batch)
+No migration, no new settings. Replaces the Aentoria-style layout below.
+- **New order:** hero → What it is → **Screens** (straight after) → How it works → Fair and secure → Accessibility → Your school → FAQ → Sign in.
+- **Things visitors can do:** highlight words in the hero's exam paper with any of the four highlighter colours (and clear them); click a question type or delivery mode to read what it does; switch the **Screens** tour between Pupils and Teachers and click through nine real screens (it also moves on by itself while on screen, with a progress bar, and stops as soon as someone clicks); open any screenshot full size; press "Switch to another tab" to see a monitored exam pause, then type the teacher's resume code (lantern) to carry on; try text size, fonts, colours and read aloud on a sample question.
+- **How it works:** each of the five step cards now has its own colour (egg white, deep blue, soft blue), a large outlined step number, a real close-up of that screen (Build, Deliver, Monitor with a locked pupil, Mark, the exported PDF) and ticks that check off as the card arrives. On phones the cards simply follow each other.
+- **Colours refined:** deep blue `#1C3A6E`, ash red `#B2554B` for actions only, egg white `#F7F1E4` cards on a cool blue-mist page `#EDF0F5`, slate ink `#1D2433` text. The hero is a sheet of ruled exam paper with a red margin rule instead of clouds; no more giant outline words. Buttons are sentence case.
+- **Screenshots** retaken with SSC's school colour set to ExamNook's deep blue (the school-colour setting), so the app and the page match; new close-ups `shots/step-build.webp`, `step-deliver.webp`, `step-monitor.webp`, `step-mark.webp`.
+- Tests: `test_landing.py` 8 tests. Full suite: 167 tests, only the 3 known Roles failures.
+
+### Changed — Renamed to ExamNook, new logo and colours (2026-10-13, fifth batch)
+No migration, no new settings. Code names (the `examhub` project folder, `examhub.html`, saved-in-browser keys) are unchanged, so nothing pupils have saved is lost.
+- **New name everywhere people see it:** page titles, sign-in and password pages, the teacher and pupil portal, the super-admin page, invite and sign-in-code emails (subject, body, sender name "ExamNook"), bulk-import templates and their file names (`examnook-…xlsx`, `examnook-…-logins.csv`), Safe Exam Browser messages and file names (`examnook-lockdown.seb`, `examnook-exam.seb`), the guided tour, and PDF export details. The SEB config's contents are unchanged, so its Config Key stays the same and SEB keeps working.
+- **Logo:** an arch (the lowercase n, the "nook") with an exam page tucked inside. Files in `static/digitalexams/brand/`: `examnook-icon.svg` (favicon/app icon), `examnook-mark.svg`, `examnook-mark-on-blue.svg`, `examnook-logo.png`, `examnook-logo-on-blue.png`, `apple-touch-icon.png`, `examnook-icon-512.png`, `favicon-32.png`. Every page now has the ExamNook favicon; inside a school's pages the school's own name and logo still lead.
+- **Landing page colours:** deep blue `#1B3A6B`, ash red `#A9504A` for action buttons, egg white `#F4EDDC` cards, slate ink `#1E2430` text. Headings and the wordmark use Outfit (served by ExamNook, `landing/outfit-latin-wght-normal.woff2`, OFL).
+- **Screenshots retaken** with the school shown as "SSC" and the teacher as "Teacher Rhox", plus three new ones in the Screens carousel: the notepad in use, the Resources panel open, and the scientific calculator.
+- **Website address:** `SITE_URL` still defaults to `https://digitalexamhub.up.railway.app`. When the new examnook address is live, set `SITE_URL` (and `ALLOWED_HOSTS` if it's a custom domain) in Railway, then download the `.seb` file again for Lockdown exams.
+- Tests: `test_landing.py` now 8 tests. Full suite: 167 tests, only the 3 known Roles failures.
+
+### Changed — Landing page redesign in the style of the Aentoria Webflow template (2026-10-13, fourth batch)
+No migration, no new settings. Replaces the first landing-page design below.
+- **Look:** off-white page, sky-blue hero with drifting clouds and a giant "ExamHub" word that drifts as you scroll, lime pill buttons with a sliding switch, sparkle badges, a floating white header that hides on the way down and comes back on the way up (with a menu on phones), and a dark footer holding the school sign-in.
+- **Interaction:** smooth scrolling (Lenis, served by ExamHub); the hero heading rises in word by word, then the highlighter sweeps and glass cards ("Saved a few seconds ago", a sticky note, "10 kinds of question") arrive; a statement that fills in word by word as you scroll; "10" and "4" count up; **How it works** is five cards that stack on top of each other as you scroll; **Screens** is a swipeable carousel of real ExamHub screenshots (sample exam, made-up pupils) with arrows, dots and arrow keys; fanned screenshots that spread on hover; an FAQ accordion; the same working Accessibility sample as before.
+- No testimonials, logos, awards or prices — only things ExamHub actually does. All motion is switched off when the device asks for reduced motion.
+- New files in `static/digitalexams/landing/`: `inter-latin-opsz-normal.woff2` (Inter, OFL) + licence, `lenis.min.js` (MIT) + licence, and `shots/*.webp` (six screenshots). The Bricolage Grotesque files from the first design are no longer used and can be deleted (`bricolage-grotesque-*.woff2`, `LICENSE-BricolageGrotesque.txt`).
+- Tests: `test_landing.py` now 6 tests (checks the assets exist and nothing loads from a CDN). Full suite: 165 tests, only the 3 known Roles failures.
+
+### Added — Public landing page (2026-10-13, third batch)
+No migration needed. Optional new variable `CONTACT_EMAIL` (Railway → Variables).
+- **Signed-out visitors to the site root (`/`) now get a landing page** (`templates/landing.html`, view `landing`) instead of being sent straight to the plain sign-in page. Signed-in people are still sent to their own school as before (`SchoolTenantMiddleware`).
+- Sections: hero with an ExamHub exam paper being highlighted (the strokes and a sticky note play once; skipped when the device asks for reduced motion) · **For pupils** · **For teachers** (Build → Deliver → Monitor → Mark → Export) · **Fair and secure** · **Accessibility** with a working sample question (text size, Easy-read and dyslexia fonts, night mode, overlays, read aloud) · **Run it for your whole school** · **Sign in** — one button per active school going to `/s/<slug>/login/` (a drop-down when there are more than 8; inactive schools aren't listed).
+- **"Bring ExamHub to your school"** opens an email to `CONTACT_EMAIL`, falling back to `EMAIL_HOST_USER`; with neither set the email buttons aren't shown.
+- Fonts served by ExamHub (`static/digitalexams/landing/` Bricolage Grotesque for headings, plus the Atkinson Hyperlegible and OpenDyslexic files already shipped for pupils) — no outside requests. Works down to phone width.
+- Tests: `test_landing.py` (5 tests). Full suite: 164 tests, only the 3 known Roles failures.
 
 ### Changed — UI / UX polish for the new features (2026-10-13, second batch)
 No migration needed.

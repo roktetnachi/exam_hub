@@ -5,7 +5,7 @@ from django.utils import timezone
 
 
 class School(models.Model):
-    """A tenant / school organisation. Every piece of data in ExamHub is scoped to one
+    """A tenant / school organisation. Every piece of data in ExamNook is scoped to one
     School so that multiple schools can share a single hosted instance without seeing
     each other's assignments, pupils, or results."""
     name = models.CharField(max_length=200, unique=True)
@@ -435,12 +435,12 @@ class Submission(models.Model):
 
 class AllowedBrowserExamKey(models.Model):
     """A Browser Exam Key (BEK) value that a real Safe Exam Browser client generated for
-    ExamHub's shared lockdown .seb config on one specific platform/version. SEB computes
+    ExamNook's shared lockdown .seb config on one specific platform/version. SEB computes
     this itself from its full internal settings (which aren't practical to replicate
     ourselves), so the reliable way to get one is: download the lockdown config from the
     teacher dashboard, open it in a real copy of SEB on the platform your pupils will
     actually use, and paste the key it reports here. Add one row per platform (Windows SEB
-    and iPad SEB, say, produce different keys for the identical logical config) — ExamHub
+    and iPad SEB, say, produce different keys for the identical logical config) — ExamNook
     accepts a lockdown request if its computed hash matches ANY row here."""
     school = models.ForeignKey(
         School, null=True, blank=True, on_delete=models.CASCADE,

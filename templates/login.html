@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in — {{ request.school.name|default:"ExamHub" }}</title>
+<title>Sign in — {{ request.school.name|default:"ExamNook" }}</title>
+{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
 <style>
   :root{--blue:{% if request.school and request.school.primary_color %}{{ request.school.primary_color }}{% else %}#4b91c5{% endif %};--blue-dark:#28186f;--danger:#d9231a;--danger-bg:#fbeae9;--text:#232733;--muted:#6b7280;--border:#d3dae6;--page-bg:#edf1f9;}
   *{box-sizing:border-box;}
@@ -47,7 +48,7 @@
     {% else %}
       <span class="dot"></span>
     {% endif %}
-    <span>{{ request.school.name|default:"ExamHub" }}</span>
+    <span>{{ request.school.name|default:"ExamNook" }}</span>
   </div>
   <h1>Welcome{% if request.school %} to {{ request.school.name }}{% else %} back{% endif %}</h1>
   <p class="lead">Sign in to see your exams.</p>

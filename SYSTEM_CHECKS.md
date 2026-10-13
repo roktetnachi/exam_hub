@@ -1,6 +1,6 @@
-# ExamHub — System Checks
+# ExamNook — System Checks
 
-A living checklist for verifying that ExamHub is healthy before (and after) every deployment or significant change.
+A living checklist for verifying that ExamNook (formerly ExamHub) is healthy before (and after) every deployment or significant change.
 Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through it.
 
 > **Version coverage:** migrations `0001` – `0031` · v0.22.0 + Unreleased (accessibility menu, read aloud, offline protection, character count, spell check on/off, audio items, PDF export, year groups & subjects, exam privacy, teacher marking (comment-only), submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters, dashboard tabs & navigation, breadcrumbs, quieter notifications, flag for review, pupil task sections)
@@ -582,6 +582,33 @@ python manage.py check --deploy
 
 ---
 
+## 29. Public Landing Page
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 29.1 | Signed out, open the site root (`https://<site>/`) | Landing page, not the sign-in form | |
+| 29.2 | Signed in (pupil or teacher), open the site root | Sent straight to `/s/<slug>/` | |
+| 29.3 | **Sign in** section lists each active school (logo or initial) and each goes to that school's sign-in page; an inactive school isn't listed | Correct links | |
+| 29.4 | "Bring ExamHub to your school" opens an email to `CONTACT_EMAIL` (or `EMAIL_HOST_USER`); hidden when neither is set | Right address | |
+| 29.5 | Hero: heading rises in, highlights sweep, glass cards arrive; with "reduce motion" on everything is shown still and scrolling is normal | Calm | |
+| 29.6 | Accessibility sample: text size, fonts, night, overlays and Read aloud change only the sample question | Works | |
+| 29.7 | Phone width (390 px): no sideways scrolling; menu button opens the page links and closes after a tap; buttons full width | Fits | |
+| 29.8 | **How it works** cards stack on top of each other while scrolling; the card underneath shrinks slightly | Smooth | |
+| 29.9 | **Screens** carousel: arrows, dots, swipe and ←/→ keys move between the four screenshots; first/last arrow greys out | Works | |
+| 29.10 | Header hides when scrolling down and returns when scrolling up; nav links scroll smoothly to their section | Works | |
+| 29.11 | FAQ: each question opens and closes; the plus turns into a cross | Works | |
+| 29.12 | iPad Safari: page loads and scrolls (if smooth scrolling isn't supported, the page still scrolls normally) | Works | |
+| 29.17 | Hero: pick a highlighter colour, select words in the paper — they're highlighted; × clears them | Works | |
+| 29.18 | Screens: Pupils/Teachers switch, each feature changes the screenshot, "Full size" opens it and Esc closes it | Works | |
+| 29.19 | Fair and secure: "Switch to another tab" pauses the sample exam; a wrong code is refused, "lantern" carries on | Works | |
+| 29.20 | How it works: each card shows its screen; clicking the screen opens it full size | Works | |
+| 29.13 | Browser tab shows the ExamNook icon on the landing page, sign-in page and inside the portal | Icon shows | |
+| 29.14 | No page, email, download or SEB message still says "ExamHub" | Name is ExamNook | |
+| 29.15 | Invite email: subject "Your ExamNook account at <school>", sender "ExamNook" | Correct | |
+| 29.16 | Lockdown exams still open in Safe Exam Browser after the rename (config key unchanged) | Opens | |
+
+---
+
 ## Running the Test Suite
 
 ```bash
@@ -612,10 +639,10 @@ python manage.py test digitalexams.test_url_access digitalexams.test_graphcalc
 python manage.py test digitalexams.test_marking digitalexams.test_notifications digitalexams.test_resources
 
 # 2026-10-12 / 13: spell check on/off, audio items with play limits, PDF export, accessibility, offline protection
-python manage.py test digitalexams.test_spellcheck_audio_export
+python manage.py test digitalexams.test_spellcheck_audio_export digitalexams.test_landing
 ```
 
-> **Last full run (2026-10-13):** 159 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-13):** 167 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 

@@ -133,7 +133,7 @@ function renderBulk(){
     <div class="bi-drop" id="biDrop">
       ${people
         ? `<a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/" title="Just the headers — for adding new people">Blank template (.xlsx)</a>
-           <a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/?prefill=1" title="Everyone already in ExamHub, ready to edit and re-upload">Template with current ${bulk.kind === 'teachers' ? 'staff' : 'pupils'} (.xlsx)</a>`
+           <a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/?prefill=1" title="Everyone already in ExamNook, ready to edit and re-upload">Template with current ${bulk.kind === 'teachers' ? 'staff' : 'pupils'} (.xlsx)</a>`
         : `<a class="btn small outline" href="${SCHOOL_PREFIX}/api/bulk/${t.template}/template/">Download ${t.templateLabel} template (.xlsx)</a>`}
       <label class="btn small" style="margin:0;">Choose file…<input type="file" id="biFile" accept=".xlsx,.xlsm,.csv" hidden></label>
       <span class="fname" id="biFileName">${bulk.file ? escapeHtml(bulk.file.name) : 'or drop an .xlsx / .csv file here'}</span>
@@ -246,7 +246,7 @@ window.downloadCredentials = function(list, label){
   const blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `examhub-${label || 'new'}-logins-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `examnook-${label || 'new'}-logins-${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 };
