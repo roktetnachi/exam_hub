@@ -20,6 +20,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.db import transaction
 from django.db.models import Count, F, Max, Prefetch, Q
 from django.utils import timezone
 from django.utils.text import slugify
@@ -736,6 +737,11 @@ def serialize_assignment(assignment, pupil_email=None, request=None):
             'published': sub.published,
             # Teacher's marking on the work — the pupil only gets it with the released grade.
             'teacherMarks': (sub.teacher_marks or {}) if show_grades else {},
+            # Plays used per audio item (listening exams) — the limit is enforced by audio_play_api.
+            'audioPlays': sub.audio_plays or {},
+            # Last time the work reached the server — the pupil's page uses it with its own
+            # on-device backup to tell whether answers typed while offline still need saving.
+            'updatedAt': sub.updated_at.isoformat() if sub.updated_at else None,
             'newSubmission': sub.is_new_for_teacher if is_teacher_view else False,
             'newGrade': sub.is_new_grade_for_pupil if not is_teacher_view else False})
     withheld = (request is not None and not is_teacher_view
@@ -749,6 +755,10 @@ def serialize_assignment(assignment, pupil_email=None, request=None):
             data['imageUrl'] = reverse('item-image', args=[item.id])
         elif item.item_type == AssignmentItem.ItemType.VIDEO:
             data['videoUrl'] = reverse('item-video', args=[item.id])
+        elif item.item_type == AssignmentItem.ItemType.AUDIO:
+            data['audioUrl'] = reverse('item-audio', args=[item.id])
+            data['maxPlays'] = item.audio_max_plays
+            data['allowPause'] = item.audio_allow_pause
         else:
             data['prompt'] = '' if withheld else item.prompt
             data['options'] = [] if withheld else item.options
@@ -777,6 +787,8 @@ def serialize_assignment(assignment, pupil_email=None, request=None):
         'joinCode': assignment.join_code if is_teacher_view else None,
         'allowCalculator': assignment.allow_calculator,
         'allowGraphingCalculator': assignment.allow_graphing_calculator,
+        'allowSpellcheck': assignment.allow_spellcheck,
+        'allowTextToSpeech': assignment.allow_text_to_speech,
         'recipients': recipients if pupil_email is None else [r for r in recipients if r['email'] == pupil_email]}
 
 
@@ -858,6 +870,9 @@ def _serve_item_media(request, item_id, item_type, field_name):
         return join_code_required_response()
     if _needs_seb(request, assignment):
         return seb_required_response(request)
+    if item_type == AssignmentItem.ItemType.AUDIO and _audio_play_not_started(request, item):
+        return JsonResponse({'code': 'play_not_started',
+                             'detail': 'Press Play in the exam to listen to this recording.'}, status=403)
     field = getattr(item, field_name)
     filename = field.name.rsplit('/', 1)[-1]
     content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
@@ -883,6 +898,93 @@ def item_video(request, item_id):
     """Serve a single VIDEO-type item's file inline (in a range-friendly way via FileResponse)
     so the browser's <video> element can play it, including seeking."""
     return _serve_item_media(request, item_id, AssignmentItem.ItemType.VIDEO, 'video')
+
+
+# Audio formats browsers play that Python's mimetypes table doesn't always know (it depends on the
+# machine — Windows reads the registry, Railway's slim image has a short list).
+for _ext, _type in (('.m4a', 'audio/mp4'), ('.aac', 'audio/aac'), ('.oga', 'audio/ogg'), ('.ogg', 'audio/ogg'),
+                    ('.opus', 'audio/ogg'), ('.mp3', 'audio/mpeg'), ('.wav', 'audio/wav'), ('.flac', 'audio/flac'),
+                    ('.weba', 'audio/webm')):
+    mimetypes.add_type(_type, _ext)
+AUDIO_EXTENSIONS = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.oga', '.opus', '.webm', '.weba', '.flac')
+AUDIO_MAX_PLAYS_LIMIT = 10
+
+
+def _is_audio_upload(upload):
+    """Browsers report audio types inconsistently (.m4a can arrive as audio/x-m4a, video/mp4 or
+    nothing at all), so the file name's extension counts too."""
+    name = (upload.name or '').lower()
+    return (upload.content_type or '').startswith('audio/') or name.endswith(AUDIO_EXTENSIONS)
+
+
+def _live_pupil_submission(request, assignment):
+    """The signed-in pupil's own submission for an exam they're still sitting (not handed in),
+    or None (teachers, previews, or work already submitted)."""
+    if not is_real_pupil(request):
+        return None
+    recipient = assignment.recipients.filter(pupil_email__iexact=request.user.email).first()
+    sub = Submission.objects.filter(recipient=recipient).first() if recipient else None
+    return sub if sub is not None and sub.status != 'submitted' else None
+
+
+def _audio_play_not_started(request, item):
+    """A recording with a play limit is only sent to a pupil sitting the exam once they've pressed
+    Play (which counts the play), so it can't be fetched and listened to without using one."""
+    if not item.audio_max_plays:
+        return False
+    sub = _live_pupil_submission(request, item.assignment)
+    return sub is not None and int((sub.audio_plays or {}).get(str(item.id), 0) or 0) < 1
+
+
+@login_required
+@require_GET
+def item_audio(request, item_id):
+    """Serve a single AUDIO-type item's file (listening exams). Same checks as the other media,
+    plus the play-limit rule above."""
+    return _serve_item_media(request, item_id, AssignmentItem.ItemType.AUDIO, 'audio')
+
+
+@login_required
+@require_POST
+def audio_play_api(request, recipient_id, item_id):
+    """Counts one play of an audio item for the pupil sitting the exam, refusing once the item's
+    limit is used up. Called when a play starts from the beginning (not when resuming a pause)."""
+    recipient = get_object_or_404(Recipient, id=recipient_id)
+    assignment = recipient.assignment
+    if getattr(request, 'school', None) and assignment.school_id != request.school.id:
+        return HttpResponseForbidden('Forbidden')
+    if not is_real_pupil(request):
+        return HttpResponseForbidden('Only the pupil sitting the exam uses up plays.')
+    if recipient.pupil_email.lower() != (request.user.email or '').lower():
+        return HttpResponseForbidden('This work is not assigned to your account.')
+    item = get_object_or_404(AssignmentItem, id=item_id, assignment=assignment,
+                             item_type=AssignmentItem.ItemType.AUDIO)
+    if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not seb_lockdown_ok(request):
+        return seb_required_response(request)
+    submission, _ = Submission.objects.get_or_create(recipient=recipient)
+    key = str(item.id)
+    if submission.status == 'submitted':
+        return JsonResponse({'plays': int((submission.audio_plays or {}).get(key, 0) or 0),
+                             'maxPlays': item.audio_max_plays, 'submitted': True})
+    if not exam_visible_to_pupils(assignment, recipient):
+        return exam_not_open_response()
+    if assignment_closed(assignment, recipient):
+        return assignment_closed_response()
+    if submission.locked_at:
+        return exam_locked_response()
+    # Row lock so two quick clicks (or two tabs) can't both squeeze in the last play.
+    with transaction.atomic():
+        submission = Submission.objects.select_for_update().get(pk=submission.pk)
+        plays = dict(submission.audio_plays or {})
+        used = int(plays.get(key, 0) or 0)
+        if item.audio_max_plays and used >= item.audio_max_plays:
+            return JsonResponse({'code': 'no_plays_left', 'plays': used, 'maxPlays': item.audio_max_plays,
+                                 'detail': "You've used all the plays for this recording."}, status=409)
+        plays[key] = used + 1
+        submission.audio_plays = plays
+        # Not updated_at: that stays "when the pupil's work last reached the server".
+        submission.save(update_fields=['audio_plays'])
+    return JsonResponse({'plays': used + 1, 'maxPlays': item.audio_max_plays})
 
 
 # ---------------- exam resources (reference material in the pupil's floating "Resources" panel) ----------------
@@ -1069,6 +1171,7 @@ def create_assignment(request):
     pdfs = request.FILES.getlist('pdfs')
     images = request.FILES.getlist('images')
     videos = request.FILES.getlist('videos')
+    audios = request.FILES.getlist('audios')
     try:
         items_meta = json.loads(request.POST.get('items_meta', '[]'))
         if not isinstance(items_meta, list) or not items_meta:
@@ -1086,11 +1189,15 @@ def create_assignment(request):
     for video in videos:
         if not (video.content_type or '').startswith('video/'):
             return HttpResponseBadRequest('Please upload video files only.')
+    for audio in audios:
+        if not _is_audio_upload(audio):
+            return HttpResponseBadRequest('Please upload audio files only (MP3, M4A, WAV, OGG, WEBM, AAC or FLAC).')
 
     valid_types = set(AssignmentItem.ItemType.values)
     pdf_iter = iter(pdfs)
     image_iter = iter(images)
     video_iter = iter(videos)
+    audio_iter = iter(audios)
     prepared_items = []
     for i, meta in enumerate(items_meta):
         item_type = meta.get('type')
@@ -1100,7 +1207,9 @@ def create_assignment(request):
         section = (meta.get('section') or '').strip()
         try:
             points = float(meta.get('points') if meta.get('points') not in (None, '') else 1.0)
-            if points <= 0:
+            if item_type == AssignmentItem.ItemType.AUDIO:
+                points = 0.0   # listening material, not a question — never marked
+            elif points <= 0:
                 raise ValueError
         except (TypeError, ValueError):
             return HttpResponseBadRequest(f'"{label}" needs a valid point value.')
@@ -1121,6 +1230,20 @@ def create_assignment(request):
             if not video_file:
                 return HttpResponseBadRequest(f'"{label}" is missing its video file.')
             prepared_items.append({'item_type': item_type, 'label': label, 'video': video_file, 'order': i, 'points': points, 'section': section})
+            continue
+        if item_type == AssignmentItem.ItemType.AUDIO:
+            audio_file = next(audio_iter, None)
+            if not audio_file:
+                return HttpResponseBadRequest(f'"{label}" is missing its audio file.')
+            try:
+                max_plays = int(meta.get('maxPlays') or 0)
+            except (TypeError, ValueError):
+                max_plays = -1
+            if not 0 <= max_plays <= AUDIO_MAX_PLAYS_LIMIT:
+                return HttpResponseBadRequest(f'"{label}": plays allowed must be between 1 and {AUDIO_MAX_PLAYS_LIMIT}, or unlimited.')
+            prepared_items.append({'item_type': item_type, 'label': label, 'audio': audio_file, 'order': i,
+                                   'points': points, 'section': section, 'audio_max_plays': max_plays,
+                                   'audio_allow_pause': meta.get('allowPause') is not False})
             continue
         prompt = (meta.get('prompt') or '').strip()
         if not prompt:
@@ -1178,6 +1301,8 @@ def create_assignment(request):
     join_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6)) if require_join_code else ''
     allow_calculator = request.POST.get('allow_calculator') == 'true'
     allow_graphing_calculator = request.POST.get('allow_graphing_calculator') == 'true'
+    allow_spellcheck = request.POST.get('allow_spellcheck') == 'true'
+    allow_text_to_speech = request.POST.get('allow_text_to_speech', 'true') != 'false'
     due_at = parse_manila_datetime(request.POST.get('due_at'))
     if due_at and opens_at and due_at <= opens_at:
         return HttpResponseBadRequest('The closing time must be after the exam becomes visible.')
@@ -1187,7 +1312,8 @@ def create_assignment(request):
         teacher_name=teacher_name, teacher_email=teacher_email,
         opens_at=opens_at, due_at=due_at, is_hidden=(visibility == 'hidden'),
         delivery_mode=delivery_mode, require_join_code=require_join_code, join_code=join_code,
-        allow_calculator=allow_calculator, allow_graphing_calculator=allow_graphing_calculator)
+        allow_calculator=allow_calculator, allow_graphing_calculator=allow_graphing_calculator,
+        allow_spellcheck=allow_spellcheck, allow_text_to_speech=allow_text_to_speech)
     for prepared in prepared_items:
         AssignmentItem.objects.create(assignment=assignment, **prepared)
     for prepared in prepared_resources:
@@ -1291,6 +1417,10 @@ def update_assignment_api(request, assignment_id):
 
     assignment.allow_calculator = bool(payload.get('allowCalculator'))
     assignment.allow_graphing_calculator = bool(payload.get('allowGraphingCalculator'))
+    if 'allowSpellcheck' in payload:   # left out by older pages — keep the current setting then
+        assignment.allow_spellcheck = bool(payload.get('allowSpellcheck'))
+    if 'allowTextToSpeech' in payload:
+        assignment.allow_text_to_speech = bool(payload.get('allowTextToSpeech'))
     assignment.save()
     actor = request.user.get_full_name() or request.user.username
     if recipient_plan:
@@ -2316,7 +2446,7 @@ def broadcast_message_api(request, assignment_id):
 ACTIVITY_CATEGORIES = {
     'assignments': ['created', 'updated', 'deleted', 'broadcast', 'accommodation'],
     'submissions': ['submitted', 'locked', 'unlocked', 'resumed'],
-    'grading': ['graded', 'published'],
+    'grading': ['graded', 'published', 'exported'],
     'classes': ['class_created', 'class_renamed', 'class_deleted', 'class_teachers', 'class_pupils', 'pupil_created',
                 'subject_created', 'subject_renamed', 'subject_deleted', 'subject_teachers', 'subject_pupils'],
     'roles': ['admin_granted', 'admin_revoked', 'teacher_created', 'teacher_deleted'],

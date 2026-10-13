@@ -18,7 +18,7 @@ class Command(BaseCommand):
         root = Path(settings.MEDIA_ROOT)
         names = set()
         for item in AssignmentItem.objects.all():
-            for field in (item.pdf, item.image, item.video):
+            for field in (item.pdf, item.image, item.video, item.audio):
                 if field and field.name:
                     names.add(field.name)
         for resource in ExamResource.objects.exclude(file=''):

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -425,6 +425,105 @@
 
   .pdf-scroll{flex:1;overflow:auto;background:#eceff2;display:flex;justify-content:center;padding:16px;}
   .question-prompt-pane{flex:1;overflow:auto;background:#fff;padding:28px 32px;}
+  /* ---- audio items (listening) ---- */
+  .audio-player{max-width:560px;margin:8px auto 0;border:1px solid var(--border);border-radius:16px;padding:18px 20px;background:#f8fafd;}
+  .audio-player .ap-row{display:flex;align-items:center;gap:12px;}
+  .audio-player .ap-play{min-width:120px;}
+  .audio-player .ap-bar{flex:1;height:8px;border-radius:999px;background:#dfe5f0;position:relative;overflow:hidden;}
+  .audio-player .ap-bar.seekable{cursor:pointer;}
+  .audio-player .ap-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blue);border-radius:999px;}
+  .audio-player .ap-time{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);min-width:92px;text-align:right;}
+  .audio-player .ap-plays{margin-top:12px;font-size:13.5px;font-weight:700;}
+  .audio-player .ap-plays.none{color:var(--danger);}
+  .audio-player .ap-note{margin:6px 0 0;font-size:12.5px;color:var(--muted);}
+  .audio-player .ap-back{min-width:auto;}
+  #audioMiniBar{position:fixed;left:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);
+    border-radius:999px;padding:7px 8px 7px 14px;box-shadow:var(--card-shadow);font-size:13px;max-width:calc(100vw - 32px);}
+  #audioMiniBar .amb-label{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+  #audioMiniBar .amb-time{font-variant-numeric:tabular-nums;color:var(--muted);}
+  .rv-audio{padding:22px 24px;min-width:320px;}
+  .rv-audio audio{width:100%;display:block;}
+  /* ---- accessibility (pupil "Accessibility" menu) ----
+     Classes on <html>, set by applyA11y(): a11y-sized (+ --a11y-s), a11y-font-dyslexic / -readable,
+     a11y-line-relaxed / -loose, a11y-letter-wide, a11y-night, a11y-contrast; data-overlay for the tint.
+     Fonts are served by ExamHub itself (static/digitalexams/a11y/) so they work in Safe Exam Browser. */
+  @font-face{font-family:'OpenDyslexic';font-style:normal;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'OpenDyslexic';font-style:italic;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-italic.woff2' %}") format('woff2');}
+  @font-face{font-family:'OpenDyslexic';font-style:normal;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-700-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'OpenDyslexic';font-style:italic;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-700-italic.woff2' %}") format('woff2');}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-400-normal.woff2' %}") format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:italic;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-400-italic.woff2' %}") format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-700-normal.woff2' %}") format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:italic;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-700-italic.woff2' %}") format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-ext-400-normal.woff2' %}") format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:italic;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-ext-400-italic.woff2' %}") format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-ext-700-normal.woff2' %}") format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+  @font-face{font-family:'Atkinson Hyperlegible';font-style:italic;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-ext-700-italic.woff2' %}") format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+  html.a11y-font-dyslexic body{font-family:'OpenDyslexic',Arial,Helvetica,sans-serif;}
+  html.a11y-font-readable body{font-family:'Atkinson Hyperlegible',Arial,Helvetica,sans-serif;}
+  /* Text size: the text pupils read and type, scaled from its normal size. */
+  html.a11y-sized .question-prompt-text{font-size:calc(16px * var(--a11y-s,1));}
+  html.a11y-sized .question-prompt-label{font-size:calc(12.5px * var(--a11y-s,1));}
+  html.a11y-sized #taskPrompt{font-size:calc(15px * var(--a11y-s,1));}
+  html.a11y-sized #responseEditables .editable{font-size:calc(16px * var(--a11y-s,1));}
+  html.a11y-sized .notepad-modal .editable{font-size:calc(14.5px * var(--a11y-s,1));}
+  html.a11y-sized .answer-option{font-size:calc(15px * var(--a11y-s,1));}
+  html.a11y-sized .answer-option input{width:calc(16px * var(--a11y-s,1));height:calc(16px * var(--a11y-s,1));}
+  html.a11y-sized .tf-toggle button{font-size:calc(14px * var(--a11y-s,1));}
+  html.a11y-sized .fill-input{font-size:calc(15px * var(--a11y-s,1));}
+  html.a11y-sized .answer-table input{font-size:calc(14px * var(--a11y-s,1));}
+  html.a11y-sized .answer-table th{font-size:calc(12.5px * var(--a11y-s,1));}
+  html.a11y-sized .res-text{font-size:calc(14.5px * var(--a11y-s,1));}
+  html.a11y-sized .note textarea{font-size:calc(12.5px * var(--a11y-s,1));}
+  html.a11y-sized .hl-note-pop textarea{font-size:calc(12px * var(--a11y-s,1));}
+  html.a11y-sized .exam-intro-text{font-size:calc(16px * var(--a11y-s,1));}
+  html.a11y-sized .exam-intro-facts span{font-size:calc(13.5px * var(--a11y-s,1));}
+  html.a11y-sized #studentTaskList td, html.a11y-sized #studentTaskList th{font-size:calc(14px * var(--a11y-s,1));}
+  /* Line and letter spacing on the same text. */
+  html.a11y-line-relaxed :is(.question-prompt-text,#taskPrompt,.editable,.answer-option,.res-text,.exam-intro-text,.note textarea,.hl-note-pop textarea){line-height:1.95;}
+  html.a11y-line-loose :is(.question-prompt-text,#taskPrompt,.editable,.answer-option,.res-text,.exam-intro-text,.note textarea,.hl-note-pop textarea){line-height:2.4;}
+  html.a11y-letter-wide :is(.question-prompt-text,#taskPrompt,.editable,.answer-option,.res-text,.exam-intro-text,.fill-input,.answer-table input,.tf-toggle button,.note textarea,.hl-note-pop textarea){letter-spacing:.06em;word-spacing:.18em;}
+  /* Night mode: the whole page inverted (PDF pages too, so they're dark), with pictures, videos
+     and highlight colours turned back so they look as they should. */
+  html.a11y-night{filter:invert(1) hue-rotate(180deg);background:#fff;}
+  html.a11y-night :is(img,video,.hl-box,.swatch:not(.erase),.tm-pdf-layer,.tm-badge,.account-avatar){filter:invert(1) hue-rotate(180deg);}
+  /* High contrast: black text, dark borders, strong focus outline. */
+  html.a11y-contrast{--text:#000;--muted:#1f2937;--border:#3f4652;--idle:#4b5563;}
+  html.a11y-contrast :is(.editable,.answer-option,.fill-input,.tf-toggle button,.answer-table td){border-color:#000 !important;}
+  html.a11y-contrast #responseEditables .editable{border:2px solid #000;}
+  html.a11y-contrast .editable:empty::before{color:#4b5563;}
+  html.a11y-contrast :focus-visible{outline:3px solid #000 !important;outline-offset:2px;}
+  /* Coloured overlay over everything (cream, blue…) — a reading aid for visual stress. */
+  #a11yOverlay{position:fixed;inset:0;pointer-events:none;z-index:2147483000;mix-blend-mode:multiply;display:none;}
+  html[data-overlay] #a11yOverlay{display:block;}
+  html[data-overlay="cream"] #a11yOverlay{background:rgba(255,232,150,.38);}
+  html[data-overlay="blue"] #a11yOverlay{background:rgba(150,195,255,.34);}
+  html[data-overlay="green"] #a11yOverlay{background:rgba(160,225,160,.34);}
+  html[data-overlay="pink"] #a11yOverlay{background:rgba(255,180,205,.34);}
+  html[data-overlay="grey"] #a11yOverlay{background:rgba(120,120,120,.28);}
+  /* The menu itself */
+  .a11y-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:7px 10px;font-weight:700;font-size:13px;}
+  .a11y-panel{position:absolute;right:0;top:calc(100% + 6px);width:340px;max-width:calc(100vw - 24px);max-height:calc(100vh - 90px);overflow-y:auto;background:#fff;border-radius:16px;box-shadow:var(--card-shadow);padding:16px;z-index:130;text-align:left;}
+  .a11y-panel h3{margin:0 0 10px;font-size:15px;}
+  .a11y-row{margin-bottom:12px;}
+  .a11y-row-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px;}
+  .a11y-seg{display:flex;flex-wrap:wrap;gap:5px;}
+  .a11y-seg button{flex:1 1 auto;border:1px solid var(--border);background:#fff;border-radius:9px;padding:7px 8px;font-size:13px;font-weight:600;color:var(--text);min-width:44px;}
+  .a11y-seg button[aria-pressed="true"]{border-color:var(--blue);background:#eaf1ff;color:var(--blue);}
+  .a11y-swatch{width:34px;height:30px;flex:0 0 auto !important;min-width:0 !important;padding:0 !important;}
+  .a11y-panel select{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:9px;font-size:13px;}
+  .a11y-note{font-size:12px;color:var(--muted);margin:4px 0 0;}
+  /* ---- offline banner (pupil exam) ---- */
+  /* Floats over the top of the exam so it doesn't push the Submit bar off the screen. */
+  .offline-banner{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:115;width:min(720px,calc(100vw - 24px));
+    display:flex;gap:10px;align-items:flex-start;background:#fff4e5;border:1px solid #f5b971;color:#7a4300;border-radius:12px;
+    padding:10px 14px;font-size:13.5px;line-height:1.45;box-shadow:0 10px 30px -12px rgba(122,67,0,.45);}
+  .offline-banner strong{display:block;font-size:14px;}
+  .offline-banner.hidden{display:none;}
+  /* ---- export dialog ---- */
+  .export-choice{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;font-size:13.5px;}
+  .export-choice input{margin-top:3px;}
+  .export-choice small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:1px;}
   .question-prompt-label{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
   .question-prompt-text{font-size:16px;line-height:1.6;white-space:pre-wrap;}
   .answer-widget{margin-top:20px;max-width:520px;}
@@ -892,6 +991,70 @@
     <button id="btnTeacherRole" class="active">Teacher view</button>
     <button id="btnStudentRole">Pupil preview</button>
   </div>
+  <div style="position:relative;"{% if request.user.role != 'pupil' or request.user.is_superuser %} class="hidden"{% endif %} id="a11yWrap">
+    <button type="button" class="icon-btn a11y-btn" id="a11yBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="a11yPanel" title="Accessibility — text size, fonts, spacing, colours, read aloud">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4.5" r="1.8"/><path d="M4 8.5l8 1.5 8-1.5"/><path d="M12 10v5"/><path d="M8.5 21l3.5-6 3.5 6"/></svg>
+      <span>Accessibility</span>
+    </button>
+    <div class="a11y-panel hidden" id="a11yPanel" role="dialog" aria-label="Accessibility settings">
+      <h3>Accessibility</h3>
+      <div class="a11y-row"><div class="a11y-row-label" id="a11yLblSize">Text size</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblSize">
+          <button type="button" data-a11y-key="size" data-a11y-value="1" style="font-size:12px;">A</button>
+          <button type="button" data-a11y-key="size" data-a11y-value="1.15" style="font-size:14px;">A</button>
+          <button type="button" data-a11y-key="size" data-a11y-value="1.3" style="font-size:16px;">A</button>
+          <button type="button" data-a11y-key="size" data-a11y-value="1.5" style="font-size:19px;">A</button>
+          <button type="button" data-a11y-key="size" data-a11y-value="1.75" style="font-size:22px;">A</button>
+        </div></div>
+      <div class="a11y-row"><div class="a11y-row-label" id="a11yLblFont">Font</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblFont">
+          <button type="button" data-a11y-key="font" data-a11y-value="default">Standard</button>
+          <button type="button" data-a11y-key="font" data-a11y-value="readable" style="font-family:'Atkinson Hyperlegible',Arial,sans-serif;">Easy-read</button>
+          <button type="button" data-a11y-key="font" data-a11y-value="dyslexic" style="font-family:'OpenDyslexic',Arial,sans-serif;">Dyslexia</button>
+        </div></div>
+      <div class="a11y-row"><div class="a11y-row-label" id="a11yLblLine">Line spacing</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblLine">
+          <button type="button" data-a11y-key="line" data-a11y-value="normal">Normal</button>
+          <button type="button" data-a11y-key="line" data-a11y-value="relaxed">Wider</button>
+          <button type="button" data-a11y-key="line" data-a11y-value="loose">Widest</button>
+        </div></div>
+      <div class="a11y-row"><div class="a11y-row-label" id="a11yLblLetter">Letter spacing</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblLetter">
+          <button type="button" data-a11y-key="letter" data-a11y-value="normal">Normal</button>
+          <button type="button" data-a11y-key="letter" data-a11y-value="wide">Wide</button>
+        </div></div>
+      <div class="a11y-row"><div class="a11y-row-label" id="a11yLblTheme">Colours</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblTheme">
+          <button type="button" data-a11y-key="theme" data-a11y-value="default">Standard</button>
+          <button type="button" data-a11y-key="theme" data-a11y-value="night">Night</button>
+          <button type="button" data-a11y-key="theme" data-a11y-value="contrast">High contrast</button>
+        </div></div>
+      <div class="a11y-row"><div class="a11y-row-label" id="a11yLblOverlay">Colour overlay</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblOverlay">
+          <button type="button" data-a11y-key="overlay" data-a11y-value="none">None</button>
+          <button type="button" class="a11y-swatch" data-a11y-key="overlay" data-a11y-value="cream" title="Cream" aria-label="Cream" style="background:#fff0b8;"></button>
+          <button type="button" class="a11y-swatch" data-a11y-key="overlay" data-a11y-value="blue" title="Blue" aria-label="Blue" style="background:#c6dcff;"></button>
+          <button type="button" class="a11y-swatch" data-a11y-key="overlay" data-a11y-value="green" title="Green" aria-label="Green" style="background:#cdeccd;"></button>
+          <button type="button" class="a11y-swatch" data-a11y-key="overlay" data-a11y-value="pink" title="Pink" aria-label="Pink" style="background:#ffd3e1;"></button>
+          <button type="button" class="a11y-swatch" data-a11y-key="overlay" data-a11y-value="grey" title="Grey" aria-label="Grey" style="background:#cfcfcf;"></button>
+        </div></div>
+      <div class="a11y-row" id="a11yTtsRow"><div class="a11y-row-label" id="a11yLblRate">Read aloud speed</div>
+        <div class="a11y-seg" role="group" aria-labelledby="a11yLblRate">
+          <button type="button" data-a11y-key="rate" data-a11y-value="0.75">Slow</button>
+          <button type="button" data-a11y-key="rate" data-a11y-value="1">Normal</button>
+          <button type="button" data-a11y-key="rate" data-a11y-value="1.25">Fast</button>
+        </div>
+        <div class="a11y-row-label" style="margin-top:9px;">Voice</div>
+        <select id="a11yVoice" aria-label="Read aloud voice"><option value="">Automatic</option></select>
+        <p class="a11y-note" id="a11yTtsNote">In an exam, use <strong>Read aloud</strong> in the toolbar: it reads the words you select, or the whole question.</p>
+      </div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:4px;">
+        <button type="button" class="link-btn" id="a11yReset" style="font-size:13px;color:var(--blue);font-weight:600;">Reset to standard</button>
+        <button type="button" class="btn small" id="a11yDone">Done</button>
+      </div>
+      <p class="a11y-note" style="margin-top:8px;">Saved on this device for your account.</p>
+    </div>
+  </div>
   <div style="position:relative;">
     <button class="icon-btn" id="notifBellBtn" title="Notifications" aria-label="Notifications" style="border:1px solid var(--border);border-radius:10px;padding:8px 10px;position:relative;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -1134,6 +1297,9 @@
                 <button type="button" class="itemtype-tile" data-add-type="video" title="Video">
                   <span class="itemtype-icon">&#9654;</span><span class="itemtype-label">Video</span>
                 </button>
+                <button type="button" class="itemtype-tile" data-add-type="audio" title="Audio (listening) — choose how many times pupils may play it">
+                  <span class="itemtype-icon">&#9835;</span><span class="itemtype-label">Audio</span>
+                </button>
               </div>
             </div>
             <div class="itemtype-group">
@@ -1229,6 +1395,14 @@
             <input type="checkbox" id="aAllowGraphingCalculator">
             <label for="aAllowGraphingCalculator">Allow graphing calculator <span style="color:var(--muted)">(Y=, graph, trace, table, zero / min / max / intersect)</span></label>
           </div>
+          <div class="pupil-check">
+            <input type="checkbox" id="aAllowSpellcheck">
+            <label for="aAllowSpellcheck">Allow spell check <span style="color:var(--muted)">(the browser's red underlines and spelling suggestions in answers and notes — leave off for language and writing exams)</span></label>
+          </div>
+          <div class="pupil-check">
+            <input type="checkbox" id="aAllowTextToSpeech" checked>
+            <label for="aAllowTextToSpeech">Allow read aloud <span style="color:var(--muted)">(pupils can have questions and selected text read to them — turn off for reading comprehension and language exams)</span></label>
+          </div>
         </div>
         <div class="row" style="justify-content:space-between;margin-top:6px;">
             <button type="button" class="btn small outline" id="createBackToContent">&larr; Back</button>
@@ -1312,6 +1486,34 @@
         </div>
       </div>
 
+      <div class="modal-backdrop hidden" id="exportModal">
+        <div class="card" style="width:460px;max-width:92vw;">
+          <h2 style="margin-bottom:6px;">Export to PDF</h2>
+          <p class="sub" style="margin-top:0;">Each pupil's PDF has every question with their answer, their highlights and notes on the exam's PDF pages, and — if you include them — your scores, feedback and comments.</p>
+          <div class="rv-label" style="margin:12px 0 6px;">Whose work</div>
+          <label class="export-choice"><input type="radio" name="exportWho" value="one" id="exportWhoOne"><span><span id="exportWhoOneLabel"></span><small id="exportWhoOneNote"></small></span></label>
+          <label class="export-choice"><input type="radio" name="exportWho" value="submitted" id="exportWhoAll"><span>Everyone who handed in<small id="exportWhoAllNote"></small></span></label>
+          <label class="export-choice"><input type="radio" name="exportWho" value="started"><span>Everyone who started<small id="exportWhoStartedNote"></small></span></label>
+          <div id="exportFormatBox">
+            <div class="rv-label" style="margin:12px 0 6px;">Format</div>
+            <label class="export-choice"><input type="radio" name="exportFormat" value="zip" checked><span>ZIP file — a separate PDF for each pupil<small>For records, moderation or sending one pupil's work on.</small></span></label>
+            <label class="export-choice"><input type="radio" name="exportFormat" value="pdf"><span>One PDF with everyone<small>Each pupil starts on a new page — handy for printing.</small></span></label>
+          </div>
+          <label class="row" style="gap:8px;align-items:center;font-size:13.5px;font-weight:600;margin-top:12px;">
+            <input type="checkbox" id="exportMarks" checked> Include scores, feedback and my comments
+          </label>
+          <p class="sub" style="margin:4px 0 0 24px;font-size:12px;">Untick for a clean copy of the pupil's work (e.g. for a second marker).</p>
+          <label class="row" style="gap:8px;align-items:center;font-size:13.5px;font-weight:600;margin-top:10px;">
+            <input type="checkbox" id="exportPages" checked> Include the exam's PDF pages with the pupil's highlights
+          </label>
+          <p class="sub" style="margin:4px 0 0 24px;font-size:12px;">Every pupil's file carries its own copy of the paper — untick if the PDF is a large scan and you're exporting a whole class.</p>
+          <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;">
+            <button class="btn outline small" id="exportCancelBtn" type="button">Cancel</button>
+            <button class="btn small" id="exportGoBtn" type="button">Download</button>
+          </div>
+        </div>
+      </div>
+
       <div id="detailPanel-grade" class="detail-panel hidden">
         <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <label class="sub" style="margin:0;" for="gradePupilSelect">Pupil</label>
@@ -1323,6 +1525,7 @@
           <button type="button" class="btn small" id="gradeNextUngradedBtn" title="Jump to the next pupil whose work still needs grading (N)">Next ungraded &rarr;</button>
           <span class="grade-progress" id="gradeProgress" aria-live="polite"></span>
           <div class="grow"></div>
+          <button class="btn small outline" id="exportPdfBtn" type="button" title="Download pupils' work as PDF">&#10515; Export PDF</button>
           <button class="btn small outline" id="publishAllGradesBtn" title="Show grades to every pupil you've already graded">Release all graded</button>
         </div>
         <div id="gradeBody"></div>
@@ -1424,6 +1627,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Exam in progress — your work saves automatically. Press Submit when you're finished.
       </div>
+      <div class="offline-banner hidden" id="offlineBanner" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px;"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>
+        <div><strong>You're offline — keep working.</strong>Your answers are being kept on this device and will be saved as soon as the connection is back. Don't close or reload this page.</div>
+      </div>
       <div class="row" style="justify-content:space-between;align-items:flex-start;">
         <h2 id="taskTitle"></h2>
         <button class="btn small outline" id="openChatFromTaskBtn">Message teacher<span class="hidden" id="openChatFromTaskDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:6px;"></span></button>
@@ -1461,6 +1668,10 @@
             <button class="icon-btn hidden" id="openCalculatorBtn" title="Calculator">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/><line x1="8" y1="19" x2="8" y2="19.01"/><line x1="12" y1="19" x2="12" y2="19.01"/></svg>
               Calculator
+            </button>
+            <button class="icon-btn hidden" id="readAloudBtn" title="Read aloud: select words to hear them, or press with nothing selected to hear the whole question" aria-pressed="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+              <span id="readAloudLabel">Read aloud</span>
             </button>
             <button class="icon-btn hidden" id="openGraphCalcBtn" title="Graphing calculator">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M6 16c3-9 6-9 9-4s4 3 6-3"/></svg>
@@ -1851,6 +2062,12 @@
         <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
           <input type="checkbox" id="editAssignmentGraphingCalculator"> Allow graphing calculator
         </label>
+        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
+          <input type="checkbox" id="editAssignmentSpellcheck"> Allow spell check <span style="font-weight:400;color:var(--muted);">(red underlines and suggestions)</span>
+        </label>
+        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
+          <input type="checkbox" id="editAssignmentTextToSpeech"> Allow read aloud <span style="font-weight:400;color:var(--muted);">(text-to-speech)</span>
+        </label>
         <div class="field" style="margin-top:6px;">
           <label>Resources for pupils</label>
           <p class="sub" style="margin:2px 0 6px;font-size:12.5px;">Guide material pupils open from the floating Resources window. Adding or removing one takes effect straight away — even during the exam.</p>
@@ -2055,11 +2272,13 @@ function apiAssignment(a){
     gradedAt:r.gradedAt||null, published:!!r.published,
     locked:!!r.locked, lockReason:r.lockReason||'', lockCount:r.lockCount||0, resumeCode:r.resumeCode||null,
     hasUnreadFromPupil:!!r.hasUnreadFromPupil, hasUnreadFromTeacher:!!r.hasUnreadFromTeacher,
-    teacherMarks:r.teacherMarks||{}, newSubmission:!!r.newSubmission, newGrade:!!r.newGrade}; });
+    teacherMarks:r.teacherMarks||{}, newSubmission:!!r.newSubmission, newGrade:!!r.newGrade,
+    audioPlays:r.audioPlays||{}, updatedAt:r.updatedAt||null}; });
   return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt, isHidden:!!a.isHidden, closedAt:a.closedAt||null, state:a.state||'live', items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'', createdAt:a.createdAt||null,
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
     allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator,
+    allowSpellcheck:!!a.allowSpellcheck, allowTextToSpeech: a.allowTextToSpeech !== false,
     resources:a.resources||[]};
 }
 async function loadAssignments(pupilEmail=''){
@@ -2448,6 +2667,8 @@ function buildAssignmentUpdatePayload(a, overrides){
     requireJoinCode: !!a.requireJoinCode,
     allowCalculator: !!a.allowCalculator,
     allowGraphingCalculator: !!a.allowGraphingCalculator,
+    allowSpellcheck: !!a.allowSpellcheck,
+    allowTextToSpeech: a.allowTextToSpeech !== false,
   };
   return Object.assign(base, overrides || {});
 }
@@ -2468,6 +2689,8 @@ function openEditAssignmentModal(id){
   document.getElementById('editAssignmentJoinCode').checked = !!a.requireJoinCode;
   document.getElementById('editAssignmentCalculator').checked = !!a.allowCalculator;
   document.getElementById('editAssignmentGraphingCalculator').checked = !!a.allowGraphingCalculator;
+  document.getElementById('editAssignmentSpellcheck').checked = !!a.allowSpellcheck;
+  document.getElementById('editAssignmentTextToSpeech').checked = a.allowTextToSpeech !== false;
   const errorEl = document.getElementById('editAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   document.getElementById('editAssignmentModal').classList.remove('hidden');
@@ -2529,6 +2752,8 @@ document.getElementById('saveEditAssignmentBtn').addEventListener('click', async
     requireJoinCode: document.getElementById('editAssignmentJoinCode').checked,
     allowCalculator: document.getElementById('editAssignmentCalculator').checked,
     allowGraphingCalculator: document.getElementById('editAssignmentGraphingCalculator').checked,
+    allowSpellcheck: document.getElementById('editAssignmentSpellcheck').checked,
+    allowTextToSpeech: document.getElementById('editAssignmentTextToSpeech').checked,
   };
   if(!document.querySelector('#editPupilChecklist .pupil-check')){
     // List still loading (or failed): leave who it's assigned to unchanged.
@@ -2742,7 +2967,7 @@ document.getElementById('confirmBulkDeliveryBtn').addEventListener('click', asyn
 });
 
 const ITEM_TYPE_LABELS = {
-  pdf: 'PDF text', image: 'Image', video: 'Video', long_answer: 'Long answer', mcq_single: 'Multiple choice (single)',
+  pdf: 'PDF text', image: 'Image', video: 'Video', audio: 'Audio', long_answer: 'Long answer', mcq_single: 'Multiple choice (single)',
   mcq_multiple: 'Multiple choice (multiple)', true_false: 'True / False',
   fill_text: 'Fill in the blank', table: 'Table',
 };
@@ -2842,6 +3067,17 @@ function addItemRow(type, defaultLabel, sectionEl){
     bodyHtml = `<input type="file" class="item-image-file" accept="image/*" style="width:100%;">`;
   } else if(type === 'video'){
     bodyHtml = `<input type="file" class="item-video-file" accept="video/*" style="width:100%;">`;
+  } else if(type === 'audio'){
+    bodyHtml = `<input type="file" class="item-audio-file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.opus,.webm,.flac" style="width:100%;">
+      <div class="row" style="gap:14px;flex-wrap:wrap;margin-top:8px;align-items:center;">
+        <label class="sub" style="margin:0;display:flex;align-items:center;gap:6px;white-space:nowrap;">Plays allowed
+          <select class="item-audio-plays" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;">
+            <option value="0">Unlimited</option><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+          </select>
+        </label>
+        <label class="sub" style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" class="item-audio-pause"> Pupils can pause and go back / forward</label>
+      </div>
+      <p class="sub" style="margin:6px 0 0;font-size:12px;">Add the listening questions as the next items. Plays are counted on the server, so reloading the page doesn't give extra plays.</p>`;
   } else {
     bodyHtml = `<textarea class="item-prompt" placeholder="Question prompt…"></textarea>`;
     if(type === 'mcq_single' || type === 'mcq_multiple'){
@@ -2880,6 +3116,8 @@ function addItemRow(type, defaultLabel, sectionEl){
     </div>
     ${bodyHtml}
   `;
+  // Audio is listening material, not a question — it isn't marked, so it has no points.
+  if(type === 'audio') row.querySelector('.item-points').closest('label').remove();
   // "Item N" labels follow the item's position until the teacher types their own label.
   row.dataset.autoLabel = defaultLabel ? '0' : '1';
   row.querySelector('.item-label').addEventListener('input', e=>{ row.dataset.autoLabel = /^Item \d+$/.test(e.target.value.trim()) ? '1' : '0'; });
@@ -2988,6 +3226,7 @@ function collectItemsForSubmit(){
   const pdfFiles = [];
   const imageFiles = [];
   const videoFiles = [];
+  const audioFiles = [];
   let error = null;
   // With a single section there's nothing to group, so items go out ungrouped (the pupil's
   // sidebar then looks exactly as it did before sections existed). With 2+ sections, each item
@@ -3016,6 +3255,16 @@ function collectItemsForSubmit(){
       if(file){ videoFiles.push(file); items.push({type, label, points, section}); }
       return; // a video row with no file chosen is simply skipped, not an error
     }
+    if(type === 'audio'){
+      const file = row.querySelector('.item-audio-file').files[0];
+      if(file){
+        audioFiles.push(file);
+        items.push({type, label, points: 0, section,
+          maxPlays: parseInt(row.querySelector('.item-audio-plays').value, 10) || 0,
+          allowPause: row.querySelector('.item-audio-pause').checked});
+      }
+      return; // an audio row with no file chosen is simply skipped, not an error
+    }
     const prompt = row.querySelector('.item-prompt') ? row.querySelector('.item-prompt').value.trim() : '';
     if(type === 'long_answer'){
       items.push({type, label, prompt, points, section});
@@ -3038,7 +3287,7 @@ function collectItemsForSubmit(){
       items.push({type, label, prompt, options: {rows: rowsN, cols: colsN}, points, section});
     }
   });
-  return {items, pdfFiles, imageFiles, videoFiles, error};
+  return {items, pdfFiles, imageFiles, videoFiles, audioFiles, error};
 }
 
 // ---------------- generic pill-picker helper (delivery mode / start-close condition / assign-to) ----------------
@@ -3634,6 +3883,8 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
   document.getElementById('aRequireJoinCode').checked = false;
   document.getElementById('aAllowCalculator').checked = false;
   document.getElementById('aAllowGraphingCalculator').checked = false;
+  document.getElementById('aAllowSpellcheck').checked = false;
+  document.getElementById('aAllowTextToSpeech').checked = true;
   document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES.browser;
   ['deliveryModePicker','startConditionPicker','closeConditionPicker'].forEach(id=>{
     const c = document.getElementById(id);
@@ -3660,7 +3911,7 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   const picked = pickedPupils('pupilChecklist');
   const assignedTo = picked.map(p=>p.name);
 
-  const {items, pdfFiles, imageFiles, videoFiles} = collectItemsForSubmit();
+  const {items, pdfFiles, imageFiles, videoFiles, audioFiles} = collectItemsForSubmit();
   const resources = collectResourcesForSubmit();
   if(resources.error){ switchCreateStep('content'); showToast(resources.error, 'error'); return; }
   const form = new FormData();
@@ -3669,6 +3920,7 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
   pdfFiles.forEach(f=>form.append('pdfs', f));
   imageFiles.forEach(f=>form.append('images', f));
   videoFiles.forEach(f=>form.append('videos', f));
+  audioFiles.forEach(f=>form.append('audios', f));
 
   if(startCondition === 'scheduled' && !opensAt){
     switchCreateStep('delivery');
@@ -3697,6 +3949,8 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
     form.append('require_join_code', document.getElementById('aRequireJoinCode').checked ? 'true' : 'false');
     form.append('allow_calculator', document.getElementById('aAllowCalculator').checked ? 'true' : 'false');
     form.append('allow_graphing_calculator', document.getElementById('aAllowGraphingCalculator').checked ? 'true' : 'false');
+    form.append('allow_spellcheck', document.getElementById('aAllowSpellcheck').checked ? 'true' : 'false');
+    form.append('allow_text_to_speech', document.getElementById('aAllowTextToSpeech').checked ? 'true' : 'false');
     form.append('items_meta', JSON.stringify(items));
     form.append('recipients', JSON.stringify(picked));
     await request('/api/assignments/create/', {method:'POST', body:form});
@@ -3719,6 +3973,8 @@ function renderDeliverSummary(a){
     deliverRow('Join code', a.requireJoinCode ? `Required — <span style="font-family:monospace;letter-spacing:.05em;">${a.joinCode || '(hidden)'}</span>` : 'Not required'),
     deliverRow('Scientific calculator', a.allowCalculator ? 'Allowed' : 'Not allowed'),
     deliverRow('Graphing calculator', a.allowGraphingCalculator ? 'Allowed' : 'Not allowed'),
+    deliverRow('Spell check', a.allowSpellcheck ? 'On' : 'Off'),
+    deliverRow('Read aloud', a.allowTextToSpeech !== false ? 'Allowed' : 'Off'),
   ];
   document.getElementById('deliverSummaryCard').innerHTML = `<h2 style="margin-bottom:14px;">Delivery settings</h2>` + rows.join('');
 }
@@ -3911,6 +4167,7 @@ function renderGradeBody(a, pupil){
     </div>`;
   body.innerHTML = `<div class="grade-bar card">
       <div style="min-width:0;flex:1;"><div style="font-weight:700;">${escapeHtml(pupil)}</div><div class="sub" style="margin:2px 0 0;">${status}</div></div>
+      <button type="button" class="link-btn" id="gradePupilPdfBtn" title="Download this pupil's work, with your marks, as a PDF" style="font-size:12.5px;font-weight:600;color:var(--blue);">&#10515; PDF</button>
       <button type="button" class="link-btn" id="gradeReadOnlyBtn" style="font-size:12.5px;font-weight:600;color:var(--blue);">Read-only view</button>
       ${actions('top')}
     </div>
@@ -3920,6 +4177,10 @@ function renderGradeBody(a, pupil){
   setupWorkspace(a, pupil, 'grade', focusItem);
   body.querySelectorAll('.save-grade-btn').forEach(b=>b.addEventListener('click', ()=>saveGrade(a.id, pupil)));
   body.querySelectorAll('.toggle-publish-btn').forEach(b=>b.addEventListener('click', ()=>togglePublish(a.id, pupil)));
+  document.getElementById('gradePupilPdfBtn').addEventListener('click', e=>{
+    if(state.gradeDirty) showToast('Unsaved scores or feedback aren\'t in the PDF — save grades first to include them.', 'info', 5000);
+    downloadExport(exportSubmissionUrl(sub.recipientId, true), e.currentTarget);
+  });
   document.getElementById('gradeReadOnlyBtn').addEventListener('click', ()=>{
     state.reviewReturnTab = 'grade'; state.reviewReturnPupil = pupil; showReview(a.id, pupil);
   });
@@ -3999,13 +4260,14 @@ function renderContentTab(a){
     const icon = item.type === 'pdf' ? '&#9636;' : (QUESTION_TYPE_ICONS[item.type] || '?');
     const detail = item.prompt ? `<div style="margin-top:4px;font-size:14.5px;white-space:pre-wrap;">${escapeHtml(item.prompt)}</div>` : '';
     const options = (item.options && Array.isArray(item.options) && item.options.length)
-      ? `<div class="sub" style="margin:6px 0 0;">Options: ${item.options.map(o=>escapeHtml(o.text || '')).join(' · ')}</div>` : '';
+      ? `<div class="sub" style="margin:6px 0 0;">Options: ${item.options.map(o=>escapeHtml(o.text || '')).join(' · ')}</div>`
+      : (item.type === 'audio' ? `<div class="sub" style="margin:6px 0 0;">${escapeHtml(audioRuleText(item))}</div>` : '');
     return `${header}<div class="content-item">
       <div class="ci-icon">${icon}</div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <strong>${i + 1}. ${escapeHtml(item.label)}</strong>
-          <span class="sub" style="margin:0;">${ITEM_TYPE_LABELS[item.type] || item.type} · ${item.points} pt${Number(item.points) === 1 ? '' : 's'}</span>
+          <span class="sub" style="margin:0;">${ITEM_TYPE_LABELS[item.type] || item.type} · ${item.type === 'audio' ? 'not marked' : `${item.points} pt${Number(item.points) === 1 ? '' : 's'}`}</span>
         </div>
         ${detail}${options}
       </div>
@@ -4480,9 +4742,12 @@ function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 // stays sharp on high-DPI screens.
 const ANNOTATION_SCALE = 1.2;
 const reviewState = {doc:null, page:1, zoom:null, itemId:null, a:null, sub:null, pupil:null, renderGen:0};
-const MEDIA_TYPES = ['pdf','image','video'];
+const MEDIA_TYPES = ['pdf','image','video','audio'];
+// Items that are only material to look at / listen to — nothing for the pupil to answer.
+const MEDIA_ONLY_TYPES = ['image','video','audio'];
+function isMediaOnly(item){ return !!item && MEDIA_ONLY_TYPES.includes(item.type); }
 const ANSWER_TYPE_NAMES = {long_answer:'Written answer', mcq_single:'Multiple choice', mcq_multiple:'Multiple choice (several)',
-  true_false:'True / false', fill_text:'Fill in the blank', table:'Table', pdf:'PDF', image:'Image', video:'Video'};
+  true_false:'True / false', fill_text:'Fill in the blank', table:'Table', pdf:'PDF', image:'Image', video:'Video', audio:'Audio'};
 
 function responseOf(sub, item){ const r = sub.responses || {}; return r[item.id] ?? r[String(item.id)]; }
 function isBlankHtml(html){ return !html || !String(html).replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim(); }
@@ -5096,24 +5361,26 @@ function renderReviewSections(a, sub){
     if(score.score != null){
       const full = Number(score.score) >= Number(item.points);
       chips += `<span class="rv-chip ${full ? 'ok' : (Number(score.score) > 0 ? 'pts' : 'no')}">${score.score} / ${item.points}</span>`;
-    } else if(!(item.type === 'image' || item.type === 'video')) {
+    } else if(!isMediaOnly(item)) {
       chips += `<span class="rv-chip ${blank ? 'blank' : 'pts'}">${blank ? 'No answer' : `${item.points} pt${item.points == 1 ? '' : 's'}`}</span>`;
     }
+    if(item.type === 'audio') chips += `<span class="rv-chip notes">${audioPlaysText(sub, item)}</span>`;
     if(anns.length) chips += `<span class="rv-chip notes">${anns.length} annotation${anns.length === 1 ? '' : 's'}</span>`;
     const title = item.prompt ? item.prompt : item.label;
     const annList = anns.length ? `<div class="rv-label">Pupil's annotations${grading ? ' <span class="rv-label-hint">— with ↖ selected, click one on the PDF to comment on it</span>' : ''}</div><div class="rv-ann-list" data-item="${item.id}">${reviewAnnListInner(sub, item)}</div>` : '';
     const pdfList = item.type === 'pdf' ? tmPdfListHtml(sub, item, grading) : '';
     const pdfMarks = item.type === 'pdf' && (grading || pdfList) ? `<div class="rv-label">${grading ? 'Your marks on the PDF' : "Teacher's marks on the PDF"}</div><div class="tm-pdf-list" data-item="${item.id}">${pdfList}</div>` : '';
-    const gradeBox = grading ? `<div class="rv-grade">
+    const gradable = grading && item.type !== 'audio';   // audio is listening material — nothing to mark
+    const gradeBox = gradable ? `<div class="rv-grade">
         <div class="rv-grade-row"><span class="rv-label" style="margin:0;">Score</span><div class="grade-score-cell">${gradeScoreCellHtml(item, score)}</div></div>
         <textarea class="grade-feedback-input" rows="2" placeholder="Feedback for this item (optional) — the pupil sees it when you release the grade">${escapeHtml(score.feedback || '')}</textarea>
       </div>` : '';
-    return `<details class="rv-sec${grading ? ' grade-item-card' : ''}" data-item-id="${item.id}">
+    return `<details class="rv-sec${gradable ? ' grade-item-card' : ''}" data-item-id="${item.id}">
       <summary><span class="rv-num">${n}</span><span class="rv-sum-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>${chips}</summary>
       <div class="rv-body">
         ${item.prompt ? `<div class="rv-label">${escapeHtml(item.label)} · ${ANSWER_TYPE_NAMES[item.type] || ''}</div><div style="white-space:pre-wrap;">${escapeHtml(item.prompt)}</div>` : ''}
-        <div class="rv-label">${isMedia ? "Pupil's written response" : "Pupil's answer"}</div>
-        ${(isHtml && !blank && !(item.type === 'image' || item.type === 'video')) ? ((TM_ANSWER_SOURCE[item.id] = raw), tmAnswerBlockHtml(item)) : `<div class="rv-answer">${answerHtml}</div>`}
+        ${isMediaOnly(item) ? '' : `<div class="rv-label">${isMedia ? "Pupil's written response" : "Pupil's answer"}</div>`}
+        ${isMediaOnly(item) ? '' : (isHtml && !blank) ? ((TM_ANSWER_SOURCE[item.id] = raw), tmAnswerBlockHtml(item)) : `<div class="rv-answer">${answerHtml}</div>`}
         ${correct ? `<div class="rv-label">Correct answer</div><div>${escapeHtml(correct)}</div>` : ''}
         ${(!grading && score.feedback) ? `<div class="rv-label">Feedback</div><div class="rv-feedback">${escapeHtml(score.feedback)}</div>` : ''}
         ${annList}
@@ -5179,6 +5446,13 @@ async function loadReviewSource(itemId, page){
       document.getElementById('reviewZoomLabel').textContent = item.type === 'image' ? 'Fit' : '';
       stage.style.width = ''; stage.style.height = '';
       reviewState.imgZoom = null;
+      if(item.type === 'audio'){
+        stage.innerHTML = `<div class="rv-audio"><div style="font-weight:700;margin-bottom:10px;">&#9835; ${escapeHtml(item.label)}</div>
+          <audio controls preload="none"></audio>
+          <p class="sub" style="margin:10px 0 0;">${escapeHtml(audioPlaysText(reviewState.sub || {}, item))} · ${escapeHtml(audioRuleText(item))}</p></div>`;
+        mountAudioControls(stage.querySelector('audio'), item);
+        return;
+      }
       stage.innerHTML = item.type === 'image'
         ? `<img class="rv-img" src="${SCHOOL_PREFIX}${item.imageUrl}" style="display:block;max-width:none;border-radius:8px;" alt="${escAttr(item.label)}">`
         : `<video src="${SCHOOL_PREFIX}${item.videoUrl}" controls style="display:block;max-width:100%;border-radius:8px;"></video>`;
@@ -5383,6 +5657,7 @@ document.getElementById('backFromTaskList').addEventListener('click', showStuden
 function setExamFocus(on){
   const was = document.body.classList.contains('exam-focus');
   document.body.classList.toggle('exam-focus', !!on);
+  if(!on){ applyExamSpellcheck(true); stopExamAudio(); stopReadAloud(); setOfflineMode(false); }
   if(on && !was){
     try { history.pushState({examFocus: true}, '', location.href); } catch(_) {}
     window.ExamHubNotify?.dismiss?.();   // a pop-up that slipped in just before the exam opened
@@ -5629,12 +5904,14 @@ function showExamIntro(a, sub){
   return new Promise(resolve=>{
     const backdrop = document.getElementById('examIntroBackdrop');
     document.getElementById('examIntroTitle').textContent = a.title;
-    const answerable = a.items.filter(i=>i.type !== 'image' && i.type !== 'video');
+    const answerable = a.items.filter(i=>!isMediaOnly(i));
     const points = a.items.reduce((t, i)=>t + (Number(i.points) || 0), 0);
     const facts = [`${a.items.length} item${a.items.length === 1 ? '' : 's'}`];
     if(answerable.length && points) facts.push(`${points} point${points === 1 ? '' : 's'}`);
     facts.push(sub.closesAt ? `Ends ${formatManila(sub.closesAt)}` : 'No time limit — your teacher closes it');
     if(a.allowCalculator) facts.push('Calculator allowed');
+    if(!a.allowSpellcheck) facts.push('Spell check off');
+    if(a.allowTextToSpeech === false) facts.push('Read aloud off');
     if((a.resources || []).length) facts.push(`${a.resources.length} resource${a.resources.length === 1 ? '' : 's'} to refer to`);
     document.getElementById('examIntroFacts').innerHTML = facts.map(f=>`<span>${escapeHtml(f)}</span>`).join('');
     const text = document.getElementById('examIntroText');
@@ -5744,17 +6021,24 @@ async function autosaveNow(){
   if(!autosaveApplies() || state.autosaving) return;
   const {sub, payload} = currentSubmissionPayload();
   const body = JSON.stringify(payload);
+  writeOfflineBackup(sub, body);
   if(body === state.lastSavedPayload) return;
   state.autosaving = true;
   try {
     await request(`/api/submissions/${sub.recipientId}/save/`, {method:'POST', headers:{'Content-Type':'application/json'}, body});
     state.lastSavedPayload = body;
+    state.serverPayloadBody = body;
+    clearOfflineBackup(sub);
     state.autosaveFailures = 0;
+    setOfflineMode(false);
     setAutosaveStatus('Saved ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}), 'ok');
   } catch(error) {
     let code = null; try { code = JSON.parse(error.message).code; } catch(_) {}
     if(code === 'assignment_closed'){ checkExamStatus(); }
-    else {
+    else if(isNetworkError(error)){
+      setOfflineMode(true);
+      setAutosaveStatus('Offline — kept on this device', 'error');
+    } else {
       state.autosaveFailures = (state.autosaveFailures || 0) + 1;
       if(state.autosaveFailures >= 2) setAutosaveStatus("Couldn't save — check your connection. Retrying…", 'error');
     }
@@ -5785,6 +6069,7 @@ setInterval(checkExamStatus, 10000);
 async function handleExamExpired(a, sub, why){
   if(state.examExpiredHandled || sub.status==='submitted') return;
   state.examExpiredHandled = true;
+  stopExamAudio();
   clearExamTimer();
   const timerEl = document.getElementById('examTimer');
   timerEl.textContent = why === 'teacher' ? 'Closed' : "Time's up"; timerEl.classList.add('warn');
@@ -5798,6 +6083,7 @@ async function handleExamExpired(a, sub, why){
     const {payload} = currentSubmissionPayload();
     const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
+    clearOfflineBackup(sub);
     document.getElementById('btnSubmit').textContent = 'Submitted ✓';
     document.getElementById('btnSubmit').disabled = true;
     setAutosaveStatus('Handed in', 'ok');
@@ -5943,6 +6229,10 @@ function buildAnswerWidget(item, existingValue, readOnly, onChange){
     }
     widget.appendChild(table);
     holder.appendChild(widget);
+  } else if(isMediaOnly(item)){
+    holder.innerHTML = `<p class="answer-readonly-note">${item.type === 'audio'
+      ? 'Nothing to answer here — listen to the recording, then answer the questions that follow.'
+      : 'Nothing to answer here — this is material for the questions that follow.'}</p>`;
   } else {
     holder.innerHTML = '<p class="answer-readonly-note">This item type isn\'t supported yet.</p>';
   }
@@ -6219,11 +6509,15 @@ async function openStudentTask(assignmentId){
     !(document.body.dataset.role !== 'pupil' && sub.status !== 'submitted'));
   document.getElementById('calculatorModal').classList.add('hidden');
   document.getElementById('graphCalcModal').classList.add('hidden');
+  restoreOfflineBackup(a, sub);
   buildResponseTabs(a, sub);
 
   const readOnly = sub.status === 'submitted' || document.body.dataset.role !== 'pupil';
   state.examReadOnly = readOnly;
   setExamFocus(!readOnly);
+  applyExamSpellcheck(readOnly || !!a.allowSpellcheck);
+  setupReadAloud(a);
+  setOfflineMode(!readOnly && navigator.onLine === false);
   state.lastSavedPayload = null;
   setAutosaveStatus(readOnly ? '' : 'Your work saves automatically as you go.', '');
   document.getElementById('btnSubmit').textContent = sub.status === 'submitted' ? 'Submitted ✓'
@@ -6271,7 +6565,7 @@ async function openStudentTask(assignmentId){
 
 // ---------------- resources panel (page thumbnails for PDFs, a single tile per question) ----------------
 const QUESTION_TYPE_ICONS = {
-  image: '▨', video: '▶', long_answer: '✎', mcq_single: '◉', mcq_multiple: '☑', true_false: '⚖',
+  image: '▨', video: '▶', audio: '♫', long_answer: '✎', mcq_single: '◉', mcq_multiple: '☑', true_false: '⚖',
   fill_text: '▭', table: '▦',
 };
 async function buildResourcesPanel(a, sub){
@@ -6385,7 +6679,7 @@ function currentItem(){
 async function renderCurrentItem(){
   const item = currentItem();
   const isPdf = item && item.type === 'pdf';
-  const isMedia = item && (item.type === 'image' || item.type === 'video');
+  const isMedia = isMediaOnly(item);
   document.getElementById('pdfScroll').classList.toggle('hidden', !isPdf);
   document.getElementById('questionPromptPane').classList.toggle('hidden', isPdf || isMedia);
   document.getElementById('mediaViewerPane').classList.toggle('hidden', !isMedia);
@@ -6401,6 +6695,7 @@ async function renderCurrentItem(){
     renderQuestionPrompt(item);
   }
   highlightActiveThumb();
+  renderAudioMiniBar();
 }
 function renderQuestionPrompt(item){
   document.getElementById('questionPromptLabel').textContent = item ? item.label : '';
@@ -6415,8 +6710,539 @@ function renderMediaItem(item){
     mountZoomableImage(body, SCHOOL_PREFIX + item.imageUrl, item.label || '');
   } else if(item.type === 'video'){
     body.innerHTML = `<video src="${SCHOOL_PREFIX}${item.videoUrl}" controls style="max-width:100%;max-height:70vh;border-radius:10px;display:block;margin:0 auto;"></video>`;
+  } else if(item.type === 'audio'){
+    renderExamAudioPlayer(body, item);
+  }
+  renderAudioMiniBar();
+}
+
+// ---------------- spell check on / off (per exam) ----------------
+// Off: the browser's red underlines, suggestions and autocorrect are switched off in everything a
+// pupil types into during the exam (answers, notepad, notes, the chat). Set on <body> as well,
+// because the spellcheck attribute is inherited, and on each field — including ones added later
+// (sticky notes, comment pop-ups) via a MutationObserver. Grammarly-style extensions are asked
+// to stay out too. Only fields this code switched off are switched back on afterwards.
+const SPELL_FIELDS = 'textarea, input[type="text"], input[type="search"], input:not([type]), [contenteditable="true"], [contenteditable=""]';
+let spellObserver = null;
+function setSpellOff(el){
+  if(el.dataset.spellOff) return;
+  el.dataset.spellOff = '1';
+  el.dataset.spellPrev = JSON.stringify(['spellcheck','autocorrect','autocomplete'].map(k=>el.getAttribute(k)));
+  el.setAttribute('spellcheck', 'false'); el.setAttribute('autocorrect', 'off'); el.setAttribute('autocomplete', 'off');
+  el.setAttribute('data-gramm', 'false'); el.setAttribute('data-gramm_editor', 'false'); el.setAttribute('data-enable-grammarly', 'false');
+}
+function restoreSpell(el){
+  if(!el.dataset.spellOff) return;
+  let prev = [null, null, null];
+  try { prev = JSON.parse(el.dataset.spellPrev || '[]'); } catch(_) {}
+  ['spellcheck','autocorrect','autocomplete'].forEach((k, i)=>{ if(prev[i] == null) el.removeAttribute(k); else el.setAttribute(k, prev[i]); });
+  ['data-gramm','data-gramm_editor','data-enable-grammarly','data-spell-off','data-spell-prev'].forEach(k=>el.removeAttribute(k));
+}
+function applyExamSpellcheck(on){
+  state.examSpellcheckOff = !on;
+  if(spellObserver){ spellObserver.disconnect(); spellObserver = null; }
+  if(on){
+    document.body.removeAttribute('spellcheck');
+    document.querySelectorAll('[data-spell-off]').forEach(restoreSpell);
+    return;
+  }
+  document.body.setAttribute('spellcheck', 'false');
+  document.querySelectorAll(SPELL_FIELDS).forEach(setSpellOff);
+  spellObserver = new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{
+    if(n.nodeType !== 1) return;
+    if(n.matches(SPELL_FIELDS)) setSpellOff(n);
+    n.querySelectorAll(SPELL_FIELDS).forEach(setSpellOff);
+  })));
+  spellObserver.observe(document.body, {childList: true, subtree: true});
+}
+
+// ---------------- audio items (listening exams) ----------------
+// The teacher sets how many times a recording may be played (0 = unlimited) and whether pupils may
+// pause / go back. A play is counted on the server when it starts from the beginning (resuming a
+// pause isn't a new play), and the server only sends a limited recording once a play has been
+// counted. Playback keeps going while the pupil moves on to the questions; a small bar at the
+// bottom left shows it. The file is fetched once as a blob so seeking works and replays don't
+// download it again.
+const examAudio = {players: {}};
+function audioPlaysUsed(sub, item){
+  const p = (sub && sub.audioPlays) || {};
+  return Number(p[item.id] ?? p[String(item.id)] ?? 0) || 0;
+}
+function audioRuleText(item){
+  const plays = item.maxPlays ? `Can be played ${item.maxPlays === 1 ? 'once' : item.maxPlays + ' times'}` : 'Can be played any number of times';
+  return plays + (item.allowPause === false ? ' · no pausing or skipping' : ' · pausing and skipping allowed');
+}
+function audioPlaysText(sub, item){
+  const used = audioPlaysUsed(sub, item);
+  return `Played ${used}${item.maxPlays ? ' of ' + item.maxPlays : ''} time${used === 1 && !item.maxPlays ? '' : 's'}`;
+}
+function fmtClock(sec){
+  sec = Math.max(0, Math.floor(Number(sec) || 0));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+async function fetchAudioBlobUrl(item){
+  const r = await fetch(SCHOOL_PREFIX + item.audioUrl, {credentials: 'same-origin'});
+  if(!r.ok){
+    let msg = "The recording couldn't be loaded.";
+    try { const j = await r.json(); if(j.detail) msg = j.detail; } catch(_) {}
+    throw new Error(msg);
+  }
+  return URL.createObjectURL(await r.blob());
+}
+// Teacher views: an ordinary player, no limits.
+async function mountAudioControls(audioEl, item){
+  try { audioEl.src = await fetchAudioBlobUrl(item); }
+  catch(e){ audioEl.insertAdjacentHTML('afterend', `<p style="color:var(--danger);font-size:13px;margin:8px 0 0;">${escapeHtml(e.message)}</p>`); }
+}
+function examAudioCtx(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const sub = a && a.submissions[state.currentPupil];
+  return {a, sub, limited: !!(sub && document.body.dataset.role === 'pupil' && sub.status !== 'submitted')};
+}
+function examAudioPlayer(item){
+  let p = examAudio.players[item.id];
+  if(p) return p;
+  p = {item, audio: new Audio(), url: null, busy: false, inPlay: false};
+  p.audio.preload = 'auto';
+  const update = ()=>{ updateExamAudioUi(item.id); renderAudioMiniBar(); };
+  ['timeupdate','play','pause','loadedmetadata','durationchange'].forEach(ev=>p.audio.addEventListener(ev, update));
+  p.audio.addEventListener('ended', ()=>{ p.inPlay = false; update(); });
+  // No pausing allowed: anything that pauses it (a headset button, the OS media keys) resumes it.
+  p.audio.addEventListener('pause', ()=>{
+    const {limited} = examAudioCtx();
+    if(limited && p.item.allowPause === false && p.inPlay && !p.audio.ended && !p.stopping) p.audio.play().catch(()=>{});
+  });
+  examAudio.players[item.id] = p;
+  return p;
+}
+function stopExamAudio(){
+  Object.values(examAudio.players).forEach(p=>{
+    p.stopping = true;
+    try { p.audio.pause(); } catch(_) {}
+    if(p.url) URL.revokeObjectURL(p.url);
+  });
+  examAudio.players = {};
+  renderAudioMiniBar();
+}
+function renderExamAudioPlayer(body, item){
+  const p = examAudioPlayer(item);
+  body.innerHTML = `<div class="audio-player" data-audio-ui="${item.id}">
+      <div class="ap-row">
+        <button type="button" class="btn ap-play"></button>
+        <button type="button" class="btn outline small ap-back hidden" title="Back 10 seconds">&#8634; 10s</button>
+        <div class="ap-bar"><div class="ap-fill"></div></div>
+        <span class="ap-time">0:00</span>
+      </div>
+      <div class="ap-plays"></div>
+      <p class="ap-note"></p>
+    </div>`;
+  const ui = body.querySelector('.audio-player');
+  ui.querySelector('.ap-play').addEventListener('click', ()=>onExamAudioButton(item));
+  ui.querySelector('.ap-back').addEventListener('click', ()=>{ p.audio.currentTime = Math.max(0, p.audio.currentTime - 10); });
+  ui.querySelector('.ap-bar').addEventListener('click', e=>{
+    if(!audioCanSeek(item) || !p.audio.duration || !p.inPlay) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    p.audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * p.audio.duration;
+  });
+  updateExamAudioUi(item.id);
+}
+function audioCanSeek(item){ const {limited} = examAudioCtx(); return !limited || item.allowPause !== false; }
+function updateExamAudioUi(itemId){
+  const ui = document.querySelector(`.audio-player[data-audio-ui="${itemId}"]`);
+  const p = examAudio.players[itemId];
+  if(!ui || !p) return;
+  const {sub, limited} = examAudioCtx();
+  const item = p.item, au = p.audio;
+  const used = audioPlaysUsed(sub, item);
+  const left = item.maxPlays ? Math.max(0, item.maxPlays - used) : Infinity;
+  const playing = !au.paused && !au.ended;
+  const canPause = !limited || item.allowPause !== false;
+  const btn = ui.querySelector('.ap-play');
+  if(p.busy){ btn.textContent = 'Loading…'; btn.disabled = true; }
+  else if(playing){ btn.textContent = canPause ? '❚❚ Pause' : 'Playing…'; btn.disabled = !canPause; }
+  else if(p.inPlay && canPause){ btn.textContent = '▶ Resume'; btn.disabled = false; }
+  else if(limited && left <= 0){ btn.textContent = 'No plays left'; btn.disabled = true; }
+  else { btn.textContent = used && limited ? '▶ Play again' : '▶ Play'; btn.disabled = false; }
+  ui.querySelector('.ap-back').classList.toggle('hidden', !canPause || !p.inPlay);
+  ui.querySelector('.ap-bar').classList.toggle('seekable', audioCanSeek(item) && p.inPlay);
+  ui.querySelector('.ap-fill').style.width = au.duration ? (100 * au.currentTime / au.duration) + '%' : '0%';
+  ui.querySelector('.ap-time').textContent = au.duration ? `${fmtClock(au.currentTime)} / ${fmtClock(au.duration)}` : fmtClock(au.currentTime);
+  const plays = ui.querySelector('.ap-plays');
+  if(limited && item.maxPlays){
+    plays.textContent = left <= 0 && !p.inPlay ? `You've used all ${item.maxPlays} play${item.maxPlays === 1 ? '' : 's'}.`
+      : `Plays left: ${left} of ${item.maxPlays}`;
+    plays.classList.toggle('none', left <= 0 && !p.inPlay);
+  } else {
+    plays.textContent = limited ? 'You can play this as many times as you need.' : '';
+    plays.classList.remove('none');
+  }
+  ui.querySelector('.ap-note').textContent = !limited ? ''
+    : (item.allowPause === false ? 'Once you press Play, the recording plays to the end — it can\'t be paused or skipped. You can move on to the questions while it plays.'
+      : 'You can pause, and go back or forward by clicking the bar. Starting again from the beginning uses a play.');
+}
+async function onExamAudioButton(item){
+  const p = examAudioPlayer(item);
+  const {sub, limited} = examAudioCtx();
+  const au = p.audio;
+  const canPause = !limited || item.allowPause !== false;
+  if(!au.paused && !au.ended){ if(canPause) au.pause(); return; }
+  if(p.inPlay && canPause){ au.play().catch(()=>{}); return; }   // resuming a pause isn't a new play
+  if(p.busy) return;
+  p.busy = true; updateExamAudioUi(item.id);
+  try {
+    if(limited){
+      // Count the play first; the server refuses once the limit is used up.
+      try {
+        const r = await request(`/api/submissions/${sub.recipientId}/audio/${item.id}/play/`, {method: 'POST'});
+        sub.audioPlays = Object.assign({}, sub.audioPlays || {}, {[item.id]: r.plays});
+      } catch(e){
+        let j = null; try { j = JSON.parse(e.message); } catch(_) {}
+        if(j && j.code === 'no_plays_left'){ sub.audioPlays = Object.assign({}, sub.audioPlays || {}, {[item.id]: j.plays}); }
+        throw new Error(apiErrorMessage(e));
+      }
+    }
+    if(!p.url){ p.url = await fetchAudioBlobUrl(item); au.src = p.url; }
+    p.stopping = false;
+    au.currentTime = 0;
+    p.inPlay = true;
+    await au.play();
+  } catch(e){
+    p.inPlay = false;
+    showToast(e.message || "The recording couldn't be played.", 'error');
+  } finally {
+    p.busy = false; updateExamAudioUi(item.id); renderAudioMiniBar();
   }
 }
+// While a recording plays and the pupil is on another item: a small bar at the bottom left.
+function renderAudioMiniBar(){
+  let bar = document.getElementById('audioMiniBar');
+  const shown = Object.values(examAudio.players).find(p=>!p.audio.paused && !p.audio.ended || (p.inPlay && !p.audio.ended));
+  const onIt = shown && state.currentTextId === shown.item.id && !document.getElementById('studentTask').classList.contains('hidden');
+  if(!shown || onIt || document.getElementById('studentTask').classList.contains('hidden')){ if(bar) bar.remove(); return; }
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'audioMiniBar';
+    bar.setAttribute('role', 'status');
+    bar.innerHTML = `<span aria-hidden="true">&#9835;</span><span class="amb-label"></span><span class="amb-time"></span>
+      <button type="button" class="btn small outline amb-pause"></button><button type="button" class="btn small amb-go">Go to it</button>`;
+    document.body.appendChild(bar);
+    bar.querySelector('.amb-go').addEventListener('click', ()=>{ const id = Number(bar.dataset.item); if(id) goToItem(id); });
+    bar.querySelector('.amb-pause').addEventListener('click', ()=>{ const p = examAudio.players[bar.dataset.item]; if(p) onExamAudioButton(p.item); });
+  }
+  const {limited} = examAudioCtx();
+  const au = shown.audio, canPause = !limited || shown.item.allowPause !== false;
+  bar.dataset.item = shown.item.id;
+  bar.querySelector('.amb-label').textContent = shown.item.label;
+  bar.querySelector('.amb-time').textContent = au.duration ? `${fmtClock(au.currentTime)} / ${fmtClock(au.duration)}` : '';
+  const pause = bar.querySelector('.amb-pause');
+  pause.classList.toggle('hidden', !canPause);
+  pause.textContent = au.paused ? '▶' : '❚❚';
+  pause.title = au.paused ? 'Resume' : 'Pause';
+}
+
+// ---------------- offline protection (pupil exam) ----------------
+// While a pupil sits an exam, a copy of their answers, highlights and notes is kept in this
+// browser (localStorage) whenever it differs from what the server last confirmed, and removed
+// once the server has it. If the connection drops, a banner says so and work carries on; saving
+// resumes by itself when it's back. If the page is reloaded or the device restarts before that,
+// the copy is put back when the exam is opened again — but only if the server still holds exactly
+// what the copy was based on (so newer work saved from another device is never overwritten).
+function offlineKey(sub){ return 'examhub-backup-' + sub.recipientId; }
+function isNetworkError(e){
+  return navigator.onLine === false || e instanceof TypeError
+    || /Failed to fetch|NetworkError|Load failed|network/i.test(String(e && e.message || ''));
+}
+function serverPayloadOf(sub){
+  return JSON.stringify({annotations: sub.annotations || [], outlineHtml: sub.outlineHtml || '', responses: sub.responses || {}});
+}
+function writeOfflineBackup(sub, body){
+  if(!sub || body === state.serverPayloadBody || body === state.lastBackupBody) return;
+  try {
+    localStorage.setItem(offlineKey(sub), JSON.stringify({v: 1, body, base: state.serverPayloadBody || '', at: Date.now()}));
+    state.lastBackupBody = body;
+  } catch(_) { /* storage full or blocked — the server copy is still there */ }
+}
+function clearOfflineBackup(sub){
+  state.lastBackupBody = null;
+  try { if(sub) localStorage.removeItem(offlineKey(sub)); } catch(_) {}
+}
+function restoreOfflineBackup(a, sub){
+  state.serverPayloadBody = serverPayloadOf(sub);
+  state.lastBackupBody = null;
+  if(document.body.dataset.role !== 'pupil') return;
+  if(sub.status === 'submitted'){ clearOfflineBackup(sub); return; }
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(offlineKey(sub)) || 'null'); } catch(_) {}
+  if(!saved || !saved.body) return;
+  if(saved.base !== state.serverPayloadBody || saved.body === state.serverPayloadBody){ clearOfflineBackup(sub); return; }
+  try {
+    const p = JSON.parse(saved.body);
+    sub.annotations = p.annotations || []; sub.outlineHtml = p.outlineHtml || ''; sub.responses = p.responses || {};
+    markInProgress(sub);
+    state.lastBackupBody = saved.body;
+    setTimeout(()=>showToast("Answers that hadn't been saved yet were kept on this device and have been put back. They'll be saved now.", 'info', 8000), 400);
+    setTimeout(autosaveNow, 1500);
+  } catch(_) { clearOfflineBackup(sub); }
+}
+function setOfflineMode(on){
+  const banner = document.getElementById('offlineBanner');
+  const was = !!state.offline;
+  state.offline = !!on;
+  if(banner) banner.classList.toggle('hidden', !on);
+  if(was && !on && autosaveApplies()) showToast("You're back online — your work is saved.", 'success');
+}
+// Keep the on-device copy fresh between autosaves (every 3 s, only when something changed).
+setInterval(()=>{
+  if(!autosaveApplies()) return;
+  const {sub, payload} = currentSubmissionPayload();
+  writeOfflineBackup(sub, JSON.stringify(payload));
+}, 3000);
+window.addEventListener('offline', ()=>{ if(autosaveApplies()){ setOfflineMode(true); setAutosaveStatus('Offline — kept on this device', 'error'); } });
+window.addEventListener('online', ()=>{ if(autosaveApplies()) autosaveNow(); });
+// Offline, a reload can't even bring the page back — warn before leaving.
+window.addEventListener('beforeunload', e=>{
+  if(state.offline && autosaveApplies()){ e.preventDefault(); e.returnValue = ''; }
+});
+
+// ---------------- accessibility menu (pupils) ----------------
+// Text size, font (standard / Atkinson Hyperlegible "easy-read" / OpenDyslexic), line and letter
+// spacing, colours (night = whole page inverted incl. PDF pages, high contrast) and a colour
+// overlay — plus read-aloud speed and voice. Saved in this browser per account; applied to every
+// pupil page. Classes go on <html> (see the CSS "accessibility" block).
+const A11Y_DEFAULTS = {size: '1', font: 'default', line: 'normal', letter: 'normal', theme: 'default', overlay: 'none', rate: '1', voice: ''};
+const A11Y_KEY = 'examhub-a11y:' + (document.body.dataset.username || '');
+let a11y = Object.assign({}, A11Y_DEFAULTS);
+function loadA11y(){
+  try { a11y = Object.assign({}, A11Y_DEFAULTS, JSON.parse(localStorage.getItem(A11Y_KEY) || '{}')); } catch(_) { a11y = Object.assign({}, A11Y_DEFAULTS); }
+}
+function saveA11y(){ try { localStorage.setItem(A11Y_KEY, JSON.stringify(a11y)); } catch(_) {} }
+function applyA11y(){
+  const root = document.documentElement;
+  const cls = root.classList;
+  const size = parseFloat(a11y.size) || 1;
+  cls.toggle('a11y-sized', size !== 1);
+  root.style.setProperty('--a11y-s', String(size));
+  ['dyslexic','readable'].forEach(f=>cls.toggle('a11y-font-' + f, a11y.font === f));
+  ['relaxed','loose'].forEach(l=>cls.toggle('a11y-line-' + l, a11y.line === l));
+  cls.toggle('a11y-letter-wide', a11y.letter === 'wide');
+  cls.toggle('a11y-night', a11y.theme === 'night');
+  cls.toggle('a11y-contrast', a11y.theme === 'contrast');
+  if(a11y.overlay && a11y.overlay !== 'none') root.dataset.overlay = a11y.overlay; else delete root.dataset.overlay;
+  document.querySelectorAll('#a11yPanel [data-a11y-key]').forEach(b=>{
+    b.setAttribute('aria-pressed', String(String(a11y[b.dataset.a11yKey]) === b.dataset.a11yValue));
+  });
+  const sel = document.getElementById('a11yVoice');
+  if(sel) sel.value = a11y.voice || '';
+  // Text size changes the PDF's page boxes too — redraw highlights so they stay on their words.
+  if(typeof renderAnnotationLayers === 'function' && !document.getElementById('studentTask')?.classList.contains('hidden')){
+    try { renderAnnotationLayers(); } catch(_) {}
+  }
+}
+if(document.body.dataset.role === 'pupil'){ loadA11y(); applyA11y(); }
+(function wireA11yMenu(){
+  const btn = document.getElementById('a11yBtn'), panel = document.getElementById('a11yPanel');
+  if(!btn || !panel) return;
+  const close = ()=>{ panel.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); };
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !open);
+    btn.setAttribute('aria-expanded', String(open));
+    if(open){ fillVoiceList(); (panel.querySelector('[aria-pressed="true"]') || panel.querySelector('button')).focus(); }
+  });
+  panel.addEventListener('click', e=>{
+    e.stopPropagation();
+    const b = e.target.closest('[data-a11y-key]');
+    if(!b) return;
+    a11y[b.dataset.a11yKey] = b.dataset.a11yValue;
+    saveA11y(); applyA11y();
+  });
+  document.getElementById('a11yVoice').addEventListener('change', e=>{ a11y.voice = e.target.value; saveA11y(); });
+  document.getElementById('a11yReset').addEventListener('click', ()=>{ a11y = Object.assign({}, A11Y_DEFAULTS); saveA11y(); applyA11y(); });
+  document.getElementById('a11yDone').addEventListener('click', ()=>{ close(); btn.focus(); });
+  document.addEventListener('click', e=>{ if(!panel.classList.contains('hidden') && !panel.contains(e.target)) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !panel.classList.contains('hidden')){ close(); btn.focus(); } });
+  if(!('speechSynthesis' in window)) document.getElementById('a11yTtsRow').classList.add('hidden');
+})();
+
+// ---------------- read aloud (text-to-speech) ----------------
+// Uses the browser's own speech (Web Speech API) — no outside service, so it also works in Safe
+// Exam Browser where the device has voices. Reads the selected words, or with nothing selected the
+// whole current question (with its answer options) or the current PDF page. Chinese text is read
+// with a Chinese voice when the device has one. Teachers can switch it off per exam.
+const READ_CJK_RE = /[㐀-䶿一-鿿豈-﫿]/;
+function speechVoices(){ try { return window.speechSynthesis ? speechSynthesis.getVoices() : []; } catch(_) { return []; } }
+function fillVoiceList(){
+  const sel = document.getElementById('a11yVoice');
+  if(!sel) return;
+  const voices = speechVoices();
+  sel.innerHTML = '<option value="">Automatic</option>' + voices.map(v=>`<option value="${escAttr(v.voiceURI)}">${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`).join('');
+  sel.value = a11y.voice || '';
+}
+if('speechSynthesis' in window){ try { speechSynthesis.addEventListener('voiceschanged', fillVoiceList); } catch(_) {} }
+function setupReadAloud(a){
+  const btn = document.getElementById('readAloudBtn');
+  stopReadAloud();
+  const allowed = a && a.allowTextToSpeech !== false && ('speechSynthesis' in window);
+  btn.classList.toggle('hidden', !allowed);
+  state.readAloudAllowed = allowed;
+  const note = document.getElementById('a11yTtsNote');
+  if(note) note.innerHTML = a && a.allowTextToSpeech === false
+    ? 'Your teacher has turned read aloud off for this exam.'
+    : 'In an exam, use <strong>Read aloud</strong> in the toolbar: it reads the words you select, or the whole question.';
+}
+function readAloudText(){
+  const sel = window.getSelection && window.getSelection();
+  const picked = sel && !sel.isCollapsed ? sel.toString().trim() : '';
+  if(picked) return picked;
+  const item = currentItem();
+  if(!item) return '';
+  if(item.type === 'pdf'){
+    const layer = document.querySelector('#pdfStage .textLayer');
+    return layer ? (layer.innerText || layer.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  }
+  const parts = [item.prompt || item.label || ''];
+  if(item.type === 'mcq_single' || item.type === 'mcq_multiple'){
+    (item.options || []).forEach((o, i)=>parts.push(`Option ${String.fromCharCode(65 + i)}: ${o.text || ''}.`));
+  } else if(item.type === 'true_false'){
+    parts.push('True or false?');
+  }
+  return parts.join('\n').trim();
+}
+function speechChunks(text){
+  // Short pieces: some browsers stop long utterances part-way.
+  const out = [];
+  // (No look-behind regex: older iPad Safari can't parse it, which would stop the whole page.)
+  String(text).replace(/([.!?。！？;；\n])\s*/g, '$1\u0001').split('\u0001').forEach(sentence=>{
+    let s = sentence.trim();
+    while(s.length > 220){
+      let cut = s.lastIndexOf(' ', 220); if(cut < 80) cut = 220;
+      out.push(s.slice(0, cut)); s = s.slice(cut).trim();
+    }
+    if(s) out.push(s);
+  });
+  return out;
+}
+function setReadAloudButton(speaking){
+  const btn = document.getElementById('readAloudBtn');
+  if(!btn) return;
+  btn.setAttribute('aria-pressed', String(speaking));
+  btn.classList.toggle('active', speaking);
+  document.getElementById('readAloudLabel').textContent = speaking ? 'Stop reading' : 'Read aloud';
+}
+function stopReadAloud(){
+  state.readAloudGen = (state.readAloudGen || 0) + 1;
+  try { if(window.speechSynthesis) speechSynthesis.cancel(); } catch(_) {}
+  setReadAloudButton(false);
+}
+function startReadAloud(text){
+  stopReadAloud();
+  const gen = state.readAloudGen;
+  const voices = speechVoices();
+  const chosen = a11y.voice ? voices.find(v=>v.voiceURI === a11y.voice) : null;
+  const zhVoice = voices.find(v=>/^zh/i.test(v.lang));
+  const chunks = speechChunks(text);
+  if(!chunks.length) return;
+  chunks.forEach((chunk, i)=>{
+    const u = new SpeechSynthesisUtterance(chunk);
+    u.rate = parseFloat(a11y.rate) || 1;
+    if(chosen) u.voice = chosen;
+    else if(READ_CJK_RE.test(chunk)){ u.lang = 'zh-CN'; if(zhVoice) u.voice = zhVoice; }
+    if(i === chunks.length - 1) u.onend = u.onerror = ()=>{ if(gen === state.readAloudGen) setReadAloudButton(false); };
+    speechSynthesis.speak(u);
+  });
+  setReadAloudButton(true);
+}
+document.getElementById('readAloudBtn').addEventListener('mousedown', e=>e.preventDefault());   // keep the selection
+document.getElementById('readAloudBtn').addEventListener('click', ()=>{
+  if(!state.readAloudAllowed) return;
+  if(document.getElementById('readAloudBtn').getAttribute('aria-pressed') === 'true'){ stopReadAloud(); return; }
+  const text = readAloudText();
+  if(!text){ showToast('Select some words to hear them read aloud.', 'info'); return; }
+  startReadAloud(text);
+});
+
+// ---------------- export to PDF (teacher, Grade tab) ----------------
+// One pupil -> one PDF; several -> a ZIP with a PDF each, or one combined PDF. Built on the server
+// (pdf_export.py). Fetched as a blob so a problem shows as a message instead of a broken page.
+async function downloadExport(url, button){
+  const label = button ? button.textContent : '';
+  if(button){ button.disabled = true; button.textContent = 'Preparing…'; }
+  try {
+    const finalUrl = SCHOOL_PREFIX && !url.startsWith(SCHOOL_PREFIX) ? SCHOOL_PREFIX + url : url;
+    const r = await fetch(finalUrl, {credentials: 'same-origin'});
+    if(!r.ok){
+      let msg = 'The export could not be made.';
+      try { const t = await r.text(); try { msg = JSON.parse(t).detail || msg; } catch(_) { if(t && t.length < 300) msg = t; } } catch(_) {}
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const cd = r.headers.get('Content-Disposition') || '';
+    let name = 'export.pdf';
+    const star = cd.match(/filename\*=UTF-8''([^;]+)/i), plain = cd.match(/filename="([^"]+)"/i);
+    if(star) { try { name = decodeURIComponent(star[1]); } catch(_) {} } else if(plain) name = plain[1];
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(link.href), 60000);
+    showToast('Downloaded ' + name, 'success');
+  } catch(e){
+    showToast(e.message || 'The export could not be made.', 'error');
+  } finally {
+    if(button){ button.disabled = false; button.textContent = label; }
+  }
+}
+function exportSubmissionUrl(recipientId, withMarks, withPages=true){
+  return `/api/submissions/${recipientId}/export.pdf?marks=${withMarks ? 1 : 0}&pages=${withPages ? 1 : 0}`;
+}
+function openExportModal(){
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a) return;
+  const pupil = state.gradePupil;
+  const sub = pupil && a.submissions[pupil];
+  const handedIn = a.assignedTo.filter(p=>a.submissions[p] && a.submissions[p].status === 'submitted').length;
+  const started = a.assignedTo.filter(p=>a.submissions[p] && a.submissions[p].status !== 'idle').length;
+  const one = document.getElementById('exportWhoOne');
+  one.disabled = !(sub && sub.status !== 'idle');
+  document.getElementById('exportWhoOneLabel').textContent = pupil ? pupil : 'The pupil open in Grade';
+  document.getElementById('exportWhoOneNote').textContent = !pupil ? 'Choose a pupil in the Grade tab first.'
+    : (sub && sub.status === 'submitted' ? 'Their work as handed in.' : (sub && sub.status !== 'idle' ? 'Not handed in yet — their work so far.' : "Hasn't started yet."));
+  document.getElementById('exportWhoAllNote').textContent = `${handedIn} pupil${handedIn === 1 ? '' : 's'}`;
+  document.getElementById('exportWhoStartedNote').textContent = `${started} pupil${started === 1 ? '' : 's'}, including any not handed in yet`;
+  (one.disabled ? document.getElementById('exportWhoAll') : one).checked = true;
+  syncExportModal();
+  document.getElementById('exportModal').classList.remove('hidden');
+}
+function syncExportModal(){
+  const who = document.querySelector('input[name="exportWho"]:checked')?.value;
+  document.getElementById('exportFormatBox').classList.toggle('hidden', who === 'one');
+  // The exam's PDF pages only matter if it has a PDF item.
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  const hasPdf = !!(a && a.items.some(i=>i.type === 'pdf'));
+  document.getElementById('exportPages').closest('label').classList.toggle('hidden', !hasPdf);
+  document.getElementById('exportPages').closest('label').nextElementSibling.classList.toggle('hidden', !hasPdf);
+}
+document.querySelectorAll('input[name="exportWho"]').forEach(r=>r.addEventListener('change', syncExportModal));
+document.getElementById('exportCancelBtn').addEventListener('click', ()=>document.getElementById('exportModal').classList.add('hidden'));
+document.getElementById('exportGoBtn').addEventListener('click', async e=>{
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  if(!a) return;
+  const who = document.querySelector('input[name="exportWho"]:checked')?.value || 'submitted';
+  const marks = document.getElementById('exportMarks').checked;
+  const pages = document.getElementById('exportPages').checked;
+  let url;
+  if(who === 'one'){
+    const sub = a.submissions[state.gradePupil];
+    if(!sub){ showToast('Choose a pupil in the Grade tab first.', 'error'); return; }
+    url = exportSubmissionUrl(sub.recipientId, marks, pages);
+  } else {
+    const fmt = document.querySelector('input[name="exportFormat"]:checked')?.value || 'zip';
+    url = `/api/assignments/${a.id}/export/?format=${fmt}&who=${who}&marks=${marks ? 1 : 0}&pages=${pages ? 1 : 0}`;
+  }
+  await downloadExport(url, e.currentTarget);
+  document.getElementById('exportModal').classList.add('hidden');
+});
+document.getElementById('exportPdfBtn').addEventListener('click', openExportModal);
 
 // ---------------- image detection inside a rendered PDF page ----------------
 async function extractImageRects(page, viewport){
@@ -7507,6 +8333,21 @@ function applyFontSize(editable, px){
   editable.dispatchEvent(new Event('input', {bubbles: true}));   // autosave + word count
 }
 // Words in the answer the pupil is on (essays usually come with a word limit).
+// Chinese / Japanese / Korean are counted by character (there are no spaces between words);
+// everything else by word. A mixed answer shows both.
+const CJK_CHAR_RE = /[\u2e80-\u2fff\u3040-\u30ff\u3100-\u312f\u3130-\u318f\u31a0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]/g;
+function countText(html){
+  const div = document.createElement('div'); div.innerHTML = html || '';
+  const text = (div.innerText || div.textContent || '').replace(/\u200B/g, '');
+  const chars = (text.match(CJK_CHAR_RE) || []).length;
+  const rest = text.replace(CJK_CHAR_RE, ' ').replace(/[\u3000-\u303f\uff00-\uffef]/g, ' ').trim();
+  const words = rest ? rest.split(/\s+/).filter(w=>/[\p{L}\p{N}]/u.test(w)).length : 0;
+  return {words, chars};
+}
+function describeTextCount(c){
+  const w = `${c.words} word${c.words === 1 ? '' : 's'}`, ch = `${c.chars} character${c.chars === 1 ? '' : 's'}`;
+  return c.chars && c.words ? `${ch} · ${w}` : (c.chars ? ch : w);
+}
 function countWords(html){
   const div = document.createElement('div'); div.innerHTML = html || '';
   const text = (div.innerText || div.textContent || '').replace(/\u200B/g, '').trim();
@@ -7518,8 +8359,7 @@ function updateAnswerWordCount(){
   const wrap = document.getElementById('responseEditable_' + state.activeResponseTextId);
   const ed = wrap && wrap.querySelector('.editable');
   if(!ed){ el.textContent = ''; return; }
-  const n = countWords(ed.innerHTML);
-  el.textContent = `${n} word${n === 1 ? '' : 's'}`;
+  el.textContent = describeTextCount(countText(ed.innerHTML));
 }
 document.addEventListener('input', e=>{ if(e.target.closest && e.target.closest('#responseEditables')) updateAnswerWordCount(); });
 const TABLE_HTML = '<table style="border-collapse:collapse;width:100%;margin:8px 0;">' +
@@ -7589,13 +8429,13 @@ function isItemAnswered(item, v){
   return true;
 }
 function unansweredItems(a, responses){
-  return a.items.filter(item=>item.type !== 'image' && item.type !== 'video')
+  return a.items.filter(item=>!isMediaOnly(item))
     .filter(item=>!isItemAnswered(item, responses[item.id] ?? responses[String(item.id)]));
 }
 document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
   const {sub,payload} = currentSubmissionPayload();
-  const answerable = a.items.filter(item=>item.type !== 'image' && item.type !== 'video').length;
+  const answerable = a.items.filter(item=>!isMediaOnly(item)).length;
   const missing = unansweredItems(a, payload.responses || {});
   const summary = missing.length
     ? `You've answered ${answerable - missing.length} of ${answerable}. `
@@ -7615,6 +8455,7 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   if(!ok) return;
   try { const result = await request(`/api/submissions/${sub.recipientId}/submit/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     sub.status = result.status; sub.submittedAt = new Date(result.submittedAt).toLocaleString();
+    clearOfflineBackup(sub);
     clearExamTimer();
     if(a && (a.deliveryMode === 'lockdown' || runningInSeb())){
       // Safe Exam Browser quits itself when it reaches the quit address in ExamHub's config
@@ -7627,7 +8468,12 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
       if(document.fullscreenElement && document.exitFullscreen){ state.examWasFullscreen = false; try { await document.exitFullscreen(); } catch(_) {} }
       showStudentTaskList();
     }
-  } catch(error) { showToast(apiErrorMessage(error), 'error'); }
+  } catch(error) {
+    if(isNetworkError(error)){
+      setOfflineMode(true);
+      showToast("You're offline, so your work hasn't been handed in yet. Your answers are safe on this device — press Submit again when the connection is back.", 'error', 9000);
+    } else showToast(apiErrorMessage(error), 'error');
+  }
 });
 
 // ---------------- init ----------------
@@ -7700,5 +8546,6 @@ loadAssignments().then(()=>{
 {% include "_tour.html" %}
 {% include "_notifications.html" %}
 {% include "_password_toggle.html" %}
+<div id="a11yOverlay" aria-hidden="true"></div>
 </body>
 </html>

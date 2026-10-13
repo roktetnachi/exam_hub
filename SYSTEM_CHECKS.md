@@ -3,7 +3,7 @@
 A living checklist for verifying that ExamHub is healthy before (and after) every deployment or significant change.
 Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through it.
 
-> **Version coverage:** migrations `0001` – `0029` · v0.22.0 + Unreleased (year groups & subjects, exam privacy, teacher marking (comment-only), submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters, dashboard tabs & navigation, breadcrumbs, quieter notifications, flag for review, pupil task sections)
+> **Version coverage:** migrations `0001` – `0031` · v0.22.0 + Unreleased (accessibility menu, read aloud, offline protection, character count, spell check on/off, audio items, PDF export, year groups & subjects, exam privacy, teacher marking (comment-only), submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters, dashboard tabs & navigation, breadcrumbs, quieter notifications, flag for review, pupil task sections)
 
 ---
 
@@ -537,6 +537,51 @@ python manage.py check --deploy
 
 ---
 
+## 27. Spell Check, Audio Items, PDF Export
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 27.1 | Create exam → Delivery mode: **Allow spell check** is unticked by default; Settings (Edit exam) has the same box; Deliver tab shows "Spell check On / Off" | Saved per exam | |
+| 27.2 | Spell check **off**: in the pupil's answer box, notepad, sticky notes and fill-in boxes a misspelt word gets **no** red underline and no suggestions on right-click (Chrome, Edge, Safari / iPad) | No underlines | |
+| 27.3 | Spell check **on**: misspellings are underlined as normal; after leaving an exam with it off, other pages are back to normal | Underlined | |
+| 27.4 | Exams created before migration `0030` keep spell check **on** (as before) | Unchanged | |
+| 27.5 | Builder: **Audio** tile → file (MP3, M4A, WAV, OGG, WEBM, AAC, FLAC), **Plays allowed** (Unlimited / 1–5, default 2), **Pupils can pause and go back / forward** (default off); no points box | Created; item shows "not marked" on the Content tab | |
+| 27.6 | Pupil: Play → "Plays left: 1 of 2"; with pausing off the button says "Playing…" and can't pause; moving to a question keeps it playing with a bar at the bottom left (Go to it) | Plays to the end | |
+| 27.7 | After the last play: "No plays left"; reloading the page or opening it on another device doesn't give more (counted on the server); a second click while the request is in flight doesn't use two plays | Limit holds | |
+| 27.8 | With pausing on: Pause / Resume, ↺ 10s and clicking the bar seek; resuming isn't a new play; starting again from the beginning is | Correct counts | |
+| 27.9 | Opening `/s/<slug>/api/items/<id>/audio/` as a pupil before pressing Play on a limited recording → 403 `play_not_started`; teachers can always listen (Review / Grade show a normal player and "Played x of y times") | Gated | |
+| 27.10 | Audio works inside Safe Exam Browser (Lockdown exams) and in "Any browser with security" | Plays | |
+| 27.11 | Grade tab → **Export PDF**: this pupil / everyone who handed in / everyone who started; ZIP (one PDF each) or one combined PDF; include marks on / off; include the exam's PDF pages on / off; **⤓ PDF** on the pupil bar exports that pupil straight away | Downloads with the exam / pupil name | |
+| 27.12 | The PDF has: cover (school, exam, pupil, times, total and whether it's released), each item with question, answer, score, feedback and numbered comments (marked words tinted, numbers match the Grade tab), MCQ ticks with the correct answer, tables, images; then the exam's PDF pages with the pupil's highlights (N1…) and the teacher's marks (1, 2…); notepad at the end; "Page x of y" footer | Matches the Grade tab | |
+| 27.13 | **Marks off** leaves out scores, feedback, comments and correct answers but keeps the pupil's own notes | Clean copy | |
+| 27.14 | Chinese text (answers, names, titles) prints correctly; accents, maths symbols and sub/superscripts too | No boxes | |
+| 27.15 | Only teachers who can see the exam (its teacher, admins) can export; pupils and other teachers get 403; each export is in the Activity log ("exported") | Refused / logged | |
+| 27.16 | A whole class with a long PDF exports within the time limit on Railway (gunicorn `--timeout 120` in the Procfile) | Download finishes | |
+
+---
+
+## 28. Accessibility, Read Aloud, Offline Protection
+
+| # | Check | Expected | Status |
+|---|-------|----------|--------|
+| 28.1 | Pupil: **Accessibility** button in the top bar on the task list and during an exam (teachers don't have it); Esc / clicking away / Done closes it | Opens and closes | |
+| 28.2 | Text size steps enlarge the question, answer box, options, fill-in / table boxes, notepad and notes; the PDF keeps its own zoom; highlights stay on their words | Larger text, nothing misplaced | |
+| 28.3 | Easy-read and Dyslexia fonts load (also in Safe Exam Browser — they come from `/static/`, not the internet); the pupil's own font choices inside an answer stay | Fonts change | |
+| 28.4 | Line spacing Wider / Widest and Letter spacing Wide change the question and answer text | Visible change | |
+| 28.5 | Night: whole page dark, PDF pages dark, images / videos / highlight colours normal; the notepad and resources windows still open in the right place. High contrast: black text and borders, thick focus outline | Readable | |
+| 28.6 | Colour overlay tints everything (cream, blue, green, pink, grey); None removes it | Tint over the whole screen | |
+| 28.7 | Settings survive a reload and the next sign-in on the same device; Reset to standard clears them; another pupil on the same device doesn't get them | Per account | |
+| 28.8 | **Read aloud** reads the selected words, or the whole question with options A, B…; on a PDF item, the current page; Chinese text uses a Chinese voice where the device has one; speed and voice from the menu; **Stop reading** stops | Spoken | |
+| 28.9 | Create / Settings: **Allow read aloud** (on by default); off → no Read aloud button, menu says it's off, instructions card shows "Read aloud off"; Deliver tab shows it | Saved per exam | |
+| 28.10 | Answer counter: English text "N words"; Chinese "N characters"; mixed "N characters · M words" | Correct counts | |
+| 28.11 | During an exam, turn Wi-Fi off: banner "You're offline — keep working", save line "Offline — kept on this device"; typing carries on; reloading asks first | Banner, nothing lost | |
+| 28.12 | Turn Wi-Fi back on: saves within a few seconds, banner goes, "You're back online — your work is saved" | Saved | |
+| 28.13 | Offline, type an answer, then close the browser; reconnect and open the exam again → "Answers that hadn't been saved yet … put back" and the answer is there and saved | Restored | |
+| 28.14 | If the same pupil saved newer work on another device in between, the old copy is **not** put back | Server copy kept | |
+| 28.15 | Submit while offline → message to try again once back online; nothing lost; after hand-in the on-device copy is gone (`examhub-backup-<id>` not in localStorage) | Safe | |
+
+---
+
 ## Running the Test Suite
 
 ```bash
@@ -565,9 +610,12 @@ python manage.py test digitalexams.test_url_access digitalexams.test_graphcalc
 
 # 2026-10-09: comment-only marking, notifications (bell-only grades, toasts, mark all as read), tabs and navigation
 python manage.py test digitalexams.test_marking digitalexams.test_notifications digitalexams.test_resources
+
+# 2026-10-12 / 13: spell check on/off, audio items with play limits, PDF export, accessibility, offline protection
+python manage.py test digitalexams.test_spellcheck_audio_export
 ```
 
-> **Last full run (2026-10-09):** 143 tests — all pass except the 3 known failures below.
+> **Last full run (2026-10-13):** 159 tests — all pass except the 3 known failures below.
 
 > **Known failing (pre-existing):** `TeacherRoleTests.test_main_admin_can_promote_and_demote`, `TeacherRoleTests.test_only_main_admin_can_manage_roles`, `RolesTabAndTourTests.test_roles_tab_on_every_teacher_page_for_main_admin_only`. They expect Roles to be superuser-only; school admins can now use it. Decide which rule is correct and update the tests or the code.
 
@@ -575,4 +623,4 @@ python manage.py test digitalexams.test_marking digitalexams.test_notifications 
 
 ---
 
-*Last reviewed: 2026-10-09 (v0.22.0 + Unreleased, migrations up to 0029)*
+*Last reviewed: 2026-10-13 (v0.22.0 + Unreleased, migrations up to 0031)*

@@ -1,5 +1,5 @@
 from django.urls import path
-from . import accounts, bulk_import, views
+from . import accounts, bulk_import, pdf_export, views
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/items/<int:item_id>/pdf/', views.item_pdf, name='item-pdf'),
     path('api/items/<int:item_id>/image/', views.item_image, name='item-image'),
     path('api/items/<int:item_id>/video/', views.item_video, name='item-video'),
+    path('api/items/<int:item_id>/audio/', views.item_audio, name='item-audio'),
     path('api/assignments/create/', views.create_assignment, name='create-assignment'),
     path('api/assignments/<int:assignment_id>/resources/add/', views.add_resource_api, name='add-resource'),
     path('api/resources/<int:resource_id>/delete/', views.delete_resource_api, name='delete-resource'),
@@ -54,6 +55,9 @@ urlpatterns = [
     path('api/submissions/<int:recipient_id>/resume/', views.resume_submission_api, name='resume-submission'),
     path('api/submissions/<int:recipient_id>/unlock/', views.unlock_submission_api, name='unlock-submission'),
     path('api/submissions/<int:recipient_id>/lock-status/', views.lock_status_api, name='lock-status'),
+    path('api/submissions/<int:recipient_id>/audio/<int:item_id>/play/', views.audio_play_api, name='audio-play'),
+    path('api/submissions/<int:recipient_id>/export.pdf', pdf_export.export_submission_pdf, name='export-submission-pdf'),
+    path('api/assignments/<int:assignment_id>/export/', pdf_export.export_assignment, name='export-assignment'),
     path('api/recipients/<int:recipient_id>/accommodations/', views.update_recipient_accommodations_api, name='update-accommodations'),
     path('api/recipients/<int:recipient_id>/messages/', views.messages_api, name='messages-api'),
     path('api/recipients/<int:recipient_id>/messages/send/', views.send_message_api, name='send-message'),

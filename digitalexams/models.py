@@ -236,6 +236,12 @@ class Assignment(models.Model):
     join_code = models.CharField(max_length=8, blank=True, default='')
     allow_calculator = models.BooleanField(default=False)
     allow_graphing_calculator = models.BooleanField(default=False)
+    # Browser spell check (red underlines + suggestions) in pupils' answer boxes, notepad and notes.
+    # Off by default for new exams so the exam tests the pupil's spelling, not the browser's.
+    allow_spellcheck = models.BooleanField(default=False)
+    # Pupils' "Read aloud" (the browser's text-to-speech in the Accessibility menu). On by default;
+    # a teacher turns it off where hearing the text would help (reading comprehension, languages).
+    allow_text_to_speech = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -259,6 +265,7 @@ class AssignmentItem(models.Model):
         TRUE_FALSE = 'true_false', 'True / False'
         FILL_TEXT = 'fill_text', 'Fill in the blank'
         TABLE = 'table', 'Table'
+        AUDIO = 'audio', 'Audio'
 
     assignment = models.ForeignKey(Assignment, related_name='items', on_delete=models.CASCADE)
     item_type = models.CharField(max_length=16, choices=ItemType.choices, default=ItemType.PDF)
@@ -275,6 +282,13 @@ class AssignmentItem(models.Model):
     image = models.FileField(upload_to='assignments/%Y/%m/', blank=True, null=True)
     # Only used when item_type == VIDEO.
     video = models.FileField(upload_to='assignments/%Y/%m/', blank=True, null=True)
+    # Only used when item_type == AUDIO (listening exams). audio_max_plays = how many times a pupil
+    # may play it during the exam (0 = as often as they like); counted on the server
+    # (Submission.audio_plays) so reloading the page doesn't reset it. audio_allow_pause = pupils
+    # can pause and move back / forward; when off, once a play starts it runs to the end.
+    audio = models.FileField(upload_to='assignments/%Y/%m/', blank=True, null=True)
+    audio_max_plays = models.PositiveSmallIntegerField(default=0)
+    audio_allow_pause = models.BooleanField(default=True)
     # Only used for question types: the question text itself.
     prompt = models.TextField(blank=True)
     # MCQ_SINGLE / MCQ_MULTIPLE: [{"id": "a", "text": "..."}, ...]. TABLE: {"rows": n, "cols": n,
@@ -389,6 +403,20 @@ class Submission(models.Model):
     # When the teacher last looked at this submission. A submission newer than this shows as
     # "new" (dot on the exam, bell item) — this replaced the old submission email.
     teacher_seen_at = models.DateTimeField(null=True, blank=True)
+    # How many times the pupil has started each audio item: {"<AssignmentItem id>": n}. Only ever
+    # written by audio_play_api (under a row lock) — see save() below.
+    audio_plays = models.JSONField(default=dict, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Autosave, submit, locking and grading all load the submission, change it and save the
+        # whole row. If a play was counted in between, a full save would put the old count back and
+        # hand the pupil an extra play — so a plain save() of an existing row leaves audio_plays
+        # alone. Pass update_fields=['audio_plays', ...] to write it.
+        if self.pk is not None and kwargs.get('update_fields') is None and not kwargs.get('force_insert') \
+                and not self._state.adding:
+            kwargs['update_fields'] = [f.name for f in self._meta.concrete_fields
+                                       if not f.primary_key and f.name != 'audio_plays']
+        super().save(*args, **kwargs)
 
     @property
     def is_new_for_teacher(self):

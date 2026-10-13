@@ -116,7 +116,8 @@ class RecipientInline(admin.TabularInline):
 class AssignmentItemInline(admin.TabularInline):
     model = AssignmentItem
     extra = 0
-    fields = ('order', 'item_type', 'label', 'section', 'pdf', 'image', 'video', 'prompt', 'options', 'correct_answer', 'points')
+    fields = ('order', 'item_type', 'label', 'section', 'pdf', 'image', 'video', 'audio', 'audio_max_plays',
+              'audio_allow_pause', 'prompt', 'options', 'correct_answer', 'points')
 
 
 @admin.register(Assignment)
