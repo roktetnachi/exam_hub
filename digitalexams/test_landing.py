@@ -14,8 +14,10 @@ class LandingPageTests(TestCase):
         self.assertEqual(r.status_code, 200)
         html = r.content.decode()
         self.assertIn('aria-label="Exams on screen that still feel like paper."', html)
-        self.assertIn('href="/s/ssc/login/"', html)              # active school listed
-        self.assertNotIn('Closed Academy', html)                  # inactive one isn't
+        self.assertIn('href="/login/"', html)                     # Sign in goes straight to the one sign-in page
+        self.assertNotIn('Singapore School Cebu', html)           # which schools use ExamNook stays private
+        self.assertNotIn('/s/ssc/', html)
+        self.assertNotIn('Closed Academy', html)
         self.assertIn('/static/digitalexams/landing/inter-latin-opsz-normal.woff2', html)
         self.assertIn('/static/digitalexams/landing/lenis.min.js', html)        # smooth scroll served locally
         self.assertIn('/static/digitalexams/landing/shots/pupil-exam.webp', html)
@@ -61,3 +63,15 @@ class LandingPageTests(TestCase):
     def test_sign_in_page_has_the_examnook_favicon(self):
         html = self.client.get('/s/ssc/login/').content.decode()
         self.assertIn('/static/digitalexams/brand/examnook-icon.svg', html)
+
+    def test_universal_sign_in_page_is_branded_and_names_no_school(self):
+        html = self.client.get('/login/').content.decode()
+        self.assertIn('/static/digitalexams/brand/examnook-mark-on-blue.svg', html)
+        self.assertIn('Use the account your school gave you.', html)
+        self.assertNotIn('Singapore School Cebu', html)
+        self.assertIn('href="/"', html)                           # a way back to the landing page
+
+    def test_wrong_password_message_says_what_to_do(self):
+        User.objects.create_user('ana', 'ana@x.edu', 'right-pass-123', school=self.ssc)
+        html = self.client.post('/login/', {'action': 'password', 'username': 'ana', 'password': 'nope', 'login_as': 'pupil'}).content.decode()
+        self.assertIn('sign in with an email code instead', html)

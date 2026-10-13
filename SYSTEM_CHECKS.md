@@ -588,7 +588,7 @@ python manage.py check --deploy
 |---|-------|----------|--------|
 | 29.1 | Signed out, open the site root (`https://<site>/`) | Landing page, not the sign-in form | |
 | 29.2 | Signed in (pupil or teacher), open the site root | Sent straight to `/s/<slug>/` | |
-| 29.3 | **Sign in** section lists each active school (logo or initial) and each goes to that school's sign-in page; an inactive school isn't listed | Correct links | |
+| 29.3 | No school is named anywhere on the landing page; every Sign in button opens `/login/` | Private | |
 | 29.4 | "Bring ExamHub to your school" opens an email to `CONTACT_EMAIL` (or `EMAIL_HOST_USER`); hidden when neither is set | Right address | |
 | 29.5 | Hero: heading rises in, highlights sweep, glass cards arrive; with "reduce motion" on everything is shown still and scrolling is normal | Calm | |
 | 29.6 | Accessibility sample: text size, fonts, night, overlays and Read aloud change only the sample question | Works | |
@@ -602,6 +602,9 @@ python manage.py check --deploy
 | 29.18 | Screens: Pupils/Teachers switch, each feature changes the screenshot, "Full size" opens it and Esc closes it | Works | |
 | 29.19 | Fair and secure: "Switch to another tab" pauses the sample exam; a wrong code is refused, "lantern" carries on | Works | |
 | 29.20 | How it works: each card shows its screen; clicking the screen opens it full size | Works | |
+| 29.21 | `/login/` on a laptop: blue panel left, form right; on a phone: blue header, form below; "ExamNook home" goes back to the landing page | Looks right | |
+| 29.22 | Wrong password shows the new message and keeps the username filled in | Clear | |
+| 29.23 | First sign-in with a temporary password shows the restyled "Choose your password" page | Works | |
 | 29.13 | Browser tab shows the ExamNook icon on the landing page, sign-in page and inside the portal | Icon shows | |
 | 29.14 | No page, email, download or SEB message still says "ExamHub" | Name is ExamNook | |
 | 29.15 | Invite email: subject "Your ExamNook account at <school>", sender "ExamNook" | Correct | |

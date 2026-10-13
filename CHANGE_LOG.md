@@ -26,6 +26,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The 2026-10-09 changes (comment-only marking, notifications, dashboard tabs, navigation, flag for review, pupil task sections) need **no migration and no new settings**. Existing highlights / underlines stay as they are and still show. One new address, `POST /api/notifications/read-all/`, ships with `urls.py`.
 - Pupils' "Flag for review" marks are kept in their browser only (per exam), so they don't carry over to another device.
 
+### Changed — Sign-in goes straight to one page; sign-in pages restyled (2026-10-13, seventh batch)
+No migration, no new settings.
+- **The landing page no longer lists schools.** Every "Sign in" button goes straight to the one sign-in page (`/login/`), so which schools use ExamNook stays private. The footer now just says "Ready for your exam?" with a Sign in button. School sign-in addresses (`/s/<school>/login/`, used in invite emails) still work.
+- **Sign-in page redesigned** in ExamNook's colours: on a laptop, a deep-blue ruled-paper panel with the logo on the left and the form on a warm off-white card on the right; on phones, a compact blue header with the form below. Ash-red Sign in button, deep-blue pupil/teacher switch, a link back to the landing page. On a school's own sign-in address the school's name and logo still appear on the card. Nothing about how signing in works has changed.
+- **Clearer wrong-password message:** "That username and password don't match. Check for typing mistakes (capital letters count), or sign in with an email code instead."
+- **"Choose your password"** (first sign-in) restyled to match.
+- **Landing colours:** page background is now the light grey-beige `#F4F5F0`; cards are a warm off-white `#FBF8F1` (not pure white) with a soft border.
+- Tests: `test_landing.py` 10 tests. Full suite: 169 tests, only the 3 known Roles failures.
+
 ### Changed — Landing page rebuilt: interactive, screenshots first (2026-10-13, sixth batch)
 No migration, no new settings. Replaces the Aentoria-style layout below.
 - **New order:** hero → What it is → **Screens** (straight after) → How it works → Fair and secure → Accessibility → Your school → FAQ → Sign in.

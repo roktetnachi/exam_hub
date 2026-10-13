@@ -1,117 +1,201 @@
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in — {{ request.school.name|default:"ExamNook" }}</title>
-{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
+<meta name="theme-color" content="#1c3a6e">
+<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
 <style>
-  :root{--blue:{% if request.school and request.school.primary_color %}{{ request.school.primary_color }}{% else %}#4b91c5{% endif %};--blue-dark:#28186f;--danger:#d9231a;--danger-bg:#fbeae9;--text:#232733;--muted:#6b7280;--border:#d3dae6;--page-bg:#edf1f9;}
+  /* Same fonts and colours as the landing page, all served by ExamNook itself. */
+  @font-face{font-family:'Outfit Var';font-weight:100 900;font-display:swap;src:url("{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'Inter Var';font-weight:100 900;font-display:swap;src:url("{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}") format('woff2');}
+  :root{
+    --navy:#1c3a6e; --navy-deep:#122a52; --navy-mid:#2c5291; --navy-soft:#dce4f1;
+    --ash:#b2554b; --ash-deep:#954238;
+    --card:#fbf8f1; --card-line:#e6e1d4; --field:#fffdf8;
+    --page:#f4f5f0;
+    --ink:#1d2433; --text:#4a5263; --soft:#687083;
+    --danger:#9c2f25; --danger-bg:#f8e3df;
+    --display:'Outfit Var','Inter Var',system-ui,sans-serif;
+    --font:'Inter Var',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  }
   *{box-sizing:border-box;}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--page-bg);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;}
-  .card{width:min(420px,100%);background:#fff;border-radius:22px;padding:34px 32px 30px;
-    box-shadow:0 1px 2px rgba(30,41,59,.04),0 18px 44px -18px rgba(30,41,59,.28);}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;color:var(--blue-dark);letter-spacing:-.01em;margin-bottom:22px;}
-  .brand .dot{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-dark));}
-  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em;}
-  .lead{color:var(--muted);font-size:15px;margin:0 0 24px;line-height:1.5;}
-  .switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--page-bg);border-radius:999px;padding:5px;margin:0 0 24px;}
-  .switch input{position:absolute;opacity:0;width:1px;height:1px;}
-  .switch label{margin:0;text-align:center;padding:11px 0;border-radius:999px;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;}
-  .switch input:checked+label{background:#fff;color:var(--blue-dark);box-shadow:0 1px 4px rgba(40,24,111,.16);}
-  .switch input:focus-visible+label{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
-  .field{margin-bottom:18px;}
-  .field label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;}
-  .field input{width:100%;min-height:48px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:#fbfcfe;font-family:inherit;}
-  .field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,145,197,.2);background:#fff;}
-  .btn{width:100%;min-height:50px;border:0;border-radius:999px;padding:13px;background:var(--blue);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;transition:background .15s;}
-  .btn:hover{background:var(--blue-dark);}
-  .btn:focus-visible{outline:3px solid rgba(75,145,197,.5);outline-offset:2px;}
-  .errorlist{list-style:none;margin:0 0 18px;padding:12px 14px;border-radius:12px;background:var(--danger-bg);color:#a91c15;font-size:14.5px;line-height:1.45;}
-  .help{color:var(--muted);font-size:13.5px;text-align:center;margin:20px 0 0;line-height:1.5;}
-  .tabs{display:flex;gap:18px;border-bottom:1px solid var(--border);margin:0 0 20px;}
-  .tabs button{background:none;border:0;padding:0 0 10px;font:inherit;font-size:14.5px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;}
-  .tabs button[aria-selected="true"]{color:var(--blue-dark);border-bottom-color:var(--blue);}
-  .notice{margin:0 0 18px;padding:12px 14px;border-radius:12px;background:#eaf3fa;color:#1f4f73;font-size:14.5px;line-height:1.45;}
-  .linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--blue);font-weight:700;cursor:pointer;text-decoration:underline;}
-  .code-input{letter-spacing:.4em;font-size:22px !important;text-align:center;font-variant-numeric:tabular-nums;}
-  .row-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:14px;}
   [hidden]{display:none !important;}
+  body{margin:0;min-height:100vh;background:var(--page);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:var(--navy);}
+  :focus-visible{outline:3px solid var(--ash);outline-offset:3px;border-radius:10px;}
+  .shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px;}
+
+  /* left: a navy sheet of ruled exam paper */
+  .side{position:relative;border-radius:28px;overflow:hidden;color:var(--card);padding:40px 48px;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate;
+        background:repeating-linear-gradient(180deg,transparent 0,transparent 39px,rgba(247,241,228,.07) 39px,rgba(247,241,228,.07) 40px),
+                   radial-gradient(120% 90% at 85% 10%,var(--navy-mid) 0%,var(--navy) 45%,var(--navy-deep) 100%);}
+  .side::before{content:"";position:absolute;top:0;bottom:0;left:28px;width:2px;background:rgba(240,150,138,.5);z-index:-1;}
+  .logo{display:inline-flex;align-items:center;gap:10px;font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:-.035em;color:var(--card);text-decoration:none;}
+  .logo img{width:34px;height:34px;}
+  .side h2{font-family:var(--display);font-weight:500;font-size:clamp(34px,3.6vw,52px);line-height:1.02;letter-spacing:-.04em;margin:0;max-width:12ch;color:var(--card);}
+  .side ul{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:12px;}
+  .side li{display:flex;align-items:center;gap:12px;color:rgba(247,241,228,.86);font-size:16.5px;}
+  .side li svg{width:22px;height:22px;flex-shrink:0;color:#f0b2a8;}
+  .side small{color:rgba(247,241,228,.6);font-size:14px;}
+
+  /* right: the form */
+  .main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;position:relative;}
+  .back{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:6px;font-size:14.5px;font-weight:500;color:var(--text);text-decoration:none;padding:8px 12px;border-radius:999px;}
+  .back:hover{background:var(--card);color:var(--navy);}
+  .back svg{width:16px;height:16px;transform:rotate(180deg);}
+  .card{width:min(440px,100%);background:var(--card);border:1px solid var(--card-line);border-radius:28px;padding:34px 32px 28px;box-shadow:0 30px 60px -40px rgba(18,42,82,.45);}
+  .school{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-weight:600;color:var(--navy);}
+  .school img{height:34px;max-width:150px;object-fit:contain;border-radius:8px;}
+  h1{font-family:var(--display);font-weight:500;font-size:32px;line-height:1.05;letter-spacing:-.035em;margin:0;}
+  .lead{color:var(--text);margin:8px 0 24px;}
+
+  .switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--field);border:1px solid var(--card-line);border-radius:999px;padding:5px;margin:0 0 22px;position:relative;}
+  .switch input{position:absolute;opacity:0;width:1px;height:1px;}
+  .switch label{margin:0;text-align:center;padding:11px 0;border-radius:999px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;transition:background .2s,color .2s;}
+  .switch input:checked+label{background:var(--navy);color:var(--card);}
+  .switch input:focus-visible+label{outline:3px solid var(--ash);outline-offset:2px;}
+
+  .tabs{display:flex;gap:22px;border-bottom:1px solid var(--card-line);margin:0 0 20px;}
+  .tabs button{background:none;border:0;padding:0 0 10px;font:inherit;font-size:15px;font-weight:600;color:var(--soft);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;}
+  .tabs button:hover{color:var(--navy);}
+  .tabs button[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--ash);}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:14.5px;font-weight:600;margin-bottom:7px;color:var(--ink);}
+  .field input{width:100%;min-height:50px;padding:12px 14px;border:1px solid var(--card-line);border-radius:14px;font:inherit;font-size:16px;background:var(--field);color:var(--ink);transition:border-color .2s,box-shadow .2s;}
+  .field input:hover{border-color:#cfc8b6;}
+  .field input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(28,58,110,.16);}
+  .code-input{letter-spacing:.4em;font-size:22px !important;text-align:center;font-variant-numeric:tabular-nums;}
+
+  .btn{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:999px;padding:6px 6px 6px 22px;background:var(--ash);color:#fff;font:600 16.5px/1 var(--font);cursor:pointer;margin-top:8px;
+       box-shadow:inset 0 -2px 0 rgba(0,0,0,.22),0 12px 20px -12px rgba(149,66,56,.6);transition:background .2s;}
+  .btn:hover{background:var(--ash-deep);}
+  .btn .chip{width:42px;height:42px;border-radius:50%;background:var(--card);color:var(--ash-deep);display:grid;place-items:center;transition:transform .3s;}
+  .btn:hover .chip{transform:translateX(3px);}
+  .btn .chip svg{width:17px;height:17px;}
+
+  .errorlist{list-style:none;margin:0 0 16px;padding:12px 14px;border-radius:14px;background:var(--danger-bg);color:var(--danger);font-size:14.5px;}
+  .notice{margin:0 0 16px;padding:12px 14px;border-radius:14px;background:var(--navy-soft);color:var(--navy-deep);font-size:14.5px;}
+  .help{color:var(--soft);font-size:14px;text-align:center;margin:18px 0 0;}
+  .linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--navy);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+  .linkbtn:hover{color:var(--ash-deep);}
+  .row-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:14px;}
+
+  /* the eye button from _password_toggle.html, in ExamNook colours */
+  .pw-eye{color:var(--soft) !important;}
+  .pw-eye:hover{color:var(--navy) !important;background:rgba(28,58,110,.08) !important;}
+
+  @media (max-width:900px){
+    .shell{grid-template-columns:minmax(0,1fr);gap:0;padding:8px;}
+    .side{padding:22px 22px 24px 40px;border-radius:24px;}
+    .side::before{left:22px;}
+    .side h2,.side ul,.side small{display:none;}
+    .side .mobile-line{display:block !important;}
+    .main{padding:20px 4px 28px;justify-content:flex-start;}
+    .back{position:static;align-self:flex-start;margin:0 0 12px;}
+    .card{padding:26px 20px 22px;border-radius:24px;}
+  }
+  .mobile-line{display:none;margin:8px 0 0;color:rgba(247,241,228,.8);font-size:15px;}
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
 </style>
 </head>
 <body>
-<main class="card">
-  <div class="brand">
-    {% if request.school and request.school.logo %}
-      <img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" style="height:36px;max-width:160px;object-fit:contain;border-radius:8px;">
-    {% else %}
-      <span class="dot"></span>
-    {% endif %}
-    <span>{{ request.school.name|default:"ExamNook" }}</span>
-  </div>
-  <h1>Welcome{% if request.school %} to {{ request.school.name }}{% else %} back{% endif %}</h1>
-  <p class="lead">Sign in to see your exams.</p>
-  <div class="switch" role="radiogroup" aria-label="I am a">
-    <input type="radio" name="login_as_switch" value="pupil" id="as_pupil"{% if login_as != "teacher" %} checked{% endif %}><label for="as_pupil">I'm a pupil</label>
-    <input type="radio" name="login_as_switch" value="teacher" id="as_teacher"{% if login_as == "teacher" %} checked{% endif %}><label for="as_teacher">I'm a teacher</label>
-  </div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".16"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<div class="shell">
+  <aside class="side" aria-label="About ExamNook">
+    <div>
+      <a class="logo" href="/"><img src="{% static 'digitalexams/brand/examnook-mark-on-blue.svg' %}" alt="" width="34" height="34">ExamNook</a>
+      <p class="mobile-line">Exams on screen that still feel like paper.</p>
+    </div>
+    <div>
+      <h2>Your exams, ready when you are.</h2>
+      <ul>
+        <li><svg><use href="#i-check"/></svg>Your work saves every few seconds</li>
+        <li><svg><use href="#i-check"/></svg>Keeps going if the Wi-Fi drops</li>
+        <li><svg><use href="#i-check"/></svg>One sign-in page for pupils and teachers</li>
+      </ul>
+    </div>
+    <small>Use the username and password from your school's invite email.</small>
+  </aside>
 
-  <div class="tabs" role="tablist">
-    <button type="button" role="tab" id="tab_password" aria-selected="{% if method != 'code' %}true{% else %}false{% endif %}">Password</button>
-    <button type="button" role="tab" id="tab_code" aria-selected="{% if method == 'code' %}true{% else %}false{% endif %}">Email me a code</button>
-  </div>
+  <main class="main">
+    <a class="back" href="/"><svg><use href="#i-arrow"/></svg>ExamNook home</a>
+    <div class="card">
+      {% if request.school %}
+      <div class="school">
+        {% if request.school.logo %}<img src="{{ request.school.logo.url }}" alt="">{% endif %}
+        <span>{{ request.school.name }}</span>
+      </div>
+      {% endif %}
+      <h1>{% if request.school %}Welcome to {{ request.school.name }}{% else %}Sign in{% endif %}</h1>
+      <p class="lead">{% if request.school %}Sign in to see your exams.{% else %}Use the account your school gave you.{% endif %}</p>
+      <div class="switch" role="radiogroup" aria-label="I am a">
+        <input type="radio" name="login_as_switch" value="pupil" id="as_pupil"{% if login_as != "teacher" %} checked{% endif %}><label for="as_pupil">I'm a pupil</label>
+        <input type="radio" name="login_as_switch" value="teacher" id="as_teacher"{% if login_as == "teacher" %} checked{% endif %}><label for="as_teacher">I'm a teacher</label>
+      </div>
 
-  {# Option 1: username + password #}
-  <form method="post" id="panel_password"{% if method == 'code' %} hidden{% endif %}>{% csrf_token %}
-    <input type="hidden" name="action" value="password">
-    <input type="hidden" name="login_as" value="{{ login_as }}">
-    <input type="hidden" name="next" value="{{ next }}">
-    {{ form.non_field_errors }}
-    <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
-    <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
-    <button class="btn" type="submit">Sign in</button>
-    <p class="help">Forgot your password? <button type="button" class="linkbtn" id="forgot_link">Sign in with an email code</button>, then set a new one.</p>
-  </form>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab_password" aria-selected="{% if method != 'code' %}true{% else %}false{% endif %}">Password</button>
+        <button type="button" role="tab" id="tab_code" aria-selected="{% if method == 'code' %}true{% else %}false{% endif %}">Email me a code</button>
+      </div>
 
-  {# Option 2: one-time code emailed to the account #}
-  <div id="panel_code"{% if method != 'code' %} hidden{% endif %}>
-    {% if code_error %}<ul class="errorlist"><li>{{ code_error }}</li></ul>{% endif %}
-    {% if code_notice %}<p class="notice">{{ code_notice }}</p>{% endif %}
-    {% if reset %}<p class="notice">After you sign in, you'll be asked to choose a new password.</p>{% endif %}
+      {# Option 1: username + password #}
+      <form method="post" id="panel_password"{% if method == 'code' %} hidden{% endif %}>{% csrf_token %}
+        <input type="hidden" name="action" value="password">
+        <input type="hidden" name="login_as" value="{{ login_as }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        {{ form.non_field_errors }}
+        <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
+        <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
+        <button class="btn" type="submit">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+        <p class="help">Forgot your password? <button type="button" class="linkbtn" id="forgot_link">Sign in with an email code</button>, then set a new one.</p>
+      </form>
 
-    {% if code_step == 'verify' %}
-    <form method="post">{% csrf_token %}
-      <input type="hidden" name="action" value="verify_code">
-      <input type="hidden" name="login_as" value="{{ login_as }}">
-      <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
-      <input type="hidden" name="next" value="{{ next }}">
-      <div class="field"><label for="id_code">6-digit code</label>
-        <input id="id_code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required autofocus></div>
-      <button class="btn" type="submit">Sign in</button>
-    </form>
-    <form method="post" class="row-links">{% csrf_token %}
-      <input type="hidden" name="action" value="resend_code">
-      <input type="hidden" name="login_as" value="{{ login_as }}">
-      <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
-      <input type="hidden" name="next" value="{{ next }}">
-      <button type="submit" class="linkbtn">Resend code</button>
-      <a class="linkbtn" href="?method=code&amp;as={{ login_as }}{% if reset %}&amp;reset=1{% endif %}">Use a different account</a>
-    </form>
-    {% else %}
-    <form method="post">{% csrf_token %}
-      <input type="hidden" name="action" value="send_code">
-      <input type="hidden" name="login_as" value="{{ login_as }}">
-      <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
-      <input type="hidden" name="next" value="{{ next }}">
-      <div class="field"><label for="id_identifier">Username or school email</label>
-        <input id="id_identifier" name="identifier" value="{{ identifier }}" autocomplete="username" required></div>
-      <button class="btn" type="submit">Email me a code</button>
-    </form>
-    {% endif %}
-    <p class="help">No password needed — we'll email a one-time code to the address on your account.</p>
-  </div>
-</main>
+      {# Option 2: one-time code emailed to the account #}
+      <div id="panel_code"{% if method != 'code' %} hidden{% endif %}>
+        {% if code_error %}<ul class="errorlist"><li>{{ code_error }}</li></ul>{% endif %}
+        {% if code_notice %}<p class="notice">{{ code_notice }}</p>{% endif %}
+        {% if reset %}<p class="notice">After you sign in, you'll be asked to choose a new password.</p>{% endif %}
+
+        {% if code_step == 'verify' %}
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="verify_code">
+          <input type="hidden" name="login_as" value="{{ login_as }}">
+          <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="field"><label for="id_code">6-digit code</label>
+            <input id="id_code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required autofocus></div>
+          <button class="btn" type="submit">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+        </form>
+        <form method="post" class="row-links">{% csrf_token %}
+          <input type="hidden" name="action" value="resend_code">
+          <input type="hidden" name="login_as" value="{{ login_as }}">
+          <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
+          <input type="hidden" name="next" value="{{ next }}">
+          <button type="submit" class="linkbtn">Resend code</button>
+          <a class="linkbtn" href="?method=code&amp;as={{ login_as }}{% if reset %}&amp;reset=1{% endif %}">Use a different account</a>
+        </form>
+        {% else %}
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="send_code">
+          <input type="hidden" name="login_as" value="{{ login_as }}">
+          <input type="hidden" name="reset" value="{% if reset %}1{% endif %}">
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="field"><label for="id_identifier">Username or school email</label>
+            <input id="id_identifier" name="identifier" value="{{ identifier }}" autocomplete="username" required></div>
+          <button class="btn" type="submit">Email me a code<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+        </form>
+        {% endif %}
+        <p class="help">No password needed — we'll email a one-time code to the address on your account.</p>
+      </div>
+    </div>
+  </main>
+</div>
 <script>
 (function(){
   // The pupil/teacher switch sits outside the forms; copy it into whichever form is submitted.

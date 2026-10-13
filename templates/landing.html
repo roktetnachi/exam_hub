@@ -17,13 +17,13 @@
   @font-face{font-family:'Atkinson Hyperlegible';font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-400-normal.woff2' %}") format('woff2');}
   @font-face{font-family:'OpenDyslexic';font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-normal.woff2' %}") format('woff2');}
 
-  /* ExamNook colours. Deep blue leads, ash red is kept for actions, egg white is the card,
-     slate ink is the text, and a cool blue mist sits behind it all so the warm cards lift off it. */
+  /* ExamNook colours. Deep blue leads, ash red is kept for actions, a soft warm off-white is the
+     card, slate ink is the text, and a light grey-beige (#f4f5f0) sits behind it all. */
   :root{
     --navy:#1c3a6e; --navy-deep:#122a52; --navy-mid:#2c5291; --navy-soft:#dce4f1;
     --ash:#b2554b; --ash-deep:#954238; --ash-soft:#f3dcd6;
-    --egg:#f7f1e4; --egg-deep:#efe5d1; --egg-line:#e4d8c1;
-    --mist:#edf0f5; --mist-line:#d5dce8;
+    --egg:#fbf8f1; --egg-deep:#f2ede1; --egg-line:#e6e1d4;
+    --mist:#f4f5f0; --mist-line:#e2e3dc;
     --ink:#1d2433; --text:#4a5263; --soft:#687083;
     --hl:#ffe36e;
     --display:'Outfit Var','Inter Var',system-ui,sans-serif;
@@ -349,20 +349,11 @@
 
   /* ---------- footer with sign-in ---------- */
   footer{margin:0 10px 10px;border-radius:var(--r);background:var(--navy-deep);color:#d9dfea;padding:90px 0 0;overflow:hidden;scroll-margin-top:90px;}
-  .signin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px 60px;align-items:start;}
+  .signin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px 60px;align-items:end;}
+  .signin-go{justify-self:end;text-align:right;}
+  @media (max-width:860px){ .signin-go{justify-self:start;text-align:left;} }
   .signin h2{color:var(--egg);margin-top:20px;}
   .signin .lede{color:#b4c0d4;margin-top:16px;}
-  .schools{display:grid;gap:10px;list-style:none;padding:0;margin:0;}
-  .school{display:flex;align-items:center;gap:14px;padding:12px 12px 12px 14px;border-radius:20px;background:rgba(247,241,228,.06);border:1px solid rgba(247,241,228,.14);text-decoration:none;color:var(--egg);font-size:18px;font-weight:500;transition:background .25s,border-color .25s;}
-  .school:hover{background:rgba(247,241,228,.1);border-color:rgba(247,241,228,.4);}
-  .school img{height:40px;width:40px;object-fit:contain;border-radius:10px;background:#fff;padding:3px;}
-  .school .init{width:40px;height:40px;border-radius:12px;background:var(--egg);color:var(--navy);display:grid;place-items:center;font-weight:600;}
-  .school .go{margin-left:auto;width:40px;height:40px;border-radius:50%;background:rgba(247,241,228,.1);display:grid;place-items:center;transition:background .25s,transform .35s var(--ease);}
-  .school .go svg{width:16px;height:16px;}
-  .school:hover .go{background:var(--ash);color:#fff;transform:rotate(-45deg);}
-  .signin select{width:100%;min-height:56px;border-radius:18px;padding:0 16px;font:inherit;font-size:17px;background:rgba(247,241,228,.06);color:var(--egg);border:1px solid rgba(247,241,228,.2);}
-  .signin select option{color:var(--ink);}
-  .signin label{display:block;color:#b4c0d4;font-size:15px;margin-bottom:10px;}
   .help{margin-top:16px;color:#9aa8bf;font-size:15px;}
   .foot-cols{display:flex;flex-wrap:wrap;gap:20px 46px;margin-top:80px;padding:30px 0 36px;border-top:1px solid rgba(247,241,228,.12);font-size:15px;align-items:center;}
   .foot-cols .logo{color:var(--egg);}
@@ -430,7 +421,7 @@
       <a href="#access">Accessibility</a>
       <a href="#faq">FAQ</a>
     </nav>
-    <a class="btn small" href="#signin">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+    <a class="btn small" href="/login/">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
     <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Menu"><span></span><span></span></button>
   </div>
   <nav class="mobile-nav" id="mobileNav" aria-label="On this page">
@@ -439,7 +430,7 @@
     <a href="#fair">Fair and secure</a>
     <a href="#access">Accessibility</a>
     <a href="#faq">FAQ</a>
-    <a class="btn" href="#signin">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+    <a class="btn" href="/login/">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
   </nav>
 </header>
 
@@ -452,7 +443,7 @@
           <h1 class="rise" data-split aria-label="Exams on screen that still feel like paper.">Exams on screen that still feel like paper.</h1>
           <p class="lede fade-up">ExamNook is where pupils sit timed exams on a laptop or iPad — highlighting the text, making notes and writing their answers — and where teachers set, watch over and mark them.</p>
           <div class="cta-row fade-up">
-            <a class="btn" href="#signin">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+            <a class="btn" href="/login/">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
             <a class="btn-ghost" href="#screens"><svg><use href="#i-play"/></svg>See it in action</a>
           </div>
         </div>
@@ -778,30 +769,12 @@
     <div class="signin">
       <div>
         <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Sign in</span>
-        <h2 id="signin-h">Choose your school</h2>
-        <p class="lede">Pupils and teachers use the same page.</p>
+        <h2 id="signin-h">Ready for your exam?</h2>
+        <p class="lede">Pupils and teachers sign in on the same page, with the account their school gave them.</p>
       </div>
-      <div>
-        {% if schools|length > 8 %}
-          <form id="schoolForm" action="/login/" method="get">
-            <label for="schoolSelect">Your school</label>
-            <select id="schoolSelect" name="school">
-              {% for s in schools %}<option value="{{ s.slug }}">{{ s.name }}</option>{% endfor %}
-            </select>
-            <button class="btn" type="submit" style="margin-top:14px;">Go to sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
-          </form>
-        {% elif schools %}
-          <ul class="schools">
-            {% for s in schools %}
-            <li><a class="school" href="/s/{{ s.slug }}/login/">
-              {% if s.logo %}<img src="{{ s.logo.url }}" alt="">{% else %}<span class="init" aria-hidden="true">{{ s.name|slice:":1" }}</span>{% endif %}
-              <span>{{ s.name }}</span><span class="go" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a></li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <a class="btn" href="/login/">Go to sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
-        {% endif %}
-        {% if schools|length > 1 %}<p class="help">Not sure which one? Your invite email has your school's ExamNook link.</p>{% endif %}
+      <div class="signin-go">
+        <a class="btn" href="/login/">Sign in to ExamNook<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+        <p class="help">Forgot your password? On the sign-in page, choose "Email me a code".</p>
       </div>
     </div>
     <div class="foot-cols">
@@ -1079,12 +1052,6 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
-  // Many schools: the picker goes straight to that school's sign-in page.
-  var form = $('#schoolForm');
-  if(form) form.addEventListener('submit', function(e){
-    e.preventDefault();
-    location.href = '/s/' + encodeURIComponent($('#schoolSelect').value) + '/login/';
-  });
 });
 </script>
 </body>

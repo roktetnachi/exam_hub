@@ -50,11 +50,11 @@ def home(request):
 def landing(request):
     """Public landing page at the site root for signed-out visitors (signed-in people are sent
     to their school by SchoolTenantMiddleware before this runs). Explains ExamNook to schools and
-    gives pupils and teachers a way to their own school's sign-in page."""
+    sends pupils and teachers to the one sign-in page. Which schools use ExamNook is kept private:
+    no school is named here."""
     from django.conf import settings
-    schools = list(School.objects.filter(is_active=True).order_by('name').only('name', 'slug', 'logo'))
     contact = (getattr(settings, 'CONTACT_EMAIL', '') or '').strip()
-    return render(request, 'landing.html', {'schools': schools, 'contact_email': contact})
+    return render(request, 'landing.html', {'contact_email': contact})
 
 
 def tour_context(user):
@@ -166,6 +166,9 @@ def login_view(request):
            'next': request.POST.get('next') or request.GET.get('next') or ''}
 
     form = AuthenticationForm(request, data=request.POST if (request.method == 'POST' and action == 'password') else None)
+    form.error_messages = {**form.error_messages,
+                           'invalid_login': "That username and password don't match. Check for typing mistakes "
+                                            "(capital letters count), or sign in with an email code instead."}
     ctx['form'] = form
 
     if request.method == 'POST' and action == 'password' and form.is_valid():
