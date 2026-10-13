@@ -504,6 +504,7 @@
   /* The menu itself */
   .a11y-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:7px 10px;font-weight:700;font-size:13px;}
   .a11y-panel{position:absolute;right:0;top:calc(100% + 6px);width:340px;max-width:calc(100vw - 24px);max-height:calc(100vh - 90px);overflow-y:auto;background:#fff;border-radius:16px;box-shadow:var(--card-shadow);padding:16px;z-index:130;text-align:left;}
+  .a11y-panel.a11y-panel-floating{position:fixed;z-index:2147482000;}
   .a11y-panel h3{margin:0 0 10px;font-size:15px;}
   .a11y-row{margin-bottom:12px;}
   .a11y-row-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px;}
@@ -520,6 +521,36 @@
     padding:10px 14px;font-size:13.5px;line-height:1.45;box-shadow:0 10px 30px -12px rgba(122,67,0,.45);}
   .offline-banner strong{display:block;font-size:14px;}
   .offline-banner.hidden{display:none;}
+  /* ---- grouped option cards (Create → Delivery mode, Settings) ---- */
+  .opt-group{margin:18px 0 16px;}
+  .opt-group-title{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;}
+  .opt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;}
+  .opt-card{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;font-size:13.5px;line-height:1.35;transition:border-color .15s,background .15s;}
+  .opt-card:hover{border-color:#b9c4d8;}
+  .opt-card:has(input:checked){border-color:var(--blue);background:#f2f7ff;}
+  .opt-card input{margin:2px 0 0;width:17px;height:17px;flex-shrink:0;accent-color:var(--blue);}
+  .opt-card small{display:block;color:var(--muted);font-size:12px;margin-top:2px;}
+  .opt-group.compact{margin:10px 0 16px;}
+  .opt-group.compact .opt-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));}
+  .opt-group.compact .opt-card{padding:8px 11px;}
+  /* ---- pupil exam: answer pane, toolbar, audio, intro ---- */
+  #responseEditables .answer-widget{margin:18px 20px 20px;max-width:560px;}
+  #responseEditables .answer-readonly-note{margin:18px 20px;font-size:13.5px;line-height:1.5;}
+  #responseToolbar.hidden, .word-count.hidden{display:none !important;}
+  @media (max-width:1180px){
+    .pdf-toolbar .tb-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+    .pdf-toolbar .icon-btn{padding-left:10px;padding-right:10px;}
+  }
+  /* Play (+ back 10 s) and the time on the first line, the progress bar full width underneath. */
+  .audio-player .ap-row{flex-wrap:wrap;row-gap:12px;}
+  .audio-player .ap-time{margin-left:auto;}
+  .audio-player .ap-bar{order:3;flex:1 1 100%;height:10px;}
+  /* Centre of the footer is free: the save line is on the left, Submit on the right. */
+  #audioMiniBar{left:50%;bottom:14px;transform:translateX(-50%);}
+  @media (max-width:1000px){ #audioMiniBar{bottom:76px;} }
+  .exam-intro-help{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--muted);}
+  .exam-intro-help button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;color:var(--blue);}
+  .export-choice.disabled{opacity:.5;cursor:not-allowed;}
   /* ---- export dialog ---- */
   .export-choice{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;font-size:13.5px;}
   .export-choice input{margin-top:3px;}
@@ -704,7 +735,8 @@
   #responseEditables > .response-item{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;}
   #responseEditables > .response-item > .editable{flex:1 0 auto;overflow:visible;min-height:100%;}
   /* Question navigator: "‹ Question 7 of 30 ›" + a grid to jump anywhere (replaces one button per item). */
-  .qnav{display:flex;align-items:center;gap:6px;}
+  .qnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .qnav .qnav-current{min-width:110px;}
   .qnav-arrow{width:38px;height:38px;border:1px solid var(--border);background:#fff;border-radius:10px;font-size:20px;line-height:1;color:var(--blue-dark);display:flex;align-items:center;justify-content:center;}
   .qnav-arrow:disabled{opacity:.35;cursor:default;}
   .qnav-current{flex:1;min-width:0;height:38px;border:1px solid var(--border);background:#f5f8fc;border-radius:10px;padding:0 12px;font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;text-align:left;}
@@ -1382,27 +1414,21 @@
           </div>
           <p class="sub" id="closeNote" style="margin:0;"></p>
         </div>
-        <div class="field">
-          <div class="pupil-check">
-            <input type="checkbox" id="aRequireJoinCode">
-            <label for="aRequireJoinCode">Require a join code to start the assessment</label>
+        <div class="opt-group">
+          <div class="opt-group-title">Starting the exam</div>
+          <div class="opt-grid">
+            <label class="opt-card"><input type="checkbox" id="aRequireJoinCode"><span><strong>Require a join code</strong><small>Pupils type a code you give out in the room before they can start.</small></span></label>
           </div>
-          <div class="pupil-check">
-            <input type="checkbox" id="aAllowCalculator">
-            <label for="aAllowCalculator">Allow scientific calculator</label>
+        </div>
+        <div class="opt-group">
+          <div class="opt-group-title">Tools pupils get</div>
+          <div class="opt-grid">
+            <label class="opt-card"><input type="checkbox" id="aAllowCalculator"><span><strong>Scientific calculator</strong><small>sin / cos / tan, logs, powers, memory.</small></span></label>
+            <label class="opt-card"><input type="checkbox" id="aAllowGraphingCalculator"><span><strong>Graphing calculator</strong><small>Y=, graph, trace, table, zero / min / max / intersect.</small></span></label>
+            <label class="opt-card"><input type="checkbox" id="aAllowSpellcheck"><span><strong>Spell check</strong><small>Red underlines and suggestions. Leave off for language and writing exams.</small></span></label>
+            <label class="opt-card"><input type="checkbox" id="aAllowTextToSpeech" checked><span><strong>Read aloud</strong><small>Questions and selected text read to the pupil. Turn off for reading comprehension and language exams.</small></span></label>
           </div>
-          <div class="pupil-check">
-            <input type="checkbox" id="aAllowGraphingCalculator">
-            <label for="aAllowGraphingCalculator">Allow graphing calculator <span style="color:var(--muted)">(Y=, graph, trace, table, zero / min / max / intersect)</span></label>
-          </div>
-          <div class="pupil-check">
-            <input type="checkbox" id="aAllowSpellcheck">
-            <label for="aAllowSpellcheck">Allow spell check <span style="color:var(--muted)">(the browser's red underlines and spelling suggestions in answers and notes — leave off for language and writing exams)</span></label>
-          </div>
-          <div class="pupil-check">
-            <input type="checkbox" id="aAllowTextToSpeech" checked>
-            <label for="aAllowTextToSpeech">Allow read aloud <span style="color:var(--muted)">(pupils can have questions and selected text read to them — turn off for reading comprehension and language exams)</span></label>
-          </div>
+          <p class="sub" style="margin:8px 0 0;font-size:12.5px;">Text size, reading fonts, spacing and colours are always available to pupils from <strong>Accessibility</strong> — they don't change the exam.</p>
         </div>
         <div class="row" style="justify-content:space-between;margin-top:6px;">
             <button type="button" class="btn small outline" id="createBackToContent">&larr; Back</button>
@@ -1489,7 +1515,7 @@
       <div class="modal-backdrop hidden" id="exportModal">
         <div class="card" style="width:460px;max-width:92vw;">
           <h2 style="margin-bottom:6px;">Export to PDF</h2>
-          <p class="sub" style="margin-top:0;">Each pupil's PDF has every question with their answer, their highlights and notes on the exam's PDF pages, and — if you include them — your scores, feedback and comments.</p>
+          <p class="sub" style="margin-top:0;" id="exportIntro">Each pupil's PDF has every question with their answer, their highlights and notes on the exam's PDF pages, and — if you include them — your scores, feedback and comments.</p>
           <div class="rv-label" style="margin:12px 0 6px;">Whose work</div>
           <label class="export-choice"><input type="radio" name="exportWho" value="one" id="exportWhoOne"><span><span id="exportWhoOneLabel"></span><small id="exportWhoOneNote"></small></span></label>
           <label class="export-choice"><input type="radio" name="exportWho" value="submitted" id="exportWhoAll"><span>Everyone who handed in<small id="exportWhoAllNote"></small></span></label>
@@ -1657,30 +1683,30 @@
                 Highlight
               </button>
             </span>
-            <button class="icon-btn" id="openNotepadBtn" title="Notepad (your own outline notes)">
+            <button class="icon-btn" id="openNotepadBtn" title="Notepad (your own outline notes)" aria-label="Notepad">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              Notepad
+              <span class="tb-label">Notepad</span>
             </button>
             <button class="icon-btn hidden" id="openResourcesBtn" title="Resources from your teacher — open them any time">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              Resources <span class="res-count" id="resourcesCount"></span>
+              <span class="tb-label">Resources</span> <span class="res-count" id="resourcesCount"></span>
             </button>
             <button class="icon-btn hidden" id="openCalculatorBtn" title="Calculator">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/><line x1="8" y1="19" x2="8" y2="19.01"/><line x1="12" y1="19" x2="12" y2="19.01"/></svg>
-              Calculator
+              <span class="tb-label">Calculator</span>
             </button>
             <button class="icon-btn hidden" id="readAloudBtn" title="Read aloud: select words to hear them, or press with nothing selected to hear the whole question" aria-pressed="false">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
-              <span id="readAloudLabel">Read aloud</span>
+              <span id="readAloudLabel" class="tb-label">Read aloud</span>
             </button>
             <button class="icon-btn hidden" id="openGraphCalcBtn" title="Graphing calculator">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M6 16c3-9 6-9 9-4s4 3 6-3"/></svg>
-              Graphing calculator
+              <span class="tb-label">Graphing calculator</span>
             </button>
             <span id="pdfOnlyControls2" style="display:contents;">
               <button class="icon-btn" id="hideNotesBtn" title="Hide all highlights and notes">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <span id="hideNotesLabel">Hide notes</span>
+                <span id="hideNotesLabel" class="tb-label">Hide notes</span>
               </button>
             </span>
             <div class="grow"></div>
@@ -1771,6 +1797,8 @@
         <div class="exam-intro-facts" id="examIntroFacts"></div>
         <div class="exam-intro-label">Instructions</div>
         <div class="exam-intro-text" id="examIntroText"></div>
+        <p class="exam-intro-help" id="examIntroHelp">Need larger text, a reading font or different colours?
+          <button type="button" id="examIntroA11yBtn">Accessibility options</button></p>
         <div class="exam-intro-actions">
           <button type="button" class="btn outline" id="examIntroBack">Back to my tasks</button>
           <button type="button" class="btn exam-intro-start" id="examIntroStart">Start exam</button>
@@ -2053,21 +2081,21 @@
             </select>
           </div>
         </div>
-        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
-          <input type="checkbox" id="editAssignmentJoinCode"> Require a join code
-        </label>
-        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
-          <input type="checkbox" id="editAssignmentCalculator"> Allow scientific calculator
-        </label>
-        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
-          <input type="checkbox" id="editAssignmentGraphingCalculator"> Allow graphing calculator
-        </label>
-        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
-          <input type="checkbox" id="editAssignmentSpellcheck"> Allow spell check <span style="font-weight:400;color:var(--muted);">(red underlines and suggestions)</span>
-        </label>
-        <label class="row" style="gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:10px;">
-          <input type="checkbox" id="editAssignmentTextToSpeech"> Allow read aloud <span style="font-weight:400;color:var(--muted);">(text-to-speech)</span>
-        </label>
+        <div class="opt-group compact">
+          <div class="opt-group-title">Starting the exam</div>
+          <div class="opt-grid">
+            <label class="opt-card"><input type="checkbox" id="editAssignmentJoinCode"><span><strong>Require a join code</strong></span></label>
+          </div>
+        </div>
+        <div class="opt-group compact">
+          <div class="opt-group-title">Tools pupils get <span style="font-weight:500;text-transform:none;letter-spacing:0;">— changes reach pupils straight away</span></div>
+          <div class="opt-grid">
+            <label class="opt-card"><input type="checkbox" id="editAssignmentCalculator"><span><strong>Scientific calculator</strong></span></label>
+            <label class="opt-card"><input type="checkbox" id="editAssignmentGraphingCalculator"><span><strong>Graphing calculator</strong></span></label>
+            <label class="opt-card"><input type="checkbox" id="editAssignmentSpellcheck"><span><strong>Spell check</strong><small>Red underlines and suggestions</small></span></label>
+            <label class="opt-card"><input type="checkbox" id="editAssignmentTextToSpeech"><span><strong>Read aloud</strong><small>Text-to-speech</small></span></label>
+          </div>
+        </div>
         <div class="field" style="margin-top:6px;">
           <label>Resources for pupils</label>
           <p class="sub" style="margin:2px 0 6px;font-size:12.5px;">Guide material pupils open from the floating Resources window. Adding or removing one takes effect straight away — even during the exam.</p>
@@ -3971,10 +3999,12 @@ function renderDeliverSummary(a){
     deliverRow('Visible to pupils', a.isHidden ? 'Hidden until you make it visible' : (a.opensAt ? `From ${formatManila(a.opensAt)}` : 'Now')),
     deliverRow('Closes', a.closedAt ? `Closed by a teacher — ${formatManila(a.closedAt)}` : (a.dueAt ? `Automatically at ${formatManila(a.dueAt)}` : 'Manually, when you close it')),
     deliverRow('Join code', a.requireJoinCode ? `Required — <span style="font-family:monospace;letter-spacing:.05em;">${a.joinCode || '(hidden)'}</span>` : 'Not required'),
+    `<div class="opt-group-title" style="margin:18px 0 0;">Tools pupils get</div>`,
     deliverRow('Scientific calculator', a.allowCalculator ? 'Allowed' : 'Not allowed'),
     deliverRow('Graphing calculator', a.allowGraphingCalculator ? 'Allowed' : 'Not allowed'),
     deliverRow('Spell check', a.allowSpellcheck ? 'On' : 'Off'),
     deliverRow('Read aloud', a.allowTextToSpeech !== false ? 'Allowed' : 'Off'),
+    deliverRow('Accessibility (text size, fonts, colours)', 'Always available'),
   ];
   document.getElementById('deliverSummaryCard').innerHTML = `<h2 style="margin-bottom:14px;">Delivery settings</h2>` + rows.join('');
 }
@@ -5909,6 +5939,12 @@ function showExamIntro(a, sub){
     const facts = [`${a.items.length} item${a.items.length === 1 ? '' : 's'}`];
     if(answerable.length && points) facts.push(`${points} point${points === 1 ? '' : 's'}`);
     facts.push(sub.closesAt ? `Ends ${formatManila(sub.closesAt)}` : 'No time limit — your teacher closes it');
+    const recordings = a.items.filter(i=>i.type === 'audio');
+    if(recordings.length){
+      const limits = [...new Set(recordings.map(i=>i.maxPlays || 0))];
+      facts.push(`${recordings.length} recording${recordings.length === 1 ? '' : 's'}` + (limits.length === 1 && limits[0]
+        ? ` — ${limits[0] === 1 ? 'one play' : limits[0] + ' plays'} each` : ''));
+    }
     if(a.allowCalculator) facts.push('Calculator allowed');
     if(!a.allowSpellcheck) facts.push('Spell check off');
     if(a.allowTextToSpeech === false) facts.push('Read aloud off');
@@ -6280,6 +6316,7 @@ function buildResponseTabs(a, sub){
     holder.appendChild(wrap);
   });
   state.activeResponseTextId = a.items[0] ? a.items[0].id : null;
+  syncAnswerToolbar();
   renderQNav();
 }
 function renderQNav(){
@@ -6353,11 +6390,20 @@ function goToItem(itemId, opts={}){
     renderCurrentItem();
   }
 }
+// The formatting toolbar and word count only make sense for a written answer (PDF / long answer).
+function syncAnswerToolbar(){
+  const wrap = document.getElementById('responseEditable_' + state.activeResponseTextId);
+  const written = !!(wrap && wrap.querySelector('.editable'));
+  document.getElementById('responseToolbar').classList.toggle('hidden', !written);
+  document.getElementById('answerWordCount').classList.toggle('hidden', !written);
+}
 function switchResponseTab(textId){
   document.querySelectorAll('#responseEditables .response-item').forEach(ed=>{
     ed.classList.toggle('hidden', ed.id !== 'responseEditable_' + textId);
   });
   state.activeResponseTextId = textId;
+  // The formatting toolbar and word count only make sense for a written answer.
+  syncAnswerToolbar();
   renderQNav();
   syncContentsPanel();
   updateAnswerWordCount();
@@ -7042,10 +7088,21 @@ if(document.body.dataset.role === 'pupil'){ loadA11y(); applyA11y(); }
 (function wireA11yMenu(){
   const btn = document.getElementById('a11yBtn'), panel = document.getElementById('a11yPanel');
   if(!btn || !panel) return;
+  // The top bar is its own stacking layer (sticky, z-index 40), so a menu inside it would open
+  // behind the exam's instructions card. It lives on <body> instead, placed under the button.
+  document.body.appendChild(panel);
+  panel.classList.add('a11y-panel-floating');
+  const place = ()=>{
+    const r = btn.getBoundingClientRect();
+    panel.style.top = Math.round(r.bottom + 6) + 'px';
+    panel.style.right = Math.max(12, Math.round(window.innerWidth - r.right)) + 'px';
+  };
+  window.addEventListener('resize', ()=>{ if(!panel.classList.contains('hidden')) place(); });
   const close = ()=>{ panel.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); };
   btn.addEventListener('click', e=>{
     e.stopPropagation();
     const open = panel.classList.contains('hidden');
+    if(open) place();
     panel.classList.toggle('hidden', !open);
     btn.setAttribute('aria-expanded', String(open));
     if(open){ fillVoiceList(); (panel.querySelector('[aria-pressed="true"]') || panel.querySelector('button')).focus(); }
@@ -7063,7 +7120,11 @@ if(document.body.dataset.role === 'pupil'){ loadA11y(); applyA11y(); }
   document.addEventListener('click', e=>{ if(!panel.classList.contains('hidden') && !panel.contains(e.target)) close(); });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !panel.classList.contains('hidden')){ close(); btn.focus(); } });
   if(!('speechSynthesis' in window)) document.getElementById('a11yTtsRow').classList.add('hidden');
+  // "Accessibility options" on the exam's instructions card opens the same menu.
+  const introBtn = document.getElementById('examIntroA11yBtn');
+  if(introBtn) introBtn.addEventListener('click', e=>{ e.stopPropagation(); if(panel.classList.contains('hidden')) btn.click(); });
 })();
+if(document.getElementById('a11yWrap')?.classList.contains('hidden')) document.getElementById('examIntroHelp')?.classList.add('hidden');
 
 // ---------------- read aloud (text-to-speech) ----------------
 // Uses the browser's own speech (Web Speech API) — no outside service, so it also works in Safe
@@ -7129,6 +7190,7 @@ function setReadAloudButton(speaking){
   btn.setAttribute('aria-pressed', String(speaking));
   btn.classList.toggle('active', speaking);
   document.getElementById('readAloudLabel').textContent = speaking ? 'Stop reading' : 'Read aloud';
+  btn.setAttribute('aria-label', speaking ? 'Stop reading' : 'Read aloud');
 }
 function stopReadAloud(){
   state.readAloudGen = (state.readAloudGen || 0) + 1;
@@ -7207,9 +7269,17 @@ function openExportModal(){
   document.getElementById('exportWhoOneLabel').textContent = pupil ? pupil : 'The pupil open in Grade';
   document.getElementById('exportWhoOneNote').textContent = !pupil ? 'Choose a pupil in the Grade tab first.'
     : (sub && sub.status === 'submitted' ? 'Their work as handed in.' : (sub && sub.status !== 'idle' ? 'Not handed in yet — their work so far.' : "Hasn't started yet."));
-  document.getElementById('exportWhoAllNote').textContent = `${handedIn} pupil${handedIn === 1 ? '' : 's'}`;
-  document.getElementById('exportWhoStartedNote').textContent = `${started} pupil${started === 1 ? '' : 's'}, including any not handed in yet`;
-  (one.disabled ? document.getElementById('exportWhoAll') : one).checked = true;
+  document.getElementById('exportWhoAllNote').textContent = handedIn ? `${handedIn} pupil${handedIn === 1 ? '' : 's'}` : 'Nobody has handed in yet';
+  document.getElementById('exportWhoStartedNote').textContent = started ? `${started} pupil${started === 1 ? '' : 's'}, including any not handed in yet` : 'Nobody has started yet';
+  const all = document.getElementById('exportWhoAll'), startedInput = document.querySelector('input[name="exportWho"][value="started"]');
+  all.disabled = !handedIn; startedInput.disabled = !started;
+  [one, all, startedInput].forEach(r=>r.closest('.export-choice').classList.toggle('disabled', r.disabled));
+  (!one.disabled ? one : (!all.disabled ? all : startedInput)).checked = true;
+  const hasPdf = a.items.some(i=>i.type === 'pdf');
+  document.getElementById('exportIntro').textContent = hasPdf
+    ? "Each pupil's PDF has every question with their answer, their highlights and notes on the exam's PDF pages, and — if you include them — your scores, feedback and comments."
+    : "Each pupil's PDF has every question with their answer and — if you include them — your scores, feedback and comments.";
+  document.getElementById('exportGoBtn').disabled = one.disabled && all.disabled && startedInput.disabled;
   syncExportModal();
   document.getElementById('exportModal').classList.remove('hidden');
 }
