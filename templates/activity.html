@@ -33,7 +33,7 @@
 <div class="page-head">
   <div>
     <h1>Activity</h1>
-    <p class="sub">{% if can_manage_classes %}Everything teachers and pupils have done in ExamNook, newest first.{% else %}Your own actions, plus anything involving the year groups you teach.{% endif %}</p>
+    <p class="sub">{% if can_manage_classes %}Everything teachers and pupils have done in Andam, newest first.{% else %}Your own actions, plus anything involving the year groups you teach.{% endif %}</p>
   </div>
   <a class="btn outline small" href="{{ request.school_url_prefix|default:'' }}{% url 'classes-page' %}">{% if can_manage_classes %}Manage year groups{% else %}My year groups{% endif %}</a>
 </div>

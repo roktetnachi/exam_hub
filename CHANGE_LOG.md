@@ -1,6 +1,6 @@
-# ExamNook — Change Log
+# Andam — Change Log
 
-(Called ExamHub until 13 Oct 2026.) All notable changes to ExamNook are documented here, in reverse-chronological order.
+(Called ExamHub until 13 Oct 2026, then ExamNook until 14 Oct 2026.) All notable changes to Andam are documented here, in reverse-chronological order.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
@@ -25,6 +25,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Commit the migrations `0027`–`0029` and the new test files and templates (`test_seb.py`, `test_url_access.py`, `test_graphcalc.py`, `templates/_graphcalc.html`) — they were not yet in git.
 - The 2026-10-09 changes (comment-only marking, notifications, dashboard tabs, navigation, flag for review, pupil task sections) need **no migration and no new settings**. Existing highlights / underlines stay as they are and still show. One new address, `POST /api/notifications/read-all/`, ships with `urls.py`.
 - Pupils' "Flag for review" marks are kept in their browser only (per exam), so they don't carry over to another device.
+
+### Changed — Renamed to Andam, pen-nib logo (2026-10-14)
+No migration, no new settings. Safe Exam Browser keys stay valid (only the download file names changed, not the settings inside the file).
+- **Why:** examnook.com is an existing exam-prep product, so the ExamNook name was dropped. **Andam** is Cebuano for "ready"; the descriptor is "Digital exams for schools".
+- **New name everywhere people see it:** page titles, landing page, sign-in and password pages, teacher and pupil portal, guided tour, super-admin page, invite and sign-in-code emails (sender "Andam", subject "Your Andam account at <school>"), bulk-import templates, PDF export metadata, SEB messages. Code names, the `examhub` project folder and browser-storage keys are unchanged, so nobody loses saved settings.
+- **Downloads renamed:** `andam-lockdown.seb`, `andam-exam.seb`, `andam-<label>-template-<date>.xlsx`, `andam-<label>-logins-<date>.csv`.
+- **Logo:** a fountain-pen nib that also reads as the letter A, with an ash-red collar. Files in `static/digitalexams/brand/`: `andam-mark.svg` (on light), `andam-mark-on-blue.svg`, `andam-icon.svg` (app icon), `andam-favicon.svg` (simplified for browser tabs), `andam-apple-touch-icon.png`, `andam-icon-512.png`, `andam-favicon-32.png`, `andam-logo.png` and `andam-logo-on-blue.png` (full lockup). The wordmark is ANDAM in Outfit 600 with wide letter-spacing.
+- **Landing page:** hero now reads "Ready for every exam." with the tag "Andam · Cebuano for "ready""; the closing sign-in section asks "Andam na ka?".
+- **Sign-in page:** blue panel shows the logo with "Digital exams for schools", the heading "Andam na ka?" ("Are you ready? Your exams are waiting.") and a new third point, "Practice papers and real exams in one place". On a phone the blue header shows the same line.
+- **Default email sender** is now `Andam <no-reply@andam.local>` when `EMAIL_HOST_USER` isn't set.
+- **Old files you can delete:** `static/digitalexams/brand/examnook-*`, `brand/apple-touch-icon.png` and `brand/favicon-32.png` are no longer used.
 
 ### Changed — Sign-in goes straight to one page; sign-in pages restyled (2026-10-13, seventh batch)
 No migration, no new settings.

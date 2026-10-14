@@ -222,8 +222,8 @@ EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND') or (
     'django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST_USER
     else 'django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or (
-    f'ExamNook <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'ExamNook <no-reply@examnook.local>')
-# Address for "Bring ExamNook to your school" on the public landing page (templates/landing.html).
+    f'Andam <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'Andam <no-reply@andam.local>')
+# Address for "Bring Andam to your school" on the public landing page (templates/landing.html).
 # Set CONTACT_EMAIL in .env / Railway; without it the page falls back to the sending address
 # (EMAIL_HOST_USER), and with neither the button isn't shown.
 CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', '').strip() or EMAIL_HOST_USER

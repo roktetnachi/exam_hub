@@ -5,7 +5,7 @@ Flow
 ----
 1. An admin adds someone (one at a time or by bulk import). The account gets a temporary
    password and must_change_password=True.
-2. The admin invites them (or ticks "send invite" while adding): ExamNook generates a fresh
+2. The admin invites them (or ticks "send invite" while adding): Andam generates a fresh
    temporary password and emails their username, that password and the sign-in link. The
    same details can be downloaded as a CSV in case email isn't set up.
 3. On first sign-in ForcePasswordChangeMiddleware sends them to "Choose your password"
@@ -44,7 +44,7 @@ def temp_password():
     return ''.join(secrets.choice(alphabet) for _ in range(10))
 
 
-# The public address of ExamNook, used in invites so the link always works — even when the
+# The public address of Andam, used in invites so the link always works — even when the
 # invite was sent from a laptop running the site locally. Override with SITE_URL (env or
 # settings) if the site moves to another domain.
 DEFAULT_SITE_URL = 'https://digitalexamhub.up.railway.app'
@@ -63,18 +63,18 @@ def login_url(request, user):
 def invite_email_body(user, school, password):
     site = site_url() + '/'
     return (f'Hi {user.first_name or user.username},\n\n'
-            f'Here\'s your ExamNook account at {school}.\n\n'
+            f'Here\'s your Andam account at {school}.\n\n'
             f'Username: {user.username}\n'
             f'Temporary password: {password}\n\n'
             f'Changing your password\n'
-            f'1. Go to the ExamNook website (link below) and sign in with your username and temporary password.\n'
+            f'1. Go to the Andam website (link below) and sign in with your username and temporary password.\n'
             f'2. You\'ll be asked to choose your own password straight away.\n'
             f'3. You can change it again any time: click your name at the top right, then "Change password".\n\n'
             f'Forgot your password?\n'
             f'On the sign-in page, choose "Email me a code" and enter your username. We\'ll send a code to {user.email}. '
             f'Sign in with that code, then click your name at the top right and choose "Change password" to set a new one.\n\n'
             f'Website: {site}\n\n'
-            f'— {school} ExamNook')
+            f'— {school}, sent by Andam')
 
 
 def invite_user(request, user):
@@ -86,13 +86,13 @@ def invite_user(request, user):
     user.invited_at = timezone.now()
     user.activated_at = None
     user.save(update_fields=['password', 'must_change_password', 'invited_at', 'activated_at'])
-    school = user.school.name if user.school else 'ExamNook'
+    school = user.school.name if user.school else 'Andam'
     url = login_url(request, user)
     emailed = False
     if user.email:
         try:
             send_mail(
-                subject=f'Your ExamNook account at {school}',
+                subject=f'Your Andam account at {school}',
                 message=invite_email_body(user, school, password),
                 from_email=None, recipient_list=[user.email])
             emailed = True

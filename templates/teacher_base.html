@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token }}">
-<title>{% block title %}ExamNook{% endblock %} — {{ request.school.name|default:"ExamNook" }}</title>
-{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
+<title>{% block title %}Andam{% endblock %} — {{ request.school.name|default:"Andam" }}</title>
+{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/andam-favicon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/andam-apple-touch-icon.png' %}">
 <style>
   :root{
     --blue:{% if request.school and request.school.primary_color %}{{ request.school.primary_color }}{% else %}#4b91c5{% endif %}; --blue-dark:#28186f; --blue-tint:#eef5fb; --border:#e3e8f2;
@@ -86,7 +86,7 @@
     {% else %}
       <span class="dot"></span>
     {% endif %}
-    <span class="word">{{ request.school.name|default:"ExamNook" }}</span>
+    <span class="word">{{ request.school.name|default:"Andam" }}</span>
   </a>
   <nav class="topnav" aria-label="Sections">
     <a href="{{ request.school_url_prefix|default:'' }}{% url 'home' %}">Exams</a>

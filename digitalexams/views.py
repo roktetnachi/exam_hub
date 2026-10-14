@@ -49,8 +49,8 @@ def home(request):
 
 def landing(request):
     """Public landing page at the site root for signed-out visitors (signed-in people are sent
-    to their school by SchoolTenantMiddleware before this runs). Explains ExamNook to schools and
-    sends pupils and teachers to the one sign-in page. Which schools use ExamNook is kept private:
+    to their school by SchoolTenantMiddleware before this runs). Explains Andam to schools and
+    sends pupils and teachers to the one sign-in page. Which schools use Andam is kept private:
     no school is named here."""
     from django.conf import settings
     contact = (getattr(settings, 'CONTACT_EMAIL', '') or '').strip()
@@ -267,12 +267,12 @@ def log_activity(actor_name, actor_email, action, description, assignment=None, 
 
 
 # ---------------- Safe Exam Browser (SEB) "lockdown" delivery mode ----------------
-# ExamNook can't enforce real device lockdown itself, but for assignments delivered in
+# Andam can't enforce real device lockdown itself, but for assignments delivered in
 # "lockdown" mode it can require that exam-taking requests actually come from a real Safe
 # Exam Browser session, using SEB's own Browser Exam Key (BEK) mechanism: SEB hashes the
 # absolute request URL together with a key it derives from its full configuration, and
 # sends that hash in the X-SafeExamBrowser-RequestHash header on every request. A teacher
-# opens ExamNook's shared lockdown .seb config in a real SEB install once, copies the BEK it
+# opens Andam's shared lockdown .seb config in a real SEB install once, copies the BEK it
 # reports, and stores it via Django admin (AllowedBrowserExamKey) — from then on this check
 # recomputes the same hash server-side and only lets the request through if it matches.
 SEB_REQUEST_HASH_HEADER = 'X-SafeExamBrowser-RequestHash'
@@ -286,7 +286,7 @@ def _public_scheme(request):
 
 
 def seb_config_settings(host, scheme, start_path=None):
-    """The exact settings in ExamNook's lockdown .seb file for a given site address.
+    """The exact settings in Andam's lockdown .seb file for a given site address.
     Kept in one place because the same dict is used both to write the file (seb_config /
     seb_launch_config) and to recompute its Config Key (seb_config_key) — they must never drift
     apart. `start_path` is only set for a one-time launch config (see seb_launch_api), whose
@@ -323,15 +323,15 @@ def _seb_json(value):
 
 
 def seb_config_key(host, scheme, start_path=None):
-    """ExamNook's own lockdown config's Config Key, computed the same way SEB computes it
-    (SHA256 of the SEB-JSON of the settings actually in the file). Because ExamNook writes that
+    """Andam's own lockdown config's Config Key, computed the same way SEB computes it
+    (SHA256 of the SEB-JSON of the settings actually in the file). Because Andam writes that
     file itself, it can trust its own key automatically — no copying keys out of SEB's settings
     screens into Django admin needed."""
     return hashlib.sha256(_seb_json(seb_config_settings(host, scheme, start_path)).encode('utf-8')).hexdigest()
 
 
 def _accepted_seb_keys(request, extra_keys=()):
-    """Every key a valid SEB hash may be built from: ExamNook's own config's Config Key (for both
+    """Every key a valid SEB hash may be built from: Andam's own config's Config Key (for both
     schemes, since the file may have been downloaded over http or https), anything an admin added
     by hand, the per-launch keys remembered on this SEB session, and any extra keys given."""
     host = request.get_host()
@@ -417,11 +417,11 @@ def seb_required_response(request=None):
     got_headers = bool(request and (request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH')
                                     or request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH')))
     if request is not None and not got_headers:
-        detail = ("This assignment must be opened in Safe Exam Browser using ExamNook's lockdown "
+        detail = ("This assignment must be opened in Safe Exam Browser using Andam's lockdown "
                   "config (from the SEB menu / your teacher's link). This browser didn't identify itself as SEB.")
         reason = 'no_seb_headers'
     else:
-        detail = ("Safe Exam Browser was detected, but not with ExamNook's current lockdown config. "
+        detail = ("Safe Exam Browser was detected, but not with Andam's current lockdown config. "
                   "Download a fresh config from this site and open the exam with it (a config from a "
                   "different address, or one edited and re-saved in SEB's settings, won't match).")
         reason = 'key_mismatch'
@@ -2889,7 +2889,7 @@ def publish_assignment_grades_api(request, assignment_id):
 
 
 # ---------------- one-click SEB launch that keeps the pupil signed in ----------------
-# SEB is a separate browser with its own cookies, so a pupil signed in to ExamNook in Chrome
+# SEB is a separate browser with its own cookies, so a pupil signed in to Andam in Chrome
 # would otherwise land on the login page inside SEB and then have to find the paper again.
 # Instead, clicking Open on a lockdown paper asks for a short-lived, single-use launch token:
 # SEB is handed a config whose start page (/seb/enter/<token>/) signs that pupil in and opens
@@ -2946,10 +2946,10 @@ def seb_launch_config(request, token):
     what authorises it."""
     user, _ = read_seb_launch_token(token)
     if not user:
-        return HttpResponseForbidden('This exam link has expired. Go back to ExamNook and click Open again.')
+        return HttpResponseForbidden('This exam link has expired. Go back to Andam and click Open again.')
     settings_dict = seb_config_settings(request.get_host(), _public_scheme(request), reverse('seb-enter', args=[token]))
     response = HttpResponse(plistlib.dumps(settings_dict, fmt=plistlib.FMT_XML), content_type='application/seb')
-    response['Content-Disposition'] = 'attachment; filename="examnook-exam.seb"'
+    response['Content-Disposition'] = 'attachment; filename="andam-exam.seb"'
     return response
 
 
@@ -2963,13 +2963,13 @@ SEB_ENTER_PAGE = '''<!doctype html><html><head><meta charset="utf-8"><meta name=
   function send(){
     if(done) return;
     var s = window.SafeExamBrowser && window.SafeExamBrowser.security;
-    if(!s || !s.configKey){ fail('This link only works inside Safe Exam Browser. Go back to ExamNook and click Open again.'); return; }
+    if(!s || !s.configKey){ fail('This link only works inside Safe Exam Browser. Go back to Andam and click Open again.'); return; }
     done = true;
     fetch(location.pathname, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({url: location.href.split('#')[0], configKey: s.configKey, browserExamKey: s.browserExamKey || ''})})
       .then(function(r){ return r.json(); })
       .then(function(d){ if(d.ok){ location.replace(d.redirect); } else { done = false; fail(d.detail || 'This exam link could not be verified.'); } })
-      .catch(function(){ done = false; fail('Could not reach ExamNook. Check the connection and try again.'); });
+      .catch(function(){ done = false; fail('Could not reach Andam. Check the connection and try again.'); });
   }
   var s = window.SafeExamBrowser && window.SafeExamBrowser.security;
   if(s && typeof s.updateKeys === 'function'){ try { s.updateKeys(send); } catch(e) {} setTimeout(send, 1500); }
@@ -2992,7 +2992,7 @@ def seb_enter(request, token):
     user, aid = read_seb_launch_token(token)
     if not user and request.method == 'POST':
         return JsonResponse({'ok': False, 'detail': 'This exam link has expired or was already used. '
-                                                     'Go back to ExamNook and click Open again.'}, status=403)
+                                                     'Go back to Andam and click Open again.'}, status=403)
     if not user:
         return HttpResponse('<p style="font-family:sans-serif;padding:24px">This exam link has expired or was already used. '
                             f'<a href="{reverse("login")}">Sign in</a> and open the paper again.</p>', status=403)
@@ -3007,7 +3007,7 @@ def seb_enter(request, token):
             payload = {}
         if not seb_js_keys_ok(request, [payload.get('url')], [payload.get('configKey'), payload.get('browserExamKey')],
                               extra_keys=token_keys):
-            return JsonResponse({'ok': False, 'detail': 'This link only works inside Safe Exam Browser, opened from ExamNook.'}, status=403)
+            return JsonResponse({'ok': False, 'detail': 'This link only works inside Safe Exam Browser, opened from Andam.'}, status=403)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         request.session['seb_config_keys'] = token_keys
         request.session['seb_js_verified'] = True
@@ -3042,7 +3042,7 @@ def seb_verify_api(request):
 @login_required
 @require_GET
 def seb_check_api(request):
-    """Lets the pupil page ask "is this request really SEB with ExamNook's config?" before
+    """Lets the pupil page ask "is this request really SEB with Andam's config?" before
     opening a lockdown paper — the same check start/save/submit enforce, just without side
     effects. Replaces trusting the browser's User-Agent, which some SEB setups don't mark."""
     has_headers = bool(request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH')
@@ -3053,10 +3053,10 @@ def seb_check_api(request):
 @login_required
 @require_GET
 def seb_config(request):
-    """Generates ExamNook's single, shared Safe Exam Browser lockdown config as a real
+    """Generates Andam's single, shared Safe Exam Browser lockdown config as a real
     .seb file (Apple-plist format, which is what SEB expects). One config covers every
     "lockdown" assignment site-wide — startURL is just the app's own login/home page, since
-    ExamNook is a single-page app where pupils pick their assignment from their dashboard the
+    Andam is a single-page app where pupils pick their assignment from their dashboard the
     same way whether they're in a normal browser or in SEB. This is deliberately a minimal,
     conservative set of settings covering only what's needed to make the Browser Exam Key
     mechanism work (see seb_lockdown_ok above); open the downloaded file in SEB's own
@@ -3067,7 +3067,7 @@ def seb_config(request):
     settings_dict = seb_config_settings(request.get_host(), _public_scheme(request))
     body = plistlib.dumps(settings_dict, fmt=plistlib.FMT_XML)
     response = HttpResponse(body, content_type='application/seb')
-    response['Content-Disposition'] = 'attachment; filename="examnook-lockdown.seb"'
+    response['Content-Disposition'] = 'attachment; filename="andam-lockdown.seb"'
     return response
 
 

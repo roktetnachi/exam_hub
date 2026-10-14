@@ -6,7 +6,7 @@ from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, Assignm
 
 
 class RequireUniqueEmailMixin:
-    """Every ExamNook account needs an email: assignments are matched to pupils by email, so
+    """Every Andam account needs an email: assignments are matched to pupils by email, so
     a pupil saved without one silently never appears in the teacher's "assign to" list.
     Emails must also be unique, or two accounts would receive each other's assignments."""
 
@@ -17,14 +17,14 @@ class RequireUniqueEmailMixin:
             self.fields['email'].help_text = 'Required. Pupils are matched to assignments by this email.'
         if 'is_staff' in self.fields:
             self.fields['is_staff'].help_text = (
-                'For teachers, this also makes them an ExamNook class admin: they can create and edit '
+                'For teachers, this also makes them an Andam class admin: they can create and edit '
                 'classes, assign teachers to classes, and add pupils. Teachers without it can only '
                 'assign work to pupils in the classes they are assigned to.')
 
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip()
         if not email:
-            raise forms.ValidationError('An email is required for every ExamNook account.')
+            raise forms.ValidationError('An email is required for every Andam account.')
         return email
 
     def clean(self):
@@ -74,11 +74,11 @@ class UserAdmin(DjangoUserAdmin):
     they create assignments, and pupils' email is what assignments are matched to — so both
     need to be filled in here for the rest of the app to work."""
     fieldsets = DjangoUserAdmin.fieldsets + (
-        ('ExamNook role', {'fields': ('role', 'school', 'is_school_admin')}),
+        ('Andam role', {'fields': ('role', 'school', 'is_school_admin')}),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
         ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
-        ('ExamNook role', {'fields': ('role', 'school', 'is_school_admin')}),
+        ('Andam role', {'fields': ('role', 'school', 'is_school_admin')}),
     )
     form = ExamHubUserChangeForm
     add_form = ExamHubUserCreationForm

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="csrf-token" content="{{ csrf_token }}">
-<title>{{ request.school.name|default:"ExamNook" }} — Teacher &amp; Student Portal</title>
-{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
+<title>{{ request.school.name|default:"Andam" }} — Teacher &amp; Student Portal</title>
+{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/andam-favicon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/andam-apple-touch-icon.png' %}">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
@@ -447,7 +447,7 @@
   /* ---- accessibility (pupil "Accessibility" menu) ----
      Classes on <html>, set by applyA11y(): a11y-sized (+ --a11y-s), a11y-font-dyslexic / -readable,
      a11y-line-relaxed / -loose, a11y-letter-wide, a11y-night, a11y-contrast; data-overlay for the tint.
-     Fonts are served by ExamNook itself (static/digitalexams/a11y/) so they work in Safe Exam Browser. */
+     Fonts are served by Andam itself (static/digitalexams/a11y/) so they work in Safe Exam Browser. */
   @font-face{font-family:'OpenDyslexic';font-style:normal;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-normal.woff2' %}") format('woff2');}
   @font-face{font-family:'OpenDyslexic';font-style:italic;font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-italic.woff2' %}") format('woff2');}
   @font-face{font-family:'OpenDyslexic';font-style:normal;font-weight:700;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-700-normal.woff2' %}") format('woff2');}
@@ -998,7 +998,7 @@
     {% else %}
       <span class="dot"></span>
     {% endif %}
-    <span>{{ request.school.name|default:"ExamNook" }}</span>
+    <span>{{ request.school.name|default:"Andam" }}</span>
   </div>
   {% if request.user.is_superuser or request.user.role == 'teacher' %}
   <nav class="topnav" id="teacherTopNav" aria-label="Sections">
@@ -1106,9 +1106,9 @@
     </button>
     <div class="hidden" id="sebMenuDropdown" style="position:absolute;right:0;top:calc(100% + 6px);width:320px;background:#fff;border-radius:14px;box-shadow:var(--card-shadow);padding:14px;z-index:50;">
       <strong style="font-size:13px;">Safe Exam Browser setup</strong>
-      <p style="margin:8px 0 0;font-size:12.5px;color:var(--blue-dark);font-weight:700;">&#10003; Ready — no key setup needed. ExamNook automatically trusts its own lockdown config.</p>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--blue-dark);font-weight:700;">&#10003; Ready — no key setup needed. Andam automatically trusts its own lockdown config.</p>
       <p class="sub" style="margin:4px 0 0;font-size:11px;word-break:break-all;">This site's Config Key: <code>{{ seb_config_key }}</code>{% if seb_key_count %} · plus {{ seb_key_count }} extra key{{ seb_key_count|pluralize }} from Django admin{% endif %}</p>
-      <p class="sub" style="margin:6px 0 10px;">For exams delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — pupils just open the exam through the lockdown link or file below. Don't edit and re-save the config in SEB's own settings tool: that changes its key and ExamNook will stop recognising it (if you ever need custom SEB settings, paste the edited file's Config Key into Django admin → "Allowed Browser Exam Keys").</p>
+      <p class="sub" style="margin:6px 0 10px;">For exams delivered in "Lockdown app" mode: pupils need Safe Exam Browser installed, using this same config file. <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Get Safe Exam Browser</a> — pupils just open the exam through the lockdown link or file below. Don't edit and re-save the config in SEB's own settings tool: that changes its key and Andam will stop recognising it (if you ever need custom SEB settings, paste the edited file's Config Key into Django admin → "Allowed Browser Exam Keys").</p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <a class="btn outline small" href="/api/seb/config/" download>Download lockdown config (.seb)</a>
         <a class="btn outline small" id="dashboardSebLaunchBtn" href="#">Open lockdown config in Safe Exam Browser</a>
@@ -1621,7 +1621,7 @@
     {% if request.user.role == 'pupil' and not request.user.is_superuser %}<div id="pupilLoading" class="empty" style="padding:60px 0;text-align:center;">Loading your exams…</div>{% endif %}
     <div id="studentLogin"{% if request.user.role == 'pupil' and not request.user.is_superuser %} class="hidden"{% endif %}>
       <h2>Preview as a pupil</h2>
-      <p class="sub">Choose a pupil to see ExamNook exactly as they do. Previews are read-only, and pupils never see this screen — they sign in and go straight to their own tasks.</p>
+      <p class="sub">Choose a pupil to see Andam exactly as they do. Previews are read-only, and pupils never see this screen — they sign in and go straight to their own tasks.</p>
       <div class="card" style="max-width:400px;">
         <div class="field">
           <label>Preview as</label>
@@ -1792,7 +1792,7 @@
       <div class="exam-intro">
         <div class="exam-intro-brand">
           {% if request.school and request.school.logo %}<img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" class="exam-intro-logo">{% endif %}
-          <div class="exam-intro-school">{{ request.school.name|default:"ExamNook" }}</div>
+          <div class="exam-intro-school">{{ request.school.name|default:"Andam" }}</div>
         </div>
         <h1 id="examIntroTitle"></h1>
         <div class="exam-intro-facts" id="examIntroFacts"></div>
@@ -3322,9 +3322,9 @@ function collectItemsForSubmit(){
 // ---------------- generic pill-picker helper (delivery mode / start-close condition / assign-to) ----------------
 const DELIVERY_MODE_NOTES = {
   browser: 'No extra restrictions — pupils can use any browser normally.',
-  browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click and copying. Enforced by ExamNook, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
-  lockdown: 'Pupils must open this in Safe Exam Browser (SEB) — ExamNook verifies this server-side and blocks starting/saving/submitting otherwise. Download the shared lockdown config from the dashboard and see Django admin \u2192 Allowed Browser Exam Keys for one-time setup.',
-  paper: 'For a paper-based sitting. The exam is recorded but pupils won\'t open it in ExamNook.',
+  browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click and copying. Enforced by Andam, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
+  lockdown: 'Pupils must open this in Safe Exam Browser (SEB) — Andam verifies this server-side and blocks starting/saving/submitting otherwise. Download the shared lockdown config from the dashboard and see Django admin \u2192 Allowed Browser Exam Keys for one-time setup.',
+  paper: 'For a paper-based sitting. The exam is recorded but pupils won\'t open it in Andam.',
 };
 function wirePillPicker(containerId, dataAttr, onChange){
   const container = document.getElementById(containerId);
@@ -3877,7 +3877,7 @@ document.getElementById('createPupilBtn')?.addEventListener('click', async ()=>{
     document.getElementById('newPupilFirstName').value = '';
     document.getElementById('newPupilLastName').value = '';
     document.getElementById('newPupilEmail').value = '';
-    successEl.textContent = `Added ${pupil.name}. Temporary password: ${pupil.tempPassword} — share this with them so they can sign in at ${pupil.website || 'the ExamNook website'} (username: ${pupil.username}).`;
+    successEl.textContent = `Added ${pupil.name}. Temporary password: ${pupil.tempPassword} — share this with them so they can sign in at ${pupil.website || 'the Andam website'} (username: ${pupil.username}).`;
     successEl.classList.remove('hidden');
     await refreshRosterAndChecklist();
     renderRosterModal();
@@ -5855,7 +5855,7 @@ function sebProtocolLink(){
   const scheme = location.protocol === 'https:' ? 'sebs://' : 'seb://';
   return scheme + location.host + '/api/seb/config/';
 }
-// Asks the server whether THIS request really comes from SEB with ExamNook's config (the same
+// Asks the server whether THIS request really comes from SEB with Andam's config (the same
 // check that guards starting/saving/submitting). The browser's own User-Agent sniffing
 // (sebDetected) isn't reliable — some SEB versions/configs don't advertise "SEB" in it, and
 // trusting it wrongly used to bounce pupils who were already inside SEB straight back out
@@ -6671,7 +6671,7 @@ async function buildResourcesPanel(a, sub){
             renderThumbCanvas(doc, p, thumb).catch(()=>{});
           }
         } catch(error) {
-          console.error('ExamNook: could not load PDF for', item.label, error);
+          console.error('Andam: could not load PDF for', item.label, error);
           group.innerHTML += `<div class="sub" style="padding:6px 4px;font-size:12.5px;">This PDF couldn't be opened.</div>`;
         }
       } else {
@@ -7339,7 +7339,7 @@ async function extractImageRects(page, viewport){
       }
     }
   } catch(error) {
-    console.warn('ExamNook: image detection failed for this page, image notes unavailable here.', error);
+    console.warn('Andam: image detection failed for this page, image notes unavailable here.', error);
   }
   // Drop anything that covers most of the page (a full-bleed background/watermark, not a "photo")
   // so it can't blanket-block text selection or dominate every click.
@@ -7453,15 +7453,15 @@ async function renderPdfPage(){
     await withTimeout(pdfjsLib.renderTextLayer({textContentSource: textContent, container: textLayerDiv, viewport}).promise, 10000, 'Timed out building the selectable text layer.');
     textLayerOk = textLayerDiv.childElementCount > 0;
     if(!textLayerOk){
-      console.warn('ExamNook: text layer rendered with 0 spans on this page (the PDF page may have no embedded text, e.g. a scanned image) — text highlighting will not be available here.');
+      console.warn('Andam: text layer rendered with 0 spans on this page (the PDF page may have no embedded text, e.g. a scanned image) — text highlighting will not be available here.');
     }
   } catch(error) {
-    console.error('ExamNook: text layer failed to render, text highlighting unavailable on this page.', error);
+    console.error('Andam: text layer failed to render, text highlighting unavailable on this page.', error);
   }
   if(myGen !== renderGeneration) return;
   // (The on-page "Text: N spans" diagnostic was removed; if highlighting ever fails, check
   // textLayerOk / the text layer in DevTools.)
-  if(!textLayerOk) console.warn('ExamNook: PDF text layer has no selectable text on this page');
+  if(!textLayerOk) console.warn('Andam: PDF text layer has no selectable text on this page');
 
   const noteLayer = document.createElement('div');
   noteLayer.className = 'note-layer'; noteLayer.style.width = viewport.width+'px'; noteLayer.style.height = viewport.height+'px';
@@ -8529,7 +8529,7 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
     clearOfflineBackup(sub);
     clearExamTimer();
     if(a && (a.deliveryMode === 'lockdown' || runningInSeb())){
-      // Safe Exam Browser quits itself when it reaches the quit address in ExamNook's config
+      // Safe Exam Browser quits itself when it reaches the quit address in Andam's config
       // (quitURL, no confirmation). Outside SEB this lands on a "you can close this" page.
       setExamFocus(false);
       showToast('Submitted! Your teacher has been notified. Safe Exam Browser will close in a moment.', 'success', 3000);

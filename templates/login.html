@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in — {{ request.school.name|default:"ExamNook" }}</title>
+<title>Sign in — {{ request.school.name|default:"Andam" }}</title>
 <meta name="theme-color" content="#1c3a6e">
-<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/andam-favicon.svg' %}"><link rel="apple-touch-icon" href="{% static 'digitalexams/brand/andam-apple-touch-icon.png' %}">
 <style>
-  /* Same fonts and colours as the landing page, all served by ExamNook itself. */
+  /* Same fonts and colours as the landing page, all served by Andam itself. */
   @font-face{font-family:'Outfit Var';font-weight:100 900;font-display:swap;src:url("{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}") format('woff2');}
   @font-face{font-family:'Inter Var';font-weight:100 900;font-display:swap;src:url("{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}") format('woff2');}
   :root{
@@ -32,9 +32,14 @@
         background:repeating-linear-gradient(180deg,transparent 0,transparent 39px,rgba(247,241,228,.07) 39px,rgba(247,241,228,.07) 40px),
                    radial-gradient(120% 90% at 85% 10%,var(--navy-mid) 0%,var(--navy) 45%,var(--navy-deep) 100%);}
   .side::before{content:"";position:absolute;top:0;bottom:0;left:28px;width:2px;background:rgba(240,150,138,.5);z-index:-1;}
-  .logo{display:inline-flex;align-items:center;gap:10px;font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:-.035em;color:var(--card);text-decoration:none;}
-  .logo img{width:34px;height:34px;}
+  .logo{display:inline-flex;align-items:center;gap:12px;color:var(--card);text-decoration:none;}
+  .logo img{width:42px;height:42px;flex-shrink:0;}
+  .logo .wm{display:flex;flex-direction:column;}
+  .logo .name{font-family:var(--display);font-weight:600;font-size:25px;letter-spacing:.06em;text-transform:uppercase;line-height:1;}
+  .logo .desc{font-size:13px;color:#c9d3e6;margin-top:4px;}
+  .side .sub{margin:12px 0 0;font-size:clamp(17px,1.5vw,20px);color:rgba(247,241,228,.82);}
   .side h2{font-family:var(--display);font-weight:500;font-size:clamp(34px,3.6vw,52px);line-height:1.02;letter-spacing:-.04em;margin:0;max-width:12ch;color:var(--card);}
+  .side h2{font-size:clamp(40px,4.4vw,62px);line-height:1;}
   .side ul{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:12px;}
   .side li{display:flex;align-items:center;gap:12px;color:rgba(247,241,228,.86);font-size:16.5px;}
   .side li svg{width:22px;height:22px;flex-shrink:0;color:#f0b2a8;}
@@ -83,7 +88,7 @@
   .linkbtn:hover{color:var(--ash-deep);}
   .row-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:14px;}
 
-  /* the eye button from _password_toggle.html, in ExamNook colours */
+  /* the eye button from _password_toggle.html, in Andam colours */
   .pw-eye{color:var(--soft) !important;}
   .pw-eye:hover{color:var(--navy) !important;background:rgba(28,58,110,.08) !important;}
 
@@ -91,13 +96,17 @@
     .shell{grid-template-columns:minmax(0,1fr);gap:0;padding:8px;}
     .side{padding:22px 22px 24px 40px;border-radius:24px;}
     .side::before{left:22px;}
-    .side h2,.side ul,.side small{display:none;}
+    .side h2,.side .sub,.side ul,.side small{display:none;}
+    .logo img{width:34px;height:34px;}
+    .logo .name{font-size:22px;}
+    .logo .desc{display:none;}
     .side .mobile-line{display:block !important;}
     .main{padding:20px 4px 28px;justify-content:flex-start;}
     .back{position:static;align-self:flex-start;margin:0 0 12px;}
     .card{padding:26px 20px 22px;border-radius:24px;}
   }
-  .mobile-line{display:none;margin:8px 0 0;color:rgba(247,241,228,.8);font-size:15px;}
+  .mobile-line{display:none;margin:16px 0 0;color:rgba(247,241,228,.8);font-size:15px;}
+  .mobile-line b{display:block;font-family:var(--display);font-weight:500;font-size:30px;letter-spacing:-.03em;line-height:1.1;color:var(--card);margin-bottom:2px;}
   @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
 </style>
 </head>
@@ -107,24 +116,25 @@
   <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".16"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 <div class="shell">
-  <aside class="side" aria-label="About ExamNook">
+  <aside class="side" aria-label="About Andam">
     <div>
-      <a class="logo" href="/"><img src="{% static 'digitalexams/brand/examnook-mark-on-blue.svg' %}" alt="" width="34" height="34">ExamNook</a>
-      <p class="mobile-line">Exams on screen that still feel like paper.</p>
+      <a class="logo" href="/" aria-label="Andam home"><img src="{% static 'digitalexams/brand/andam-mark-on-blue.svg' %}" alt="" width="42" height="42"><span class="wm"><span class="name">Andam</span><span class="desc">Digital exams for schools</span></span></a>
+      <div class="mobile-line"><b lang="ceb">Andam na ka?</b>Are you ready? Your exams are waiting.</div>
     </div>
     <div>
-      <h2>Your exams, ready when you are.</h2>
+      <h2 lang="ceb">Andam na ka?</h2>
+      <p class="sub">Are you ready? Your exams are waiting.</p>
       <ul>
         <li><svg><use href="#i-check"/></svg>Your work saves every few seconds</li>
         <li><svg><use href="#i-check"/></svg>Keeps going if the Wi-Fi drops</li>
-        <li><svg><use href="#i-check"/></svg>One sign-in page for pupils and teachers</li>
+        <li><svg><use href="#i-check"/></svg>Practice papers and real exams in one place</li>
       </ul>
     </div>
     <small>Use the username and password from your school's invite email.</small>
   </aside>
 
   <main class="main">
-    <a class="back" href="/"><svg><use href="#i-arrow"/></svg>ExamNook home</a>
+    <a class="back" href="/"><svg><use href="#i-arrow"/></svg>Andam home</a>
     <div class="card">
       {% if request.school %}
       <div class="school">

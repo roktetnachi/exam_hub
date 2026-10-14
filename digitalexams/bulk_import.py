@@ -1079,7 +1079,7 @@ def build_template(kind, school, prefill=False):
     subjects = list(_school_subjects(school).prefetch_related('teachers')
                     .annotate(pupil_count=Count('pupils', distinct=True)).order_by('name'))
     teachers = list(assignable_teachers(school).order_by('last_name', 'first_name', 'username'))
-    school_name = school.name if school else 'ExamNook'
+    school_name = school.name if school else 'Andam'
     teacher_names = lambda obj: ', '.join(t.get_full_name() or t.username for t in obj.teachers.all())
     section_rows = [(c.name, teacher_names(c), c.pupil_count) for c in classes]
     subject_rows = [(s.name, teacher_names(s), s.pupil_count) for s in subjects]
@@ -1131,7 +1131,7 @@ def build_template(kind, school, prefill=False):
              f'Put each {noun}\'s teacher email(s) in "Teacher emails". Several teachers? Separate them with commas '
              '(e.g. ana@school.edu, ben@school.edu). The "Teacher list" tab shows every teacher account.',
              'Save the file (.xlsx). In Google Sheets: File → Download → Microsoft Excel (.xlsx) or CSV.',
-             f'In ExamNook go to {page} → Bulk import {noun}s, upload the file and click "Check file".',
+             f'In Andam go to {page} → Bulk import {noun}s, upload the file and click "Check file".',
              'Review the preview (green = new, blue = update, red = error). Fix any errors, or skip them, then click Import.',
              then],
             [(f'{Noun} name *', 'Yes', f'The {noun} name exactly as you want it to appear. '
@@ -1253,18 +1253,18 @@ def build_template(kind, school, prefill=False):
         _instructions_sheet(
             wb, f'Pupils import — {school_name}',
             'Use this file to create pupil accounts and, optionally, put them into a year group and subjects in one go. '
-            'Year groups and subjects you name must ALREADY exist in ExamNook. Leave them blank to just create the account.',
+            'Year groups and subjects you name must ALREADY exist in Andam. Leave them blank to just create the account.',
             ['Make sure the year groups and subjects exist. The "Year group list" and "Subject list" tabs show them.',
              'Fill in the "Pupils" tab — one row per pupil. Pick the year group from the dropdown in the "Year group" column.',
              'Moving from another spreadsheet? Copy the columns and use Paste special → Values only so the formatting stays clean.',
              'Save the file (.xlsx). In Google Sheets: File → Download → Microsoft Excel (.xlsx) or CSV.',
-             'In ExamNook go to Roles → Pupils → Bulk add, upload the file and click "Check file".',
+             'In Andam go to Roles → Pupils → Bulk add, upload the file and click "Check file".',
              'Review the preview, tick "Email invites" if you want each new pupil emailed their sign-in details, '
              'then click Import. You can also download the logins file (shown only once).'],
             [('First name *', 'Yes (new pupils)', 'Pupil\'s first / given name(s).', 'Juan Miguel'),
              ('Last name', 'No', 'Pupil\'s surname. Instead of First/Last name you may use one "Name" column; '
               'write it as "Surname, First names" to split it correctly.', 'Dela Cruz'),
-             ('Email *', 'Yes', 'The pupil\'s school email — this is how ExamNook recognises them. '
+             ('Email *', 'Yes', 'The pupil\'s school email — this is how Andam recognises them. '
               'If the pupil already has an account, they are simply added (no new account).',
               'juan.delacruz@school.edu'),
              ('Year group', 'No', 'Name of an EXISTING year group (see the "Year group list" tab). Several: separate with commas. '
@@ -1276,7 +1276,7 @@ def build_template(kind, school, prefill=False):
              ('Maria', 'Santos', 'maria.santos@school.edu', 'Pre-U 1', ''),
              ('Ken', 'Tan', 'ken.tan@school.edu', 'Pre-U 2', 'Pre-U 1 Economics, Pre-U 1 Physics')],
             ['Rows are checked first — nothing is saved until you click Import on the preview.',
-             'Downloaded "with current pupils"? Everyone already in ExamNook is listed. Re-uploading them changes nothing '
+             'Downloaded "with current pupils"? Everyone already in Andam is listed. Re-uploading them changes nothing '
              'unless you edit a row: a new name is updated; extra year groups / subjects are added. Add new pupils at the bottom.',
              'Existing pupils are never removed from other year groups or subjects — this import only ADDS.',
              'A pupil email that belongs to a teacher, or to another school, is reported as an error.',
@@ -1312,11 +1312,11 @@ def build_template(kind, school, prefill=False):
              'Role: pick Teacher or Admin from the dropdown (blank = Teacher for new people, unchanged for existing ones).',
              'Subjects: pick one from the dropdown, or type several separated by commas. Leave blank to assign later.',
              'Save the file (.xlsx). In Google Sheets: File → Download → Microsoft Excel (.xlsx) or CSV.',
-             'In ExamNook go to Roles → Staff → Bulk add, upload the file and click "Check file".',
+             'In Andam go to Roles → Staff → Bulk add, upload the file and click "Check file".',
              'Review the preview, tick "Email invites" to send each new person their sign-in details, then click Import.'],
             [('First name *', 'Yes (new people)', 'First / given name(s).', 'Ana'),
              ('Last name', 'No', 'Surname. Or use one "Name" column written as "Surname, First names".', 'Reyes'),
-             ('Email *', 'Yes', 'Their school email — this is how ExamNook recognises them.', 'ana.reyes@school.edu'),
+             ('Email *', 'Yes', 'Their school email — this is how Andam recognises them.', 'ana.reyes@school.edu'),
              ('Role', 'No', 'Teacher (works only with the subjects and year groups they\'re assigned) or Admin (can set up '
               'year groups and subjects and add people).', 'Teacher'),
              ('Subjects', 'No', 'EXISTING subject(s) they teach, separated by commas. Only ever ADDS — it never removes '
@@ -1326,7 +1326,7 @@ def build_template(kind, school, prefill=False):
              ('Ben', 'Cruz', 'ben.cruz@school.edu', 'Admin', ''),
              ('Carla', 'Lim', 'carla.lim@school.edu', 'Teacher', 'Pre-U 1 Physics, Pre-U 2 Physics')],
             ['Rows are checked first — nothing is saved until you click Import on the preview.',
-             'Downloaded "with current staff"? Everyone already in ExamNook is listed (main admins excepted). Re-uploading them '
+             'Downloaded "with current staff"? Everyone already in Andam is listed (main admins excepted). Re-uploading them '
              'changes nothing unless you edit a row: a new name or role is updated; extra subjects are added. Add new staff at the bottom.',
              'A subject name that doesn\'t exist is shown as an error — fix the spelling or create it first '
              '(Subjects → Bulk import subjects).',
@@ -1359,7 +1359,7 @@ def bulk_template(request, kind):
         return HttpResponseBadRequest('Excel templates need openpyxl installed on the server (pip install openpyxl).')
     stamp = timezone.localdate().isoformat()
     label = {'classes': 'year-groups', 'section_pupils': 'year-group-pupils', 'subject_pupils': 'subject-pupils'}.get(kind, kind)
-    filename = f'examnook-{label}-{"current" if prefill else "template"}-{stamp}.xlsx'
+    filename = f'andam-{label}-{"current" if prefill else "template"}-{stamp}.xlsx'
     response = HttpResponse(content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response

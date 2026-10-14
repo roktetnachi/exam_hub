@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ExamNook — digital exams for schools</title>
-<meta name="description" content="ExamNook is where pupils sit timed exams on a laptop or iPad — highlighting the text, making notes and writing their answers — and where teachers set, watch over and mark them.">
+<title>Andam — Digital exams for schools</title>
+<meta name="description" content="Andam (Cebuano for &quot;ready&quot;) is where pupils sit timed exams and practice papers on a laptop or iPad, and where teachers set, watch over and mark them.">
 <meta name="theme-color" content="#1c3a6e">
-<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/examnook-icon.svg' %}">
-<link rel="apple-touch-icon" href="{% static 'digitalexams/brand/apple-touch-icon.png' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/andam-favicon.svg' %}">
+<link rel="apple-touch-icon" href="{% static 'digitalexams/brand/andam-apple-touch-icon.png' %}">
 <link rel="preload" href="{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
 <style>
-  /* Every font, image and script on this page is served by ExamNook itself — nothing loads from outside. */
+  /* Every font, image and script on this page is served by Andam itself — nothing loads from outside. */
   @font-face{font-family:'Outfit Var';font-weight:100 900;font-style:normal;font-display:swap;src:url("{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}") format('woff2');}
   @font-face{font-family:'Inter Var';font-weight:100 900;font-style:normal;font-display:swap;src:url("{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}") format('woff2');}
   @font-face{font-family:'Atkinson Hyperlegible';font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/atkinson-hyperlegible-latin-400-normal.woff2' %}") format('woff2');}
   @font-face{font-family:'OpenDyslexic';font-weight:400;font-display:swap;src:url("{% static 'digitalexams/a11y/opendyslexic-latin-400-normal.woff2' %}") format('woff2');}
 
-  /* ExamNook colours. Deep blue leads, ash red is kept for actions, a soft warm off-white is the
+  /* Andam colours. Deep blue leads, ash red is kept for actions, a soft warm off-white is the
      card, slate ink is the text, and a light grey-beige (#f4f5f0) sits behind it all. */
   :root{
     --navy:#1c3a6e; --navy-deep:#122a52; --navy-mid:#2c5291; --navy-soft:#dce4f1;
@@ -76,8 +76,8 @@
   .top{position:fixed;left:0;right:0;top:14px;z-index:50;padding:0 16px;transition:transform .45s var(--ease);}
   .top.hide{transform:translateY(-130%);}
   .top-pill{max-width:var(--wrap);margin:0 auto;display:flex;align-items:center;gap:18px;padding:7px 7px 7px 18px;background:var(--egg);border:1px solid var(--egg-line);border-radius:999px;box-shadow:0 14px 34px -18px rgba(18,42,82,.45);}
-  .logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:-.035em;text-decoration:none;color:var(--navy);}
-  .logo img{width:32px;height:32px;flex-shrink:0;}
+  .logo{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:600;font-size:21px;letter-spacing:.06em;text-transform:uppercase;line-height:1;text-decoration:none;color:var(--navy);}
+  .logo img{width:34px;height:34px;flex-shrink:0;}
   .nav{display:flex;gap:2px;margin:0 auto;}
   .nav a{padding:9px 14px;border-radius:999px;font-size:15.5px;font-weight:500;color:var(--text);text-decoration:none;transition:background .2s,color .2s;}
   .nav a:hover{background:var(--egg-deep);color:var(--navy);}
@@ -413,7 +413,7 @@
 
 <header class="top" id="top">
   <div class="top-pill">
-    <a class="logo" href="/" aria-label="ExamNook home"><img src="{% static 'digitalexams/brand/examnook-mark.svg' %}" alt="" width="32" height="32">ExamNook</a>
+    <a class="logo" href="/" aria-label="Andam home"><img src="{% static 'digitalexams/brand/andam-mark.svg' %}" alt="" width="34" height="34">Andam</a>
     <nav class="nav" aria-label="On this page">
       <a href="#screens">Screens</a>
       <a href="#how">How it works</a>
@@ -439,9 +439,9 @@
     <div class="wrap">
       <div class="hero-grid">
         <div>
-          <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Digital exams for schools</span>
-          <h1 class="rise" data-split aria-label="Exams on screen that still feel like paper.">Exams on screen that still feel like paper.</h1>
-          <p class="lede fade-up">ExamNook is where pupils sit timed exams on a laptop or iPad — highlighting the text, making notes and writing their answers — and where teachers set, watch over and mark them.</p>
+          <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Andam · Cebuano for &ldquo;ready&rdquo;</span>
+          <h1 class="rise" data-split aria-label="Ready for every exam.">Ready for every exam.</h1>
+          <p class="lede fade-up">Pupils sit timed exams and practice papers on a laptop or iPad. Teachers set, watch over and mark them, all in one place.</p>
           <div class="cta-row fade-up">
             <a class="btn" href="/login/">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
             <a class="btn-ghost" href="#screens"><svg><use href="#i-play"/></svg>See it in action</a>
@@ -500,8 +500,8 @@
           <div class="modes" id="modeBtns" role="group" aria-label="Delivery modes">
             <button type="button" aria-pressed="true" data-explain="Pupils open the exam in any browser, on any device. Good for quizzes and practice."><svg><use href="#i-check"/></svg>Any browser</button>
             <button type="button" aria-pressed="false" data-explain="Full screen, and leaving the exam pauses it until the teacher reads out a one-word code."><svg><use href="#i-check"/></svg>Monitored browser</button>
-            <button type="button" aria-pressed="false" data-explain="Locked down on the device. Pupils open it straight from ExamNook, with no settings to type."><svg><use href="#i-check"/></svg>Safe Exam Browser</button>
-            <button type="button" aria-pressed="false" data-explain="Pupils sit it on paper. The exam is recorded in ExamNook and marked there."><svg><use href="#i-check"/></svg>Paper</button>
+            <button type="button" aria-pressed="false" data-explain="Locked down on the device. Pupils open it straight from Andam, with no settings to type."><svg><use href="#i-check"/></svg>Safe Exam Browser</button>
+            <button type="button" aria-pressed="false" data-explain="Pupils sit it on paper. The exam is recorded in Andam and marked there."><svg><use href="#i-check"/></svg>Paper</button>
           </div>
           <p class="explain" id="modeExplain" aria-live="polite"><b>Any browser.</b> Pupils open the exam in any browser, on any device. Good for quizzes and practice.</p>
         </div>
@@ -730,7 +730,7 @@
           <img class="r" src="{% static 'digitalexams/landing/shots/export-paper.webp' %}" width="900" height="1272" alt="" loading="lazy">
         </div>
         <span class="tag"><svg><use href="#i-spark"/></svg>Hosting more than one school</span>
-        <h2 id="schools-h">Want ExamNook at your school?</h2>
+        <h2 id="schools-h">Want Andam at your school?</h2>
         <p class="lede">Each school is set up separately and run by its own admins.</p>
         <ul class="points">
           <li><svg><use href="#i-check"/></svg>Your school's own web address, logo and colours on every page.</li>
@@ -738,7 +738,7 @@
           <li><svg><use href="#i-check"/></svg>Accounts sent by email. Sign in with a password or a one-time emailed code.</li>
           <li><svg><use href="#i-check"/></svg>School admins see every exam and the activity log. Teachers see their own.</li>
         </ul>
-        {% if contact_email %}<a class="btn" href="mailto:{{ contact_email }}?subject=ExamNook%20for%20our%20school">Email us about your school<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>{% endif %}
+        {% if contact_email %}<a class="btn" href="mailto:{{ contact_email }}?subject=Andam%20for%20our%20school">Email us about your school<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>{% endif %}
       </div>
     </div>
   </section>
@@ -752,7 +752,7 @@
           <p class="lede" style="margin-top:16px">The practical things teachers and IT want to know before the first exam.</p>
         </div>
         <div class="faq-list">
-          <div class="qa" data-open="true"><button type="button" aria-expanded="true">Does it work on iPads and Chromebooks?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Yes. ExamNook runs in the browser on laptops, Chromebooks and iPads, so there's nothing to install. For locked-down exams on Windows, Mac or iPad, pupils can use Safe Exam Browser.</p></div></div></div>
+          <div class="qa" data-open="true"><button type="button" aria-expanded="true">Does it work on iPads and Chromebooks?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Yes. Andam runs in the browser on laptops, Chromebooks and iPads, so there's nothing to install. For locked-down exams on Windows, Mac or iPad, pupils can use Safe Exam Browser.</p></div></div></div>
           <div class="qa" data-open="false"><button type="button" aria-expanded="false">What happens if the Wi-Fi drops?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Pupils keep working. Their answers are kept on the device and sent as soon as the connection is back, and the teacher sees who is offline.</p></div></div></div>
           <div class="qa" data-open="false"><button type="button" aria-expanded="false">Can some pupils get extra time?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Yes. Extra time can be given to individual pupils, and their timer reflects it.</p></div></div></div>
           <div class="qa" data-open="false"><button type="button" aria-expanded="false">Can pupils use spell check or other apps?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></button><div class="ans"><div><p>Only if you allow it. Spell check, calculators and read aloud are switched on or off for each exam. In monitored mode or Safe Exam Browser, leaving the exam is noticed or blocked.</p></div></div></div>
@@ -769,21 +769,21 @@
     <div class="signin">
       <div>
         <span class="tag on-navy"><svg><use href="#i-spark"/></svg>Sign in</span>
-        <h2 id="signin-h">Ready for your exam?</h2>
-        <p class="lede">Pupils and teachers sign in on the same page, with the account their school gave them.</p>
+        <h2 id="signin-h"><span lang="ceb">Andam na ka?</span></h2>
+        <p class="lede">Are you ready? Pupils and teachers sign in on the same page, with the account their school gave them.</p>
       </div>
       <div class="signin-go">
-        <a class="btn" href="/login/">Sign in to ExamNook<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
+        <a class="btn" href="/login/">Sign in to Andam<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
         <p class="help">Forgot your password? On the sign-in page, choose "Email me a code".</p>
       </div>
     </div>
     <div class="foot-cols">
-      <span class="logo"><img src="{% static 'digitalexams/brand/examnook-mark-on-blue.svg' %}" alt="" width="32" height="32">ExamNook</span>
+      <span class="logo"><img src="{% static 'digitalexams/brand/andam-mark-on-blue.svg' %}" alt="" width="34" height="34">Andam</span>
       <nav aria-label="Footer">
         <a href="#screens">Screens</a><a href="#how">How it works</a><a href="#fair">Fair and secure</a><a href="#access">Accessibility</a><a href="#faq">FAQ</a>
         {% if contact_email %}<a href="mailto:{{ contact_email }}">Contact</a>{% endif %}
       </nav>
-      <span class="copy">© {% now "Y" %} ExamNook</span>
+      <span class="copy">© {% now "Y" %} Andam</span>
     </div>
   </div>
 </footer>

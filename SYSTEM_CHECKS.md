@@ -1,6 +1,6 @@
-# ExamNook — System Checks
+# Andam — System Checks
 
-A living checklist for verifying that ExamNook (formerly ExamHub) is healthy before (and after) every deployment or significant change.
+A living checklist for verifying that Andam (formerly ExamHub, then ExamNook) is healthy before (and after) every deployment or significant change.
 Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through it.
 
 > **Version coverage:** migrations `0001` – `0031` · v0.22.0 + Unreleased (accessibility menu, read aloud, offline protection, character count, spell check on/off, audio items, PDF export, year groups & subjects, exam privacy, teacher marking (comment-only), submission notices, exam resources, zoom, new invite email, URL-access hardening, graphing calculator, collapsible rosters, dashboard tabs & navigation, breadcrumbs, quieter notifications, flag for review, pupil task sections)
@@ -602,13 +602,15 @@ python manage.py check --deploy
 | 29.18 | Screens: Pupils/Teachers switch, each feature changes the screenshot, "Full size" opens it and Esc closes it | Works | |
 | 29.19 | Fair and secure: "Switch to another tab" pauses the sample exam; a wrong code is refused, "lantern" carries on | Works | |
 | 29.20 | How it works: each card shows its screen; clicking the screen opens it full size | Works | |
-| 29.21 | `/login/` on a laptop: blue panel left, form right; on a phone: blue header, form below; "ExamNook home" goes back to the landing page | Looks right | |
+| 29.21 | `/login/` on a laptop: blue panel left, form right; on a phone: blue header, form below; "Andam home" goes back to the landing page | Looks right | |
 | 29.22 | Wrong password shows the new message and keeps the username filled in | Clear | |
 | 29.23 | First sign-in with a temporary password shows the restyled "Choose your password" page | Works | |
-| 29.13 | Browser tab shows the ExamNook icon on the landing page, sign-in page and inside the portal | Icon shows | |
-| 29.14 | No page, email, download or SEB message still says "ExamHub" | Name is ExamNook | |
-| 29.15 | Invite email: subject "Your ExamNook account at <school>", sender "ExamNook" | Correct | |
+| 29.13 | Browser tab shows the Andam pen-nib icon on the landing page, sign-in page and inside the portal | Icon shows | |
+| 29.14 | No page, email, download or SEB message still says "ExamHub" or "ExamNook" | Name is Andam | |
+| 29.15 | Invite email: subject "Your Andam account at <school>", sender "Andam" | Correct | |
 | 29.16 | Lockdown exams still open in Safe Exam Browser after the rename (config key unchanged) | Opens | |
+| 29.24 | Landing hero says "Ready for every exam."; sign-in panel says "Andam na ka?" on laptop and phone | Shows | |
+| 29.25 | Downloads are named `andam-lockdown.seb`, `andam-exam.seb`, `andam-…xlsx`, `andam-…csv` | Correct | |
 
 ---
 

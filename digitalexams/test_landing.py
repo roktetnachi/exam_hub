@@ -13,9 +13,9 @@ class LandingPageTests(TestCase):
         r = self.client.get('/')
         self.assertEqual(r.status_code, 200)
         html = r.content.decode()
-        self.assertIn('aria-label="Exams on screen that still feel like paper."', html)
+        self.assertIn('aria-label="Ready for every exam."', html)
         self.assertIn('href="/login/"', html)                     # Sign in goes straight to the one sign-in page
-        self.assertNotIn('Singapore School Cebu', html)           # which schools use ExamNook stays private
+        self.assertNotIn('Singapore School Cebu', html)           # which schools use Andam stays private
         self.assertNotIn('/s/ssc/', html)
         self.assertNotIn('Closed Academy', html)
         self.assertIn('/static/digitalexams/landing/inter-latin-opsz-normal.woff2', html)
@@ -49,25 +49,31 @@ class LandingPageTests(TestCase):
                      'shots/export-summary.webp', 'shots/export-paper.webp',
                      'shots/step-build.webp', 'shots/step-deliver.webp', 'shots/step-monitor.webp', 'shots/step-mark.webp']:
             self.assertIsNotNone(finders.find('digitalexams/landing/' + name), name)
-        for name in ['examnook-icon.svg', 'examnook-mark.svg', 'examnook-mark-on-blue.svg', 'apple-touch-icon.png']:
+        for name in ['andam-icon.svg', 'andam-favicon.svg', 'andam-mark.svg', 'andam-mark-on-blue.svg',
+                     'andam-apple-touch-icon.png', 'andam-icon-512.png', 'andam-logo.png', 'andam-logo-on-blue.png']:
             self.assertIsNotNone(finders.find('digitalexams/brand/' + name), name)
 
-    def test_page_is_branded_examnook(self):
+    def test_page_is_branded_andam(self):
         html = self.client.get('/').content.decode()
-        self.assertIn('<title>ExamNook', html)
+        self.assertIn('<title>Andam', html)
         self.assertNotIn('ExamHub', html)
-        self.assertIn('/static/digitalexams/brand/examnook-icon.svg', html)   # favicon
+        self.assertNotIn('ExamNook', html)
+        self.assertIn('Ready for every exam.', html)
+        self.assertIn('/static/digitalexams/brand/andam-apple-touch-icon.png', html)
+        self.assertIn('/static/digitalexams/brand/andam-favicon.svg', html)   # favicon
         for shot in ('notepad', 'resources', 'calculator'):
             self.assertIn(f'/static/digitalexams/landing/shots/{shot}.webp', html)
 
-    def test_sign_in_page_has_the_examnook_favicon(self):
+    def test_sign_in_page_has_the_andam_favicon(self):
         html = self.client.get('/s/ssc/login/').content.decode()
-        self.assertIn('/static/digitalexams/brand/examnook-icon.svg', html)
+        self.assertIn('/static/digitalexams/brand/andam-favicon.svg', html)
 
     def test_universal_sign_in_page_is_branded_and_names_no_school(self):
         html = self.client.get('/login/').content.decode()
-        self.assertIn('/static/digitalexams/brand/examnook-mark-on-blue.svg', html)
+        self.assertIn('/static/digitalexams/brand/andam-mark-on-blue.svg', html)
         self.assertIn('Use the account your school gave you.', html)
+        self.assertIn('Andam na ka?', html)
+        self.assertNotIn('ExamNook', html)
         self.assertNotIn('Singapore School Cebu', html)
         self.assertIn('href="/"', html)                           # a way back to the landing page
 

@@ -963,7 +963,7 @@ def build_submission_pdf(ctx, recipient):
                 writer.add_page(page)
     _add_footers(writer, f'{recipient.pupil_name} · {a.title}')
     writer.add_metadata({'/Title': f'{a.title} — {recipient.pupil_name}', '/Author': a.teacher_name or '',
-                         '/Creator': 'ExamNook'})
+                         '/Creator': 'Andam'})
     out = io.BytesIO()
     writer.write(out)
     return out.getvalue()
@@ -1113,7 +1113,7 @@ def export_assignment(request, assignment_id):
         for r in wanted:
             for page in PdfReader(io.BytesIO(build_submission_pdf(ctx, r))).pages:
                 writer.add_page(page)
-        writer.add_metadata({'/Title': assignment.title, '/Creator': 'ExamNook'})
+        writer.add_metadata({'/Title': assignment.title, '/Creator': 'Andam'})
         out = io.BytesIO()
         writer.write(out)
         data, filename, ctype = out.getvalue(), f'{title} - all pupils.pdf', 'application/pdf'

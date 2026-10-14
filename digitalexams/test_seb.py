@@ -25,7 +25,7 @@ class SebLockdownTests(TestCase):
                                               delivery_mode='lockdown', opens_at=timezone.now())
         AssignmentItem.objects.create(assignment=self.exam, item_type='long_answer', label='Q1', prompt='Why?')
         self.rec = Recipient.objects.create(assignment=self.exam, pupil_name='Pia', pupil_email='p@x.edu')
-        self.key = seb_config_key('testserver', 'http')   # ExamNook's own lockdown config, as downloaded here
+        self.key = seb_config_key('testserver', 'http')   # Andam's own lockdown config, as downloaded here
 
     def test_header_hash_is_checked_against_the_full_school_url(self):
         """The bug: the school middleware strips /s/ssc from the path, so a hash SEB built from the
