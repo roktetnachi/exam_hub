@@ -1,0 +1,465 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starter guide — Andam</title>
+<meta name="description" content="How to get started with Andam: a starter guide for school admins, teachers and pupils.">
+<meta name="theme-color" content="#1c3a6e">
+<link rel="icon" type="image/svg+xml" href="{% static 'digitalexams/brand/andam-favicon.svg' %}">
+<link rel="apple-touch-icon" href="{% static 'digitalexams/brand/andam-apple-touch-icon.png' %}">
+<link rel="preload" href="{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Starter guide. Same look as the landing page; every font is served by Andam itself. */
+  @font-face{font-family:'Outfit Var';font-weight:100 900;font-style:normal;font-display:swap;src:url("{% static 'digitalexams/landing/outfit-latin-wght-normal.woff2' %}") format('woff2');}
+  @font-face{font-family:'Inter Var';font-weight:100 900;font-style:normal;font-display:swap;src:url("{% static 'digitalexams/landing/inter-latin-opsz-normal.woff2' %}") format('woff2');}
+  :root{
+    --navy:#1c3a6e; --navy-deep:#122a52; --navy-mid:#2c5291; --navy-soft:#dce4f1;
+    --ash:#b2554b; --ash-deep:#954238; --ash-soft:#f3dcd6;
+    --egg:#fbf8f1; --egg-deep:#f2ede1; --egg-line:#e6e1d4;
+    --mist:#f4f5f0; --mist-line:#e2e3dc;
+    --ink:#1d2433; --text:#4a5263; --soft:#687083;
+    --display:'Outfit Var','Inter Var',system-ui,sans-serif;
+    --font:'Inter Var',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    --wrap:1120px; --r:24px;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+  body{margin:0;background:var(--mist);color:var(--ink);font-family:var(--font);font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  a{color:var(--navy);}
+  button{font:inherit;cursor:pointer;}
+  :focus-visible{outline:3px solid var(--ash);outline-offset:3px;border-radius:8px;}
+  h1,h2,h3,h4{margin:0;font-family:var(--display);font-weight:500;letter-spacing:-.025em;color:var(--ink);}
+  p{margin:0;}
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px;}
+  .skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;z-index:100;}
+  .skip:focus{left:12px;}
+  section{scroll-margin-top:84px;}
+
+  /* header */
+  .top{position:sticky;top:0;z-index:50;background:rgba(244,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--mist-line);}
+  .top .wrap{display:flex;align-items:center;gap:18px;height:66px;}
+  .logo{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:600;font-size:19px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--navy);flex-shrink:0;}
+  .logo img{width:30px;height:30px;}
+  .logo small{font:500 13px/1 var(--font);letter-spacing:0;text-transform:none;color:var(--soft);padding-left:10px;border-left:1px solid var(--mist-line);margin-left:2px;}
+  .nav{display:flex;gap:2px;margin:0 auto;}
+  .nav a{padding:8px 13px;border-radius:999px;font-size:14.5px;font-weight:500;color:var(--text);text-decoration:none;}
+  .nav a:hover{background:var(--egg-deep);color:var(--navy);}
+  .pill{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 18px;border-radius:999px;border:0;background:var(--ash);color:#fff;font:600 14.5px/1 var(--font);text-decoration:none;white-space:nowrap;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2);}
+  .pill:hover{background:var(--ash-deep);}
+  .pill.ghost{background:transparent;color:var(--navy);border:1.5px solid var(--navy-soft);box-shadow:none;}
+  .pill.ghost:hover{background:var(--egg);}
+  .pill svg{width:16px;height:16px;}
+  @media (max-width:900px){ .nav{display:none;} .top .pill{margin-left:auto;} }
+  @media (max-width:520px){ .logo small{display:none;} }
+
+  /* hero */
+  .hero{margin:14px;border-radius:var(--r);color:var(--egg);padding:64px 0 58px;position:relative;overflow:hidden;
+    background:repeating-linear-gradient(180deg,transparent 0,transparent 39px,rgba(247,241,228,.07) 39px,rgba(247,241,228,.07) 40px),
+               radial-gradient(120% 90% at 85% 10%,var(--navy-mid) 0%,var(--navy) 45%,var(--navy-deep) 100%);}
+  .tag{display:inline-flex;align-items:center;gap:8px;padding:5px 13px;border-radius:999px;font-size:14px;font-weight:500;background:rgba(247,241,228,.1);border:1px solid rgba(247,241,228,.28);color:var(--egg);}
+  .hero h1{color:var(--egg);font-size:clamp(36px,5vw,60px);line-height:1.02;letter-spacing:-.04em;margin-top:18px;max-width:16ch;}
+  .hero .lede{font-size:18px;color:rgba(247,241,228,.85);margin-top:16px;max-width:60ch;}
+  .who-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:34px;max-width:860px;}
+  .who-card{display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px;border-radius:18px;border:1px solid rgba(247,241,228,.25);background:rgba(247,241,228,.08);color:var(--egg);text-decoration:none;transition:background .2s,border-color .2s;}
+  .who-card:hover{background:rgba(247,241,228,.16);border-color:rgba(247,241,228,.5);}
+  .who-card .ic{width:44px;height:44px;border-radius:12px;background:var(--egg);color:var(--navy);display:grid;place-items:center;flex-shrink:0;}
+  .who-card .ic svg{width:22px;height:22px;}
+  .who-card b{display:block;font:600 17px/1.2 var(--display);letter-spacing:-.01em;}
+  .who-card span{display:block;font-size:13.5px;color:rgba(247,241,228,.75);line-height:1.35;margin-top:3px;}
+  @media (max-width:760px){ .who-grid{grid-template-columns:1fr;} .hero{padding:44px 0 40px;margin:8px;} }
+
+  /* sections */
+  .block{padding:64px 0 8px;}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ash);}
+  .block h2{font-size:clamp(28px,3.4vw,40px);line-height:1.08;margin-top:8px;}
+  .block .intro{color:var(--text);margin-top:10px;max-width:62ch;font-size:17px;}
+  .card{background:var(--egg);border:1px solid var(--egg-line);border-radius:20px;padding:22px 24px;}
+
+  /* numbered steps */
+  .steps{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:12px;counter-reset:step;}
+  .steps li{counter-increment:step;display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;align-items:start;background:var(--egg);border:1px solid var(--egg-line);border-radius:18px;padding:18px 20px;}
+  .steps li::before{content:counter(step);width:44px;height:44px;border-radius:50%;background:var(--navy);color:var(--egg);display:grid;place-items:center;font:600 18px/1 var(--display);}
+  .steps h3{font-size:18.5px;letter-spacing:-.015em;}
+  .steps p{color:var(--text);margin-top:4px;font-size:15.5px;}
+  .where{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 10px;border-radius:999px;background:var(--navy-soft);color:var(--navy);font-size:12.5px;font-weight:600;}
+  .where svg{width:13px;height:13px;}
+
+  /* feature grid */
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:22px;}
+  .grid.two{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .feat{background:#fff;border:1px solid var(--mist-line);border-radius:18px;padding:18px 20px;}
+  .feat h4{font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;}
+  .feat h4 .dot{width:30px;height:30px;border-radius:9px;background:var(--ash-soft);color:var(--ash-deep);display:grid;place-items:center;flex-shrink:0;}
+  .feat h4 .dot svg{width:16px;height:16px;}
+  .feat p{color:var(--text);font-size:15px;margin-top:8px;}
+  @media (max-width:900px){ .grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:620px){ .grid,.grid.two{grid-template-columns:1fr;} }
+
+  /* role tabs */
+  .tabs{display:flex;gap:6px;padding:5px;background:var(--egg-deep);border-radius:999px;width:max-content;max-width:100%;margin-top:24px;overflow-x:auto;position:sticky;top:76px;z-index:20;box-shadow:0 8px 20px -14px rgba(18,42,82,.4);}
+  .tabs button{border:0;background:transparent;color:var(--text);border-radius:999px;padding:10px 20px;font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+  .tabs button svg{width:17px;height:17px;}
+  .tabs button[aria-selected="true"]{background:var(--navy);color:var(--egg);}
+  .tabs button:not([aria-selected="true"]):hover{background:var(--egg);color:var(--navy);}
+  .panel{padding-top:8px;scroll-margin-top:150px;}
+  @media (max-width:620px){ .tabs{width:100%;top:72px;} .tabs button{flex:1;justify-content:center;padding:10px 6px;font-size:14px;} .tabs button svg{display:none;} }
+  .panel[hidden]{display:none;}
+  .panel h3.sub{font-size:22px;margin-top:40px;}
+  .panel h3.sub:first-child{margin-top:28px;}
+  .panel .note{color:var(--text);margin-top:6px;font-size:15.5px;max-width:66ch;}
+
+  /* table */
+  .table-wrap{overflow-x:auto;margin-top:16px;border-radius:16px;border:1px solid var(--mist-line);background:#fff;}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px;}
+  th,td{text-align:left;vertical-align:top;padding:13px 16px;border-bottom:1px solid var(--mist-line);}
+  th{font:600 13px/1.3 var(--font);text-transform:uppercase;letter-spacing:.05em;color:var(--soft);background:var(--egg);}
+  tr:last-child td{border-bottom:0;}
+  td b{color:var(--ink);font-weight:600;}
+  td{color:var(--text);}
+
+  /* callouts */
+  .callout{display:flex;gap:14px;align-items:flex-start;margin-top:18px;padding:16px 18px;border-radius:16px;background:var(--navy-soft);color:var(--navy-deep);font-size:15.5px;}
+  .callout.warn{background:var(--ash-soft);color:#6e2f27;}
+  .callout svg{width:20px;height:20px;flex-shrink:0;margin-top:2px;}
+  .callout b{font-weight:650;}
+
+  /* checklist */
+  .check{list-style:none;padding:0;margin:18px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;}
+  .check li{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:15.5px;}
+  .check svg{width:20px;height:20px;color:var(--ash);flex-shrink:0;margin-top:2px;}
+  @media (max-width:700px){ .check{grid-template-columns:1fr;} }
+
+  /* FAQ */
+  .faq{margin-top:20px;display:grid;gap:10px;}
+  .faq details{background:#fff;border:1px solid var(--mist-line);border-radius:16px;padding:0 20px;}
+  .faq summary{cursor:pointer;list-style:none;padding:16px 0;font:500 17px/1.35 var(--display);letter-spacing:-.01em;display:flex;justify-content:space-between;gap:16px;align-items:center;}
+  .faq summary::-webkit-details-marker{display:none;}
+  .faq summary::after{content:"+";font:400 24px/1 var(--font);color:var(--ash);transition:transform .2s;}
+  .faq details[open] summary::after{transform:rotate(45deg);}
+  .faq details p{color:var(--text);padding:0 0 16px;font-size:15.5px;}
+  .faq .who{font:600 11.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-left:auto;padding-left:8px;}
+
+  /* help band */
+  .help-band{margin:72px 14px 14px;border-radius:var(--r);background:var(--navy);color:var(--egg);padding:44px 0;}
+  .help-band .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .help-band h2{color:var(--egg);font-size:clamp(26px,3vw,36px);}
+  .help-band p{color:rgba(247,241,228,.8);margin-top:6px;}
+  .help-band .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .help-band .pill.ghost{color:var(--egg);border-color:rgba(247,241,228,.45);}
+  .help-band .pill.ghost:hover{background:rgba(247,241,228,.1);}
+  .foot{padding:22px 0 90px;color:var(--soft);font-size:14px;}
+  .foot .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+
+  kbd{font:600 12.5px/1 ui-monospace,Menlo,Consolas,monospace;background:#fff;border:1px solid var(--mist-line);border-bottom-width:2px;border-radius:6px;padding:2px 6px;color:var(--ink);}
+
+  @media print{
+    .top,.tabs,.help-band .row,.sc-root,.who-grid,.skip{display:none !important;}
+    .panel[hidden]{display:block !important;}
+    .panel{break-before:page;}
+    .hero{background:none;color:var(--ink);margin:0;padding:0 0 12px;}
+    .hero h1,.hero .lede,.tag{color:var(--ink) !important;}
+    .help-band{background:none;color:var(--ink);margin:24px 0 0;}
+    .help-band h2,.help-band p{color:var(--ink);}
+    .faq details{border:0;padding:0;}
+    .faq details:not([open]) > p{display:block;}
+    body{background:#fff;font-size:12pt;}
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="g-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="g-board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4M7 9h6M7 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="g-pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="g-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9.5" r="2.5" fill="currentColor"/></symbol>
+  <symbol id="g-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".14"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="g-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="g-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4M12 17v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="g-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="g-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.4 3.4 0 0 1 0 6.4M18.5 14.8c1.7.7 2.8 2.4 3 5.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="g-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="g-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="g-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v6h6M8 13h8M8 17h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="g-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="g-type" viewBox="0 0 24 24"><path d="M4 7V5h16v2M9 19h6M12 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="g-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="{% if home_url %}{{ home_url }}{% else %}/{% endif %}"><img src="{% static 'digitalexams/brand/andam-mark.svg' %}" alt="" width="30" height="30">Andam<small>Starter guide</small></a>
+    <nav class="nav" aria-label="Guide sections">
+      <a href="#schools">For schools</a>
+      <a href="#admin" data-role-link="admin">Admins</a>
+      <a href="#teacher" data-role-link="teacher">Teachers</a>
+      <a href="#pupil" data-role-link="pupil">Pupils</a>
+      <a href="#exam-day">Exam day</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    {% if home_url %}
+      <a class="pill" href="{{ home_url }}">Back to Andam<svg><use href="#g-arrow"/></svg></a>
+    {% else %}
+      <a class="pill" href="/login/">Sign in<svg><use href="#g-arrow"/></svg></a>
+    {% endif %}
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <div class="wrap">
+      <span class="tag">Starter guide</span>
+      <h1>Get your school andam — ready.</h1>
+      <p class="lede">Everything you need for your first week with Andam: what to set up, what each screen does, and what to tell pupils before exam day. Pick who you are to jump to your part.</p>
+      <div class="who-grid">
+        <a class="who-card" href="#admin" data-role-link="admin"><span class="ic"><svg><use href="#g-shield"/></svg></span><span><b>School admin</b><span>Set up people, year groups and subjects</span></span></a>
+        <a class="who-card" href="#teacher" data-role-link="teacher"><span class="ic"><svg><use href="#g-board"/></svg></span><span><b>Teacher</b><span>Build, run and mark exams</span></span></a>
+        <a class="who-card" href="#pupil" data-role-link="pupil"><span class="ic"><svg><use href="#g-pencil"/></svg></span><span><b>Pupil</b><span>Sign in, sit an exam, see your grade</span></span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== For schools ===================== -->
+  <section class="block" id="schools" aria-labelledby="schools-h">
+    <div class="wrap">
+      <p class="eyebrow">For schools thinking about Andam</p>
+      <h2 id="schools-h">From first message to first exam</h2>
+      <p class="intro">Andam is licensed per school, per year. Each school gets its own private space: your pupils, staff and exams are never visible to another school.</p>
+      <ol class="steps">
+        <li><div><h3>Talk to us</h3><p>Tell us your school's name, roughly how many pupils will use Andam and when you'd like to start. Use the <b>Help</b> button on this page{% if contact_email %} or email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}.</p></div></li>
+        <li><div><h3>We set up your school</h3><p>We create your school's space with your name, logo, colour and time zone, and the <b>main admin</b> account. The main admin gets an email with a username and a temporary password.</p></div></li>
+        <li><div><h3>Your admin adds everyone</h3><p>Staff and pupils are added one by one or in bulk from an Excel template, then grouped into year groups and subjects. Andam emails each person their sign-in. The <a href="#admin" data-role-link="admin">admin guide</a> walks through it.</p></div></li>
+        <li><div><h3>Run a practice exam</h3><p>Before a real exam, give pupils a short practice paper so they meet the tools (highlighter, answer box, calculator, submit) when nothing is at stake.</p></div></li>
+      </ol>
+      <div class="grid">
+        <div class="feat"><h4><span class="dot"><svg><use href="#g-file"/></svg></span>Many question types</h4><p>PDF papers pupils highlight and write about, long answers, multiple choice, true/false, fill in the blank, tables, images, video and listening (audio).</p></div>
+        <div class="feat"><h4><span class="dot"><svg><use href="#g-shield"/></svg></span>Fair and secure</h4><p>Leaving a secure exam locks it until the teacher's resume code is typed. Lockdown exams run in Safe Exam Browser.</p></div>
+        <div class="feat"><h4><span class="dot"><svg><use href="#g-pencil"/></svg></span>Marking like pen on paper</h4><p>Teachers select words to comment, drop pins on PDF pages, score each item and release grades when ready.</p></div>
+        <div class="feat"><h4><span class="dot"><svg><use href="#g-type"/></svg></span>Accessibility built in</h4><p>Pupils can change text size, font (easy-read and dyslexia), spacing and colours, and have text read aloud.</p></div>
+        <div class="feat"><h4><span class="dot"><svg><use href="#g-clock"/></svg></span>Extra time per pupil</h4><p>Give an individual pupil extra minutes or early access without changing the exam for everyone else.</p></div>
+        <div class="feat"><h4><span class="dot"><svg><use href="#g-eye"/></svg></span>Works on laptops and iPads</h4><p>Pupils use a normal browser. Work saves every few seconds and is kept on the device if the internet drops.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Role guides ===================== -->
+  <section class="block" id="roles" aria-labelledby="roles-h">
+    <div class="wrap">
+      <p class="eyebrow">Guides by role</p>
+      <h2 id="roles-h">Your first steps</h2>
+      <p class="intro">Each guide starts with the steps to do first, then what else you can do. You can replay the in-app tour any time from your account menu.</p>
+
+      <div class="tabs" role="tablist" aria-label="Choose a guide">
+        <button type="button" role="tab" id="tab-admin" aria-controls="admin" aria-selected="false" data-role="admin"><svg><use href="#g-shield"/></svg>School admin</button>
+        <button type="button" role="tab" id="tab-teacher" aria-controls="teacher" aria-selected="false" data-role="teacher"><svg><use href="#g-board"/></svg>Teacher</button>
+        <button type="button" role="tab" id="tab-pupil" aria-controls="pupil" aria-selected="false" data-role="pupil"><svg><use href="#g-pencil"/></svg>Pupil</button>
+      </div>
+
+      <!-- ---------- Admin ---------- -->
+      <div class="panel" role="tabpanel" id="admin" aria-labelledby="tab-admin" hidden>
+        <h3 class="sub">Your first hour as an admin</h3>
+        <p class="note">Work through these in order. Pupils can only be put into year groups and subjects once their accounts exist.</p>
+        <ol class="steps">
+          <li><div><h3>Sign in and choose your password</h3><p>Your invite email has your username and a temporary password. The first time you sign in, Andam asks you to choose your own.</p><span class="where"><svg><use href="#g-pin"/></svg>Sign in page</span></div></li>
+          <li><div><h3>Add your staff</h3><p>Add one person at a time, or use <b>Bulk add teachers</b>: download the Excel template, fill in first name, last name, email, role (<b>Teacher</b> or <b>Admin</b>) and subjects, then upload it. You see a preview before anything is saved.</p><span class="where"><svg><use href="#g-pin"/></svg>Roles → Staff</span></div></li>
+          <li><div><h3>Add your pupils</h3><p>Add one pupil, or use <b>Bulk add pupils</b> with the template. The year group and subject columns are optional; you can fill those in later.</p><span class="where"><svg><use href="#g-pin"/></svg>Roles → Pupils</span></div></li>
+          <li><div><h3>Make year groups</h3><p>Create each year group, choose its teachers and enrol its pupils, one by one or with <b>Bulk add pupils to year groups</b>.</p><span class="where"><svg><use href="#g-pin"/></svg>Year groups</span></div></li>
+          <li><div><h3>Make subjects</h3><p>Create subjects, pick their teachers and add pupils from any year group (tick a whole year group to add everyone in it). <b>Teachers can only set exams for pupils in the subjects they teach</b>, so this step matters.</p><span class="where"><svg><use href="#g-pin"/></svg>Subjects</span></div></li>
+          <li><div><h3>Send the invites</h3><p>Each person shows as <b>Not invited</b>, <b>Invited</b> or <b>Active</b>. Send invites to one person, a selection or everyone not yet invited. If email isn't getting through, download the logins as a CSV and hand them out.</p><span class="where"><svg><use href="#g-pin"/></svg>Roles → Staff / Pupils</span></div></li>
+          <li><div><h3>Check it as a pupil</h3><p>Use <b>Pupil preview</b> to see exactly what pupils will see, read-only. It's a quick way to check an exam before it opens.</p><span class="where"><svg><use href="#g-pin"/></svg>Exams → Pupil preview</span></div></li>
+        </ol>
+
+        <h3 class="sub">Admin or teacher?</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Role</th><th>Can do</th><th>Sees</th></tr></thead>
+          <tbody>
+            <tr><td><b>Main admin</b></td><td>Everything an admin can, and decides who else is an admin.</td><td>Every exam in the school, Activity, Roles</td></tr>
+            <tr><td><b>Admin</b></td><td>Adds people, sets up year groups and subjects, and creates and runs exams for any pupil.</td><td>Every exam in the school, Activity, Roles</td></tr>
+            <tr><td><b>Teacher</b></td><td>Creates and runs exams for pupils in the subjects they teach.</td><td>Only their own exams and subjects</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 class="sub">What else admins can do</h3>
+        <div class="grid">
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-users"/></svg></span>Edit or remove people</h4><p>Change a name or email from Roles → Edit. Delete pupils or staff one at a time or in bulk (bulk deletes ask you to type DELETE). Submitted work stays on the exams.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-file"/></svg></span>Pre-filled templates</h4><p>Choose <b>Template with current staff / pupils</b> to download everyone already in the school, edit it and upload it again. Rows you don't change stay the same.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-clock"/></svg></span>Activity log</h4><p>A timeline of exams created, submissions, grading and year group or subject changes. Filter it by year group or type.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-eye"/></svg></span>Every exam in the school</h4><p>Admins can open, monitor and grade any teacher's exam, for cover lessons or moderation.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-shield"/></svg></span>Safe Exam Browser</h4><p>For Lockdown exams, school devices need Safe Exam Browser installed. Each Lockdown exam makes its own launch file; pupils just press <b>Open in Safe Exam Browser</b>.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-chat"/></svg></span>Forgotten passwords</h4><p>No reset needed from you: anyone can choose <b>Email me a code</b> on the sign-in page, sign in with the code and set a new password.</p></div>
+        </div>
+        <div class="callout"><svg><use href="#g-info"/></svg><div><b>Tip:</b> every person needs an email address. Pupils are matched to exams by email, and invites and sign-in codes go there.</div></div>
+      </div>
+
+      <!-- ---------- Teacher ---------- -->
+      <div class="panel" role="tabpanel" id="teacher" aria-labelledby="tab-teacher" hidden>
+        <h3 class="sub">Your first exam, step by step</h3>
+        <ol class="steps">
+          <li><div><h3>Check your subjects</h3><p>These are the pupils you can set exams for. If a subject or a pupil is missing, ask your school admin to add it.</p><span class="where"><svg><use href="#g-pin"/></svg>My subjects</span></div></li>
+          <li><div><h3>Press + New exam and add content</h3><p>Add items: a PDF paper pupils can highlight and write about, long answer, multiple choice (one or several answers), true/false, fill in the blank, table, image, video or audio. Give each item its points, group items into sections, and drag to reorder. Add <b>Resources for pupils</b> such as a formula sheet, map or source (PDF, image or text).</p><span class="where"><svg><use href="#g-pin"/></svg>Exams → + New exam → Content</span></div></li>
+          <li><div><h3>Choose how it's delivered</h3><p>Set when pupils can see it (visible now, at a set time, or hidden until you open it), when it ends (automatically at the end time or when you close it) and the delivery mode (see below). Then pick the tools pupils get: scientific calculator, graphing calculator, spell check, read aloud and a join code.</p><span class="where"><svg><use href="#g-pin"/></svg>+ New exam → Delivery</span></div></li>
+          <li><div><h3>Assign it</h3><p>Tick a whole subject, or open it and pick individual pupils. Search finds a pupil quickly. Only you and your school's admins can see your exams.</p><span class="where"><svg><use href="#g-pin"/></svg>+ New exam → Assign to</span></div></li>
+          <li><div><h3>Watch it live</h3><p>The <b>Monitor</b> tab shows who has started, handed in or been locked out. Message one pupil or all of them, give extra time or early access, unlock a pupil, or close the exam early.</p><span class="where"><svg><use href="#g-pin"/></svg>Open the exam → Monitor</span></div></li>
+          <li><div><h3>Mark and release</h3><p>In <b>Grade</b>, select words in an answer to comment, drop comment pins on PDF pages, and give each item a score and feedback. <b>Next ungraded →</b> (or <kbd>N</kbd>) moves you on. Pupils see nothing until you press <b>Release grade</b> for one pupil or the whole exam.</p><span class="where"><svg><use href="#g-pin"/></svg>Open the exam → Grade</span></div></li>
+        </ol>
+
+        <h3 class="sub">Delivery modes</h3>
+        <p class="note">Choose the mode to match the stakes. You can see the mode on the exam's Deliver tab.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Mode</th><th>What happens</th><th>Good for</th></tr></thead>
+          <tbody>
+            <tr><td><b>Any browser</b></td><td>Pupils open the exam in their normal browser. Nothing is locked.</td><td>Homework, practice papers, quizzes</td></tr>
+            <tr><td><b>Any browser with security</b></td><td>Fullscreen. If a pupil switches tab or app, opens a new window or leaves fullscreen, the exam locks until they type a one-word <b>resume code</b> shown to you on Monitor (or you unlock them). Right-click and copying are turned off.</td><td>Class tests on pupils' own devices</td></tr>
+            <tr><td><b>Lockdown app</b></td><td>The exam only opens in Safe Exam Browser, which stays on until the pupil hands in. Its 6-digit <b>quit code</b> is on your Monitor tab (hidden until you press Show).</td><td>Mock and real exams on school devices</td></tr>
+            <tr><td><b>Paper</b></td><td>For a paper-based sitting. The exam is recorded in Andam, but pupils don't open it there.</td><td>Handwritten exams</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 class="sub">Handy while it's running</h3>
+        <div class="grid">
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-chat"/></svg></span>Messages</h4><p>Pupils can press <b>Message teacher</b> during an exam. You get a small pop-up and an item in the bell. Use <b>Message all pupils</b> for corrections.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-clock"/></svg></span>Extra time</h4><p>On Monitor, press <b>Extra time</b> on a pupil's row to give them extra minutes or early access, on top of the exam's own times.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-alert"/></svg></span>Lockouts</h4><p>A locked-out pupil pops up for you with their resume code. Read it out, or press <b>Unlock now</b>.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-file"/></svg></span>Change things mid-exam</h4><p>From <b>Settings</b> you can add resources (pupils get them straight away), change the end time or who it's assigned to.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-eye"/></svg></span>Automatic hand-in</h4><p>When an exam closes, every pupil still working hands in automatically from their last save.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-star"/></svg></span>Export to PDF</h4><p>From Grade, export one pupil or the whole class as PDFs, with or without scores, feedback and the exam's pages.</p></div>
+        </div>
+        <div class="callout"><svg><use href="#g-info"/></svg><div><b>Tip:</b> before your first real exam, set a five-minute practice exam in <b>Any browser</b> mode so pupils try highlighting, typing, the calculator and Submit.</div></div>
+      </div>
+
+      <!-- ---------- Pupil ---------- -->
+      <div class="panel" role="tabpanel" id="pupil" aria-labelledby="tab-pupil" hidden>
+        <h3 class="sub">Sitting your first exam</h3>
+        <ol class="steps">
+          <li><div><h3>Sign in</h3><p>Your school emails you a username and a temporary password. The first time you sign in you choose your own password. Forgot it? Choose <b>Email me a code</b> on the sign-in page.</p><span class="where"><svg><use href="#g-pin"/></svg>Sign in page</span></div></li>
+          <li><div><h3>Find your exam</h3><p>Your tasks are in three lists: <b>To do</b>, <b>Submitted</b> and <b>Graded</b>. The soonest deadline is at the top; one ending within a day shows in amber.</p><span class="where"><svg><use href="#g-pin"/></svg>My tasks</span></div></li>
+          <li><div><h3>Read the instructions</h3><p>Opening an exam shows its instructions: how many questions, the points, the end time and which tools you can use. <b>The clock only starts when you press Start exam.</b></p></div></li>
+          <li><div><h3>Answer</h3><p>Highlight text on a PDF in different colours and add notes. Write in the answer box (bold, lists, tables, word count). Use the <b>Notepad</b>, <b>Resources</b> and the calculator if your teacher allowed them. Move between questions with ‹ › or open the question grid. Press <b>⚑ Flag</b> to mark a question to come back to.</p></div></li>
+          <li><div><h3>Don't worry about saving</h3><p>Your work saves by itself every few seconds. If the internet drops, keep working: your answers are kept on your device and saved again when you're back online. Don't close the page while it says you're offline.</p></div></li>
+          <li><div><h3>Submit</h3><p>Press <b>Submit</b>. Andam lists any questions left blank or flagged so you can jump back to them. If the time runs out, your work is handed in for you.</p></div></li>
+          <li><div><h3>See your grade</h3><p>When your teacher releases it, the bell shows it and the exam gets a <b>New grade</b> label. Open it to see your score, feedback and your teacher's comments on your work.</p></div></li>
+        </ol>
+
+        <h3 class="sub">Exam rules to know</h3>
+        <div class="callout warn"><svg><use href="#g-alert"/></svg><div><b>Secure exams lock if you leave them.</b> Switching tab or app, opening a new window or leaving fullscreen pauses the exam. Your teacher will read out a resume code; your work is safe.</div></div>
+        <div class="callout"><svg><use href="#g-shield"/></svg><div><b>Lockdown exams open in Safe Exam Browser.</b> Press <b>Open in Safe Exam Browser</b> on the exam. It stays open until you submit, and closes by itself afterwards.</div></div>
+        <div class="callout"><svg><use href="#g-chat"/></svg><div><b>Stuck during an exam?</b> Press <b>Message teacher</b>. The Help chat is turned off while you're in an exam.</div></div>
+
+        <h3 class="sub">Make it easier to read</h3>
+        <p class="note">The <b>Accessibility</b> menu in the top bar is always there, even during an exam.</p>
+        <div class="grid">
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-type"/></svg></span>Text size and font</h4><p>Make text up to 175% bigger, and choose Standard, Easy-read or Dyslexia-friendly fonts.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-eye"/></svg></span>Spacing and colours</h4><p>Wider line and letter spacing, Night mode, high contrast or a coloured overlay.</p></div>
+          <div class="feat"><h4><span class="dot"><svg><use href="#g-chat"/></svg></span>Read aloud</h4><p>Select words and press <b>Read aloud</b>, or press it with nothing selected to hear the whole question (if your teacher allows it).</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Exam day ===================== -->
+  <section class="block" id="exam-day" aria-labelledby="day-h">
+    <div class="wrap">
+      <p class="eyebrow">Checklist</p>
+      <h2 id="day-h">Before exam day</h2>
+      <div class="card" style="margin-top:22px;">
+        <ul class="check">
+          <li><svg><use href="#g-check"/></svg>Every pupil shows <b>&nbsp;Active&nbsp;</b> on Roles (they've signed in and chosen a password).</li>
+          <li><svg><use href="#g-check"/></svg>Pupils have tried a practice exam with the same tools.</li>
+          <li><svg><use href="#g-check"/></svg>The exam is assigned to the right subject or pupils, and opens and closes at the right times.</li>
+          <li><svg><use href="#g-check"/></svg>Extra time and early access are set for pupils who need them.</li>
+          <li><svg><use href="#g-check"/></svg>For Lockdown exams, Safe Exam Browser is installed on every device.</li>
+          <li><svg><use href="#g-check"/></svg>Devices are charged and connected to the school Wi-Fi.</li>
+          <li><svg><use href="#g-check"/></svg>You've opened it in <b>&nbsp;Pupil preview&nbsp;</b> (admins) or checked it in the builder.</li>
+          <li><svg><use href="#g-check"/></svg>The Monitor tab is open on your screen when the exam starts.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FAQ ===================== -->
+  <section class="block" id="faq" aria-labelledby="faq-h">
+    <div class="wrap">
+      <p class="eyebrow">Common questions</p>
+      <h2 id="faq-h">FAQ</h2>
+      <div class="faq">
+        <details><summary>I forgot my password.<span class="who">Everyone</span></summary><p>On the sign-in page choose <b>Email me a code</b>, type your username or email, and enter the 6-digit code we email you. Then open your account menu → <b>Change password</b>; you won't need the old one for 15 minutes.</p></details>
+        <details><summary>I didn't get my invite email.<span class="who">Everyone</span></summary><p>Check your spam or junk folder for an email from Andam. If it isn't there, ask your school admin to press <b>Resend</b> on Roles, or to give you your login from the downloaded logins list.</p></details>
+        <details><summary>A pupil is missing from my "Assign to" list.<span class="who">Teachers</span></summary><p>Teachers can only assign to pupils in the subjects they teach. Ask an admin to add the pupil to your subject (Subjects page), then open the exam's Settings to tick them.</p></details>
+        <details><summary>A pupil got locked out mid-exam.<span class="who">Teachers</span></summary><p>Their resume code shows in your pop-up and on the Monitor tab. Read it out, or press <b>Unlock now</b>. Their work so far is saved.</p></details>
+        <details><summary>The internet dropped during an exam.<span class="who">Pupils</span></summary><p>Keep working. Andam keeps your answers on the device and saves them again by itself when you're back online. Don't close the page or sign out until it says your work is saved.</p></details>
+        <details><summary>I can't see my grade.<span class="who">Pupils</span></summary><p>Grades appear only after your teacher releases them. When they do, you'll see it in the bell and a <b>New grade</b> label on the exam.</p></details>
+        <details><summary>Which devices work?<span class="who">Schools</span></summary><p>Laptops, Chromebooks and iPads with an up-to-date browser (Chrome, Edge, Safari or Firefox). Lockdown exams need Safe Exam Browser, which runs on Windows, macOS and iPad.</p></details>
+        <details><summary>Can other schools see our data?<span class="who">Schools</span></summary><p>No. Each school has its own private space. Accounts only work in their own school, and exam files are only sent to people signed in to that school.</p></details>
+        <details><summary>How do I get help?<span class="who">Everyone</span></summary><p>Press the <b>Help</b> button at the bottom right of any page (except during an exam). It answers common questions, and <b>Message support</b> sends your question to our team by email. We reply to the email address you give.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="help-band">
+  <div class="wrap">
+    <div>
+      <h2>Still stuck?</h2>
+      <p>Ask the Help chat, or send a message straight to the Andam support team.</p>
+    </div>
+    <div class="row">
+      <button type="button" class="pill" data-open-support>Message support<svg><use href="#g-chat"/></svg></button>
+      {% if not home_url %}<button type="button" class="pill ghost" data-open-support="school_enquiry">Ask about Andam for your school</button>{% endif %}
+    </div>
+  </div>
+</div>
+<footer class="foot">
+  <div class="wrap"><span>© {% now "Y" %} Andam · Digital exams for schools</span><span><a href="{% if home_url %}{{ home_url }}{% else %}/{% endif %}">{% if home_url %}Back to Andam{% else %}Andam home{% endif %}</a> · <a href="mailto:{{ support_email }}">{{ support_email }}</a></span></div>
+</footer>
+
+<script>
+(function(){
+  var ROLES = ['admin', 'teacher', 'pupil'];
+  var DEFAULT_ROLE = "{{ guide_role|escapejs }}";
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+
+  function show(role, scroll){
+    if(ROLES.indexOf(role) < 0) role = DEFAULT_ROLE;
+    tabs.forEach(function(t){
+      var on = t.getAttribute('data-role') === role;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    if(scroll) document.getElementById('roles').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  tabs.forEach(function(t, i){
+    t.addEventListener('click', function(){ show(t.getAttribute('data-role')); history.replaceState(null, '', '#' + t.getAttribute('data-role')); });
+    t.addEventListener('keydown', function(e){
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if(!d) return;
+      var next = tabs[(i + d + tabs.length) % tabs.length];
+      next.focus(); next.click();
+    });
+  });
+  document.querySelectorAll('[data-role-link]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      var role = a.getAttribute('data-role-link');
+      show(role, true);
+      history.replaceState(null, '', '#' + role);
+    });
+  });
+  var hash = (location.hash || '').slice(1);
+  if(ROLES.indexOf(hash) >= 0){
+    show(hash);
+    // The browser jumps to #pupil etc. itself; land on the section heading instead so the tabs are in view.
+    window.addEventListener('load', function(){ document.getElementById('roles').scrollIntoView({block:'start'}); });
+  }
+  else show(DEFAULT_ROLE);
+  window.addEventListener('hashchange', function(){
+    var h = location.hash.slice(1);
+    if(ROLES.indexOf(h) >= 0) show(h, true);
+  });
+})();
+</script>
+{% include "_support_chat.html" %}
+</body>
+</html>
