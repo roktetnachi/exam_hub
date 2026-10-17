@@ -235,6 +235,45 @@
   .badge.progress{background:var(--warn);}
   .badge.idle{background:var(--idle);}
   .badge.locked{background:var(--danger);}
+  /* Safe Exam Browser quit code (teacher: Monitor + Deliver tabs) */
+  .quit-code-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-left:4px solid var(--blue-dark);border-radius:14px;padding:12px 16px;margin-bottom:14px;}
+  .quit-code-bar .qc-icon{width:36px;height:36px;border-radius:10px;background:#eef1f9;color:var(--blue-dark);display:flex;align-items:center;justify-content:center;flex:none;}
+  .quit-code-bar .qc-main{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .quit-code-bar .qc-label{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+  .quit-code-bar .qc-help{flex:1 1 260px;margin:0;font-size:12.5px;line-height:1.45;color:var(--muted);}
+  .quit-code-bar.none{border-left-color:var(--warn);}
+  .qc-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:20px;font-weight:700;letter-spacing:.18em;color:var(--text);background:#f6f8fc;border-radius:8px;padding:3px 10px;}
+  .qc-code.masked{color:var(--muted);letter-spacing:.3em;}
+  .qc-toggle{border:1px solid var(--border);background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;}
+  .qc-inline{display:inline-flex;align-items:center;gap:8px;}
+  .qc-inline .qc-code{font-size:15px;padding:2px 8px;}
+  .seb-leave{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 14px;font-size:13.5px;color:#3c4552;}
+  /* Safe Exam Browser gate (Lockdown exams) */
+  .seb-gate-backdrop{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
+  .seb-gate{background:#fff;border-radius:20px;width:100%;max-width:400px;padding:28px 26px 20px;text-align:center;box-shadow:0 30px 80px -20px rgba(15,23,42,.45);margin:auto;}
+  .seb-gate-icon{width:52px;height:52px;border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;background:#eef1f9;color:var(--blue-dark);}
+  .seb-gate-kicker{margin:0;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .seb-gate h2{margin:4px 0 2px;font-size:21px;line-height:1.25;}
+  .seb-gate-exam{margin:0;font-size:14px;font-weight:600;color:var(--blue-dark);overflow-wrap:anywhere;}
+  .seb-gate-msg{margin:14px 0 0;font-size:13.5px;line-height:1.5;color:#3c4552;}
+  .seb-gate-msg:empty{display:none;}
+  .seb-gate-msg.warn{background:var(--danger-bg);color:var(--danger-dark);border-radius:12px;padding:10px 12px;text-align:left;}
+  .seb-gate-primary{display:block;width:100%;margin-top:18px;padding:13px 20px;font-size:15px;text-decoration:none;}
+  .seb-gate[data-mode="inside"] .seb-gate-primary{display:none;}
+  .seb-gate-rules{list-style:none;margin:16px 0 0;padding:12px 14px;background:#f6f8fc;border-radius:12px;text-align:left;font-size:12.5px;line-height:1.5;color:#3c4552;}
+  .seb-gate-rules li{position:relative;padding-left:16px;}
+  .seb-gate-rules li + li{margin-top:5px;}
+  .seb-gate-rules li::before{content:"";position:absolute;left:2px;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--blue);}
+  .seb-gate-help{margin:14px 0 0;text-align:left;font-size:13px;color:#3c4552;}
+  .seb-gate-help summary{cursor:pointer;font-weight:700;color:var(--blue);text-align:center;list-style:none;padding:4px 0;}
+  .seb-gate-help summary::-webkit-details-marker{display:none;}
+  .seb-gate-help summary::after{content:" \25BE";font-size:11px;}
+  .seb-gate-help[open] summary::after{content:" \25B4";}
+  .seb-gate-help ol{margin:8px 0 0;padding-left:20px;line-height:1.55;}
+  .seb-gate-help li + li{margin-top:6px;}
+  .seb-gate-help a{color:var(--blue);font-weight:700;}
+  .seb-gate-foot{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
+  @media (max-width:480px){ .seb-gate{padding:24px 18px 18px;} .seb-gate h2{font-size:19px;} }
   .exam-lock-overlay{position:fixed;inset:0;z-index:9999;background:rgba(20,16,50,.92);display:flex;align-items:center;justify-content:center;padding:16px;}
   .exam-lock-card{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:26px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);}
   .exam-lock-card h2{margin:6px 0 8px;color:var(--danger-dark);}
@@ -1134,6 +1173,14 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
         Take the tour
       </button>
+      <a class="menu-item" role="menuitem" href="{% url 'guide' %}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M8 7h8M8 11h6"/></svg>
+        Starter guide
+      </a>
+      <button type="button" class="menu-item" role="menuitem" data-open-support>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>
+        Message support
+      </button>
       <form method="post" action="{{ request.school_url_prefix|default:'' }}{% url 'logout' %}" style="margin:0;">{% csrf_token %}
         <button type="submit" class="menu-item danger" role="menuitem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -1484,6 +1531,7 @@
 
       <div id="detailPanel-monitor" class="detail-panel">
         <div class="stat-tiles" id="detailStatTiles"></div>
+        <div class="quit-code-bar hidden" id="monitorQuitCode"></div>
         <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
           <input type="search" id="monitorSearch" placeholder="Search pupils by name or email…" autocomplete="off"
             style="flex:1;min-width:200px;max-width:340px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:13.5px;">
@@ -1635,6 +1683,10 @@
       <button class="back-link" id="backFromTaskList">&larr; Preview a different pupil</button>
       <h2 id="studentGreeting"></h2>
       <p class="sub">Here's everything assigned to you. Open a task when it's time to start.</p>
+      <div class="seb-leave hidden" id="sebLeaveBar" role="status">
+        <span id="sebLeaveText">You're in Safe Exam Browser.</span>
+        <button class="btn small outline" id="sebLeaveBtn" type="button">Close Safe Exam Browser</button>
+      </div>
       <div class="card">
         <table>
           <thead><tr><th>Exam</th><th>When</th><th>Status</th><th></th></tr></thead>
@@ -1843,19 +1895,32 @@
       </div>
     </div>
 
-    <div class="modal-backdrop hidden" id="sebGateBackdrop">
-      <div class="card" style="width:420px;max-width:92vw;">
-        <h2 style="margin-bottom:6px;">Safe Exam Browser required</h2>
-        <p class="sub">This assessment must be opened in Safe Exam Browser (SEB), not a regular browser.</p>
-        <p class="sub" id="sebGateMessage" style="margin-top:10px;"></p>
-        <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
-          <a class="btn outline" href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">1. Install Safe Exam Browser (if you haven't already)</a>
-          <a class="btn" id="sebGateLaunchBtn" href="#">2. Open in Safe Exam Browser</a>
-          <a class="btn outline small" href="/api/seb/config/" download style="align-self:center;">Not opening automatically? Download the lockdown file manually</a>
+    <!-- Lockdown exams: one clear action, the rules in two lines, everything else under "Trouble opening it?". -->
+    <div class="seb-gate-backdrop hidden" id="sebGateBackdrop" role="dialog" aria-modal="true" aria-labelledby="sebGateTitle">
+      <div class="seb-gate" data-mode="launch">
+        <div class="seb-gate-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor" stroke="none"/></svg>
         </div>
-        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
-          <button class="btn outline small" id="sebGateCancelBtn" type="button">Back</button>
-          <button class="btn small" id="sebGateRetryBtn" type="button">I've opened this in SEB — try again</button>
+        <p class="seb-gate-kicker">Lockdown exam</p>
+        <h2 id="sebGateTitle">Open in Safe Exam Browser</h2>
+        <p class="seb-gate-exam" id="sebGateExam"></p>
+        <p class="seb-gate-msg" id="sebGateMessage" role="status"></p>
+        <a class="btn seb-gate-primary" id="sebGateLaunchBtn" href="#">Open in Safe Exam Browser</a>
+        <ul class="seb-gate-rules">
+          <li>Your screen stays on this exam until you submit.</li>
+          <li id="sebGateQuitRule">Safe Exam Browser only closes early with your teacher's <strong>quit code</strong>.</li>
+        </ul>
+        <details class="seb-gate-help" id="sebGateHelp">
+          <summary>Trouble opening it?</summary>
+          <ol>
+            <li>No Safe Exam Browser yet? <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener">Install it</a>, then press Open again.</li>
+            <li>Nothing happened? <a id="sebGateDownloadLink" href="/api/seb/config/" download>Download the exam file</a> and open it.</li>
+            <li>Opened it already? Carry on in the Safe Exam Browser window, not this one.</li>
+          </ol>
+        </details>
+        <div class="seb-gate-foot">
+          <button class="btn outline small" id="sebGateCancelBtn" type="button">Back to my tasks</button>
+          <button class="btn outline small" id="sebGateRetryBtn" type="button">Check again</button>
         </div>
       </div>
     </div>
@@ -2306,6 +2371,7 @@ function apiAssignment(a){
   return {id:a.id,title:a.title,prompt:a.prompt,due:a.dueAt ? formatManila(a.dueAt) : '—', dueAt:a.dueAt, opensAt:a.opensAt, isHidden:!!a.isHidden, closedAt:a.closedAt||null, state:a.state||'live', items:a.items||[],assignedTo:a.recipients.map(r=>r.name),submissions,
     teacherName:a.teacherName||'', teacherEmail:a.teacherEmail||'', createdAt:a.createdAt||null,
     deliveryMode:a.deliveryMode||'browser', requireJoinCode:!!a.requireJoinCode, joinCode:a.joinCode||null,
+    sebQuitCode:a.sebQuitCode||null, hasSebQuitCode:!!a.hasSebQuitCode,
     allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator,
     allowSpellcheck:!!a.allowSpellcheck, allowTextToSpeech: a.allowTextToSpeech !== false,
     resources:a.resources||[]};
@@ -3323,7 +3389,7 @@ function collectItemsForSubmit(){
 const DELIVERY_MODE_NOTES = {
   browser: 'No extra restrictions — pupils can use any browser normally.',
   browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click and copying. Enforced by Andam, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
-  lockdown: 'Pupils must open this in Safe Exam Browser (SEB) — Andam verifies this server-side and blocks starting/saving/submitting otherwise. Download the shared lockdown config from the dashboard and see Django admin \u2192 Allowed Browser Exam Keys for one-time setup.',
+  lockdown: 'Pupils open this in Safe Exam Browser (SEB), which locks their device to the exam — Andam checks it on every save and blocks the exam in any other browser. SEB stays open until they submit: closing it early needs a quit code, shown to you on the Monitor tab.',
   paper: 'For a paper-based sitting. The exam is recorded but pupils won\'t open it in Andam.',
 };
 function wirePillPicker(containerId, dataAttr, onChange){
@@ -3459,6 +3525,7 @@ window.ExamHubNotifActions = {
     // About to open an exam (arrived with ?open=…, e.g. from Safe Exam Browser) or already in one.
     if(state.pendingOpenAssignmentId || document.body.classList.contains('exam-focus')) return true;
     if(!document.getElementById('examIntroBackdrop').classList.contains('hidden')) return true;
+    if(!document.getElementById('sebGateBackdrop').classList.contains('hidden')) return true;
     if(document.getElementById('studentTask').classList.contains('hidden')) return false;
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     const sub = a && a.submissions[state.currentPupil];
@@ -3991,7 +4058,7 @@ const DELIVERY_MODE_LABELS = {
   browser: 'Any browser', browser_secure: 'Any browser with security', lockdown: 'Lockdown app', paper: 'Paper',
 };
 function deliverRow(label, value){
-  return `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:10px 0;">
+  return `<div class="row" style="justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:10px 0;">
     <span style="color:var(--muted);font-size:13px;">${label}</span><span style="font-weight:700;font-size:13.5px;">${value}</span></div>`;
 }
 function renderDeliverSummary(a){
@@ -4000,6 +4067,7 @@ function renderDeliverSummary(a){
     deliverRow('Visible to pupils', a.isHidden ? 'Hidden until you make it visible' : (a.opensAt ? `From ${formatManila(a.opensAt)}` : 'Now')),
     deliverRow('Closes', a.closedAt ? `Closed by a teacher — ${formatManila(a.closedAt)}` : (a.dueAt ? `Automatically at ${formatManila(a.dueAt)}` : 'Manually, when you close it')),
     deliverRow('Join code', a.requireJoinCode ? `Required — <span style="font-family:monospace;letter-spacing:.05em;">${a.joinCode || '(hidden)'}</span>` : 'Not required'),
+    ...(a.deliveryMode === 'lockdown' ? [deliverRow('Safe Exam Browser quit code', a.sebQuitCode ? quitCodeInlineHtml(a) : 'None (exam made before quit codes)')] : []),
     `<div class="opt-group-title" style="margin:18px 0 0;">Tools pupils get</div>`,
     deliverRow('Scientific calculator', a.allowCalculator ? 'Allowed' : 'Not allowed'),
     deliverRow('Graphing calculator', a.allowGraphingCalculator ? 'Allowed' : 'Not allowed'),
@@ -4622,6 +4690,7 @@ function renderMonitorPanel(a){
     ${a.deliveryMode === 'browser_secure' ? `<div class="stat-tile"><div class="num" style="color:var(--danger);">${a.assignedTo.filter(p=>a.submissions[p].locked && a.submissions[p].status!=='submitted').length}</div><div class="label">Locked</div></div>` : ''}
   `;
 
+  renderMonitorQuitCode(a);
   document.getElementById('btnMarkAllSeen').classList.toggle('hidden', !a.assignedTo.some(p=>a.submissions[p].newSubmission));
   const tbody = document.getElementById('detailTbody');
   tbody.innerHTML = '';
@@ -4675,6 +4744,38 @@ function renderMonitorPanel(a){
     tr.querySelector('[data-row-action="message"]').addEventListener('click', ()=>openChatModal(sub.recipientId, `${p} — ${a.title}`, false));
     tbody.appendChild(tr);
   });
+}
+// Lockdown exams: the Safe Exam Browser quit code, hidden until the teacher asks for it (the
+// Monitor tab is often on a projector). Pupils are let out automatically when they submit or the
+// exam ends; the code is for letting one out early (a device problem, feeling unwell…).
+const QUIT_CODE_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>';
+function quitCodeShown(a){ return !!(state.quitCodeShown && state.quitCodeShown[a.id]); }
+function quitCodeInlineHtml(a){
+  const shown = quitCodeShown(a);
+  return `<span class="qc-inline"><span class="qc-code${shown ? '' : ' masked'}">${shown ? escapeHtml(a.sebQuitCode) : '••••••'}</span>`
+    + `<button type="button" class="qc-toggle" data-quit-toggle="${a.id}">${shown ? 'Hide' : 'Show'}</button></span>`;
+}
+function toggleQuitCode(id){
+  state.quitCodeShown = state.quitCodeShown || {};
+  state.quitCodeShown[id] = !state.quitCodeShown[id];
+  const a = state.assignments.find(x=>x.id===id);
+  if(a){ renderMonitorQuitCode(a); renderDeliverSummary(a); }
+}
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest && e.target.closest('[data-quit-toggle]');
+  if(btn) toggleQuitCode(Number(btn.dataset.quitToggle));
+});
+function renderMonitorQuitCode(a){
+  const bar = document.getElementById('monitorQuitCode');
+  if(a.deliveryMode !== 'lockdown'){ bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  bar.classList.toggle('none', !a.sebQuitCode);
+  bar.innerHTML = a.sebQuitCode
+    ? `<span class="qc-icon">${QUIT_CODE_ICON}</span>
+       <span class="qc-main"><span class="qc-label">SEB quit code</span>${quitCodeInlineHtml(a)}</span>
+       <p class="qc-help">Pupils can’t close Safe Exam Browser without this code — it closes by itself when they submit or the exam ends. To let a pupil out early, type it into the quit box on their device.</p>`
+    : `<span class="qc-icon">${QUIT_CODE_ICON}</span>
+       <p class="qc-help"><strong>No quit code on this exam</strong> — it was set up before quit codes, so pupils can close Safe Exam Browser themselves. Lockdown exams made from now on get one automatically.</p>`;
 }
 function stopMonitorPolling(){
   if(state.monitorPollInterval){ clearInterval(state.monitorPollInterval); state.monitorPollInterval = null; }
@@ -5746,7 +5847,22 @@ function showStudentTaskList(){
     }
     sec.rows.forEach(r=>tbody.appendChild(studentTaskRow(r)));
   });
+  renderSebLeaveBar(rows);
 }
+// Inside Safe Exam Browser, on the task list: a way out when no Lockdown exam is under way (the
+// quit address closes SEB without the quit code). While one is, the pupil has to submit it first.
+function renderSebLeaveBar(rows){
+  const bar = document.getElementById('sebLeaveBar');
+  const show = document.body.dataset.role === 'pupil' && runningInSeb();
+  bar.classList.toggle('hidden', !show);
+  if(!show) return;
+  const busy = rows.find(r=>r.a.deliveryMode === 'lockdown' && r.group === 'todo' && !r.closed && (r.sub.startedAt || r.sub.status === 'progress'));
+  document.getElementById('sebLeaveBtn').classList.toggle('hidden', !!busy);
+  document.getElementById('sebLeaveText').textContent = busy
+    ? `You're in Safe Exam Browser. Finish and submit "${busy.a.title}" — it closes by itself after that.`
+    : "You're in Safe Exam Browser.";
+}
+document.getElementById('sebLeaveBtn').addEventListener('click', ()=>{ location.href = '/?sebquit=1'; });
 // "in 2 days" / "in 3 hours" / "ended yesterday" — the exact date sits underneath.
 function relativeWhen(ms){
   const diff = ms - Date.now(), abs = Math.abs(diff), min = 60000, hr = 60 * min, day = 24 * hr;
@@ -5879,53 +5995,85 @@ async function verifySebJsKeys(){
     return !!(res && res.ok);
   } catch(_) { return false; }
 }
-async function checkSebWithServer(){
+// With an exam id, the answer is for that exam (one with a quit code needs SEB opened for it).
+async function checkSebWithServer(assignmentId){
+  const url = '/api/seb/check/' + (assignmentId ? `?assignment=${encodeURIComponent(assignmentId)}` : '');
   let res = null;
-  try { res = await request('/api/seb/check/'); } catch(_) { res = null; }
+  try { res = await request(url); } catch(_) { res = null; }
   if(res && res.ok) return res;
   const viaJs = await verifySebJsKeys();
+  if(viaJs && assignmentId){
+    // This SEB proved itself — but maybe for a different exam; ask again for this one.
+    try { return Object.assign({sebHeaders: true}, await request(url)); } catch(_) { return {ok: true, sebHeaders: true}; }
+  }
   if(viaJs) return {ok: true, sebHeaders: true};
   if(viaJs === false) return {ok: false, sebHeaders: true};
   return res;
 }
+// The gate card has two looks: "launch" (in a normal browser: one big Open button) and "inside"
+// (already in SEB, but not opened for this exam: no Open button, since relaunching from inside SEB
+// just reloads SEB). Messages are short status lines; problems show in a red box.
+function setSebGate(a, {mode='launch', message='', warn=false, launchUrl=null, downloadUrl=null, title=null}={}){
+  const card = document.querySelector('#sebGateBackdrop .seb-gate');
+  card.dataset.mode = mode;
+  document.getElementById('sebGateExam').textContent = a ? a.title : '';
+  const msgEl = document.getElementById('sebGateMessage');
+  msgEl.textContent = message;
+  msgEl.classList.toggle('warn', !!warn);
+  document.getElementById('sebGateTitle').textContent = title || (mode === 'inside' ? 'Not opened for this exam' : 'Open in Safe Exam Browser');
+  document.getElementById('sebGateQuitRule').classList.toggle('hidden', !(a && a.hasSebQuitCode));
+  if(launchUrl) document.getElementById('sebGateLaunchBtn').href = launchUrl;
+  if(downloadUrl) document.getElementById('sebGateDownloadLink').href = downloadUrl;
+  // "Trouble opening it?" starts closed; it opens by itself once something has gone wrong.
+  document.getElementById('sebGateHelp').open = !!warn && mode === 'launch';
+}
+// seb://host/… → http://host/…, sebs:// → https:// (the same .seb file, as a normal download).
+function sebLinkAsDownload(url){ return url.replace(/^sebs:\/\//, 'https://').replace(/^seb:\/\//, 'http://'); }
+function sebInsideMessage(server){
+  return server && server.otherExam
+    ? 'This Safe Exam Browser window was opened for a different exam. Ask your teacher to close it with the quit code, then open this exam again from Andam.'
+    : "You're in Safe Exam Browser, but not with this exam's settings. Close Safe Exam Browser, then open this exam again from Andam.";
+}
 function gateWithSeb(a){
   return new Promise(async (resolve)=>{
-    const server = await checkSebWithServer();
+    const server = await checkSebWithServer(a.id);
     if(server && server.ok){ state.sebVerified = true; resolve(true); return; }
     if(!server && sebDetected()){ resolve(true); return; } // check failed to run — let start/save decide
     const insideSeb = sebDetected() || (server && server.sebHeaders);
     const backdrop = document.getElementById('sebGateBackdrop');
-    const msgEl = document.getElementById('sebGateMessage');
-    const launchBtn = document.getElementById('sebGateLaunchBtn');
-    msgEl.textContent = insideSeb
-      ? `You're in Safe Exam Browser, but not with this site's lockdown settings, so "${a.title}" can't open. Quit SEB, then open it again using the "Open in Safe Exam Browser" button below (or a freshly downloaded lockdown file from this site).`
-      : `"${a.title}" is set to Lockdown mode by your teacher — it must be opened in Safe Exam Browser. If you already have it installed, it will open straight into this paper in a moment — no need to sign in again.`;
     // A one-time launch link signs this pupil in inside SEB and opens this exact paper (SEB
-    // can't see this browser's login). Falls back to the plain config if it can't be made.
+    // can't see this browser's login), with the exam's quit code built in. Falls back to the
+    // plain config if it can't be made.
     let launchUrl = sebProtocolLink();
     if(!insideSeb){
       try { launchUrl = (await request('/api/seb/launch/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({assignmentId: a.id})})).sebUrl || launchUrl; }
       catch(_) { /* keep the generic config link */ }
     }
-    launchBtn.href = launchUrl;
+    setSebGate(a, insideSeb
+      ? {mode: 'inside', message: sebInsideMessage(server), warn: true}
+      : {mode: 'launch', message: 'Safe Exam Browser should open by itself in a moment. If it doesn’t, press the button below.',
+         launchUrl, downloadUrl: sebLinkAsDownload(launchUrl)});
     backdrop.classList.remove('hidden');
     // Attempt the handoff right away — but never from inside SEB, where relaunching would just
     // reload SEB back to the start page and look like the paper "didn't open".
     if(!insideSeb) window.location.href = launchUrl;
+    const retryBtn = document.getElementById('sebGateRetryBtn');
+    const cancelBtn = document.getElementById('sebGateCancelBtn');
+    retryBtn.onclick = null; cancelBtn.onclick = null;   // left over from showSebBlockedNotice
     function cleanup(){
       backdrop.classList.add('hidden');
       retryBtn.removeEventListener('click', onRetry);
       cancelBtn.removeEventListener('click', onCancel);
     }
     async function onRetry(){
-      const again = await checkSebWithServer();
+      retryBtn.disabled = true;
+      const again = await checkSebWithServer(a.id);
+      retryBtn.disabled = false;
       if((again && again.ok) || (!again && sebDetected())){ cleanup(); resolve(true); }
-      else if(again && again.sebHeaders){ msgEl.textContent = "Safe Exam Browser is running, but with different settings from this site's lockdown config. Quit SEB and reopen using a freshly downloaded lockdown file from this site."; }
-      else { msgEl.textContent = "This browser tab still doesn't look like Safe Exam Browser. If a separate Safe Exam Browser window just opened, switch to it and open the exam from there instead — this tab isn't it. Otherwise, install SEB or use the manual download above, then try again."; }
+      else if(again && again.sebHeaders){ setSebGate(a, {mode: 'inside', message: sebInsideMessage(again), warn: true}); }
+      else { setSebGate(a, {mode: 'launch', warn: true, message: 'This window still isn’t Safe Exam Browser. If a Safe Exam Browser window opened, carry on there — not here.'}); }
     }
     function onCancel(){ cleanup(); resolve(false); }
-    const retryBtn = document.getElementById('sebGateRetryBtn');
-    const cancelBtn = document.getElementById('sebGateCancelBtn');
     retryBtn.addEventListener('click', onRetry);
     cancelBtn.addEventListener('click', onCancel);
   });
@@ -5946,6 +6094,7 @@ function showExamIntro(a, sub){
       facts.push(`${recordings.length} recording${recordings.length === 1 ? '' : 's'}` + (limits.length === 1 && limits[0]
         ? ` — ${limits[0] === 1 ? 'one play' : limits[0] + ' plays'} each` : ''));
     }
+    if(a.deliveryMode === 'lockdown' && a.hasSebQuitCode) facts.push('Safe Exam Browser stays on until you submit');
     if(a.allowCalculator) facts.push('Calculator allowed');
     if(!a.allowSpellcheck) facts.push('Spell check off');
     if(a.allowTextToSpeech === false) facts.push('Read aloud off');
@@ -5976,9 +6125,9 @@ function showExamIntro(a, sub){
 }
 function showSebBlockedNotice(assignmentId, title, detail){
   const backdrop = document.getElementById('sebGateBackdrop');
-  document.getElementById('sebGateMessage').textContent = detail
-    ? `"${title}": ${detail}`
-    : `The server couldn't confirm "${title}" is running in Safe Exam Browser. Make sure you opened it via the downloaded lockdown file, then try again.`;
+  const a = state.assignments.find(x=>x.id===assignmentId) || {title};
+  setSebGate(a, {mode: 'inside', warn: true, title: 'Safe Exam Browser needed',
+    message: detail || 'Andam couldn’t confirm this is Safe Exam Browser. Go back and open the exam again.'});
   backdrop.classList.remove('hidden');
   document.getElementById('sebGateCancelBtn').onclick = ()=>{ backdrop.classList.add('hidden'); showStudentTaskList(); };
   document.getElementById('sebGateRetryBtn').onclick = ()=>{ backdrop.classList.add('hidden'); openStudentTask(assignmentId); };
@@ -6125,11 +6274,20 @@ async function handleExamExpired(a, sub, why){
     document.getElementById('btnSubmit').disabled = true;
     setAutosaveStatus('Handed in', 'ok');
     if(document.fullscreenElement && document.exitFullscreen){ state.examWasFullscreen = false; try { await document.exitFullscreen(); } catch(_) {} }
+    closeSebAfterExam(a);
   } catch(error) {
     // Past the grace period the server hands in the last autosave itself — nothing for the pupil to do.
     document.getElementById('btnSubmit').disabled = true;
     setAutosaveStatus('Exam closed — your last saved work was handed in.', '');
+    // Offline: stay put — closing SEB could throw away the answers kept on this device.
+    if(!isNetworkError(error)) closeSebAfterExam(a);
   }
+}
+// The exam is over (time's up / closed by the teacher): let Safe Exam Browser close itself, the
+// same way it does after Submit, so nobody needs the quit code just because time ran out.
+function closeSebAfterExam(a){
+  if(!(a && (a.deliveryMode === 'lockdown' || runningInSeb()))) return;
+  setTimeout(()=>{ setExamFocus(false); location.href = '/?sebquit=1'; }, 5000);
 }
 
 function markInProgress(sub){ if(sub.status==='idle') sub.status='progress'; }
@@ -8552,7 +8710,7 @@ if(new URLSearchParams(location.search).get('sebquit') === '1'){
   // Safe Exam Browser's own quitURL handling should intercept this navigation and offer to
   // quit before the page even finishes loading; this is just a friendly fallback in case it
   // doesn't (e.g. testing in a regular browser, or an SEB config without quitURLConfirm).
-  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;"><div><h2>You can now close Safe Exam Browser</h2><p class="sub">Your work has been submitted.</p></div></div>';
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;"><div><h2>You can now close Safe Exam Browser</h2><p class="sub">Anything you handed in is saved in Andam.</p></div></div>';
 } else {
 // Arriving in SEB via a one-time launch link lands on /?open=<assignmentId> already signed
 // in — remember which paper to open straight away, and tidy the URL.
@@ -8617,6 +8775,7 @@ loadAssignments().then(()=>{
 {% include "_tour.html" %}
 {% include "_notifications.html" %}
 {% include "_password_toggle.html" %}
+{% include "_support_chat.html" %}
 <div id="a11yOverlay" aria-hidden="true"></div>
 </body>
 </html>

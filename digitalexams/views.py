@@ -285,12 +285,31 @@ def _public_scheme(request):
     return (forwarded.split(',')[0].strip() or request.scheme).lower()
 
 
-def seb_config_settings(host, scheme, start_path=None):
+def new_seb_quit_code():
+    """Six digits: quick to type into SEB's quit box on a laptop or an iPad keyboard."""
+    return ''.join(secrets.choice(string.digits) for _ in range(6))
+
+
+def seb_quit_hash(code):
+    """What SEB stores as hashedQuitPassword: the SHA-256 of the password, as lowercase hex."""
+    return hashlib.sha256(code.encode('utf-8')).hexdigest() if code else ''
+
+
+def seb_quit_code_of(assignment):
+    """The quit code a Lockdown exam's SEB file carries ('' for none / not a Lockdown exam)."""
+    if assignment is None or assignment.delivery_mode != Assignment.DeliveryMode.LOCKDOWN:
+        return ''
+    return assignment.seb_quit_code or ''
+
+
+def seb_config_settings(host, scheme, start_path=None, quit_code=''):
     """The exact settings in Andam's lockdown .seb file for a given site address.
     Kept in one place because the same dict is used both to write the file (seb_config /
     seb_launch_config) and to recompute its Config Key (seb_config_key) — they must never drift
     apart. `start_path` is only set for a one-time launch config (see seb_launch_api), whose
-    start page signs the pupil in and opens their paper directly."""
+    start page signs the pupil in and opens their paper directly. `quit_code` (launch configs of
+    a Lockdown exam only) makes SEB ask for that code before it lets anyone quit; reaching the
+    quit address after submitting still closes SEB without it."""
     home = f'{scheme}://{host}{reverse("home")}'
     start = f'{scheme}://{host}{start_path}' if start_path else home
     return {
@@ -298,7 +317,7 @@ def seb_config_settings(host, scheme, start_path=None):
         'quitURL': home + '?sebquit=1',
         'allowQuit': True,
         'quitURLConfirm': False,
-        'hashedQuitPassword': '',
+        'hashedQuitPassword': seb_quit_hash(quit_code),
         # Makes SEB send the X-SafeExamBrowser-RequestHash / -ConfigKeyHash headers that
         # seb_lockdown_ok() checks — without this, the whole mechanism silently never fires.
         'sendBrowserExamKey': True,
@@ -322,27 +341,48 @@ def _seb_json(value):
     return f'"{value}"'
 
 
-def seb_config_key(host, scheme, start_path=None):
+def seb_config_key(host, scheme, start_path=None, quit_code=''):
     """Andam's own lockdown config's Config Key, computed the same way SEB computes it
     (SHA256 of the SEB-JSON of the settings actually in the file). Because Andam writes that
     file itself, it can trust its own key automatically — no copying keys out of SEB's settings
     screens into Django admin needed."""
-    return hashlib.sha256(_seb_json(seb_config_settings(host, scheme, start_path)).encode('utf-8')).hexdigest()
+    return hashlib.sha256(_seb_json(seb_config_settings(host, scheme, start_path, quit_code)).encode('utf-8')).hexdigest()
 
 
-def _accepted_seb_keys(request, extra_keys=()):
-    """Every key a valid SEB hash may be built from: Andam's own config's Config Key (for both
-    schemes, since the file may have been downloaded over http or https), anything an admin added
-    by hand, the per-launch keys remembered on this SEB session, and any extra keys given."""
-    host = request.get_host()
-    keys = {seb_config_key(host, 'https'), seb_config_key(host, 'http')}
+def _admin_seb_keys(request):
+    """Keys an admin added by hand in Django admin (custom SEB configs), for this school."""
     seb_keys_qs = AllowedBrowserExamKey.objects.all()
     if getattr(request, 'school', None):
         seb_keys_qs = seb_keys_qs.filter(school=request.school)
-    keys.update((k or '').strip().lower() for k in seb_keys_qs.values_list('key_hash', flat=True))
+    return {(k or '').strip().lower() for k in seb_keys_qs.values_list('key_hash', flat=True)} - {''}
+
+
+def _session_launch_keys(request, quit_code=None):
+    """The Config Keys of the one-time launch file this SEB session was opened with. With
+    `quit_code`, only if that file carried exactly this exam's quit code."""
+    session = getattr(request, 'session', None)
+    if session is None:
+        return set()
+    if quit_code is not None and session.get('seb_launch_quit', '') != seb_quit_hash(quit_code):
+        return set()
+    return set(session.get('seb_config_keys', [])) - {''}
+
+
+def _accepted_seb_keys(request, extra_keys=(), assignment=None):
+    """Every key a valid SEB hash may be built from: Andam's own config's Config Key (for both
+    schemes, since the file may have been downloaded over http or https), anything an admin added
+    by hand, the per-launch keys remembered on this SEB session, and any extra keys given.
+    For a Lockdown exam with a quit code, the shared config doesn't count (it has no quit code, so
+    a pupil could close SEB whenever they liked): only a launch file carrying this exam's quit
+    code, or an admin's own key."""
+    quit_code = seb_quit_code_of(assignment)
+    if quit_code:
+        keys = _session_launch_keys(request, quit_code) | _admin_seb_keys(request)
+    else:
+        host = request.get_host()
+        keys = {seb_config_key(host, 'https'), seb_config_key(host, 'http')}
+        keys |= _admin_seb_keys(request) | _session_launch_keys(request)
     keys.update(extra_keys)
-    if hasattr(request, 'session'):
-        keys.update(request.session.get('seb_config_keys', []))
     keys.discard('')
     return keys
 
@@ -364,36 +404,52 @@ def _hash_matches(url, keys, received):
     return False
 
 
-def seb_lockdown_ok(request, extra_keys=()):
-    """True if this request carries a valid Browser Exam Key / Config Key hash, or this SEB
-    session already proved itself through SEB's JavaScript API (see seb_js_keys_ok). There's
-    deliberately no soft fallback (User-Agent, etc.) here — those are shown client-side as a
-    friendly hint, but this is the actual enforcement."""
-    # SEB sends two hashes: one built from the Browser Exam Key (changes with the SEB version
-    # installed) and one from the Config Key (depends only on the .seb file, so it's the same
-    # on every pupil's device). Either one matching a stored key is accepted, so an admin can
-    # paste whichever key SEB shows them.
+def _seb_headers_match(request, keys):
+    """Does this request's X-SafeExamBrowser hash header match one of `keys`?"""
     received = [h.strip().lower() for h in (
         request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH', ''),
         request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH', ''),
     ) if h and h.strip()]
-    if received:
-        # SEB hashes the URL exactly as the pupil's browser sees it. Behind Railway's proxy Django
-        # sees the request as plain http:// even though the pupil is on https://, so both schemes
-        # are tried — the stored key is still required either way.
-        host = request.get_host()
-        keys = _accepted_seb_keys(request, extra_keys)
-        for path in _seb_request_paths(request):
-            for scheme in ('https', 'http'):
-                if _hash_matches(f'{scheme}://{host}{path}', keys, received):
-                    return True
+    if not received or not keys:
+        return False
+    # SEB hashes the URL exactly as the pupil's browser sees it. Behind Railway's proxy Django
+    # sees the request as plain http:// even though the pupil is on https://, so both schemes
+    # are tried — the stored key is still required either way.
+    host = request.get_host()
+    for path in _seb_request_paths(request):
+        for scheme in ('https', 'http'):
+            if _hash_matches(f'{scheme}://{host}{path}', keys, received):
+                return True
+    return False
+
+
+def seb_lockdown_ok(request, extra_keys=(), assignment=None):
+    """True if this request carries a valid Browser Exam Key / Config Key hash, or this SEB
+    session already proved itself through SEB's JavaScript API (see seb_js_keys_ok). There's
+    deliberately no soft fallback (User-Agent, etc.) here — those are shown client-side as a
+    friendly hint, but this is the actual enforcement. Pass the `assignment` being opened so a
+    Lockdown exam with a quit code is only accepted from a SEB that was opened with that code."""
+    # SEB sends two hashes: one built from the Browser Exam Key (changes with the SEB version
+    # installed) and one from the Config Key (depends only on the .seb file, so it's the same
+    # on every pupil's device). Either one matching a stored key is accepted, so an admin can
+    # paste whichever key SEB shows them.
+    if _seb_headers_match(request, _accepted_seb_keys(request, extra_keys, assignment)):
+        return True
     # Newer SEB versions (notably macOS / iPadOS) don't add the headers to the page's own
     # background requests; they expose the same hashes to JavaScript instead, which the exam
-    # page verifies once per SEB session via /api/seb/verify/.
-    return bool(hasattr(request, 'session') and request.session.get('seb_js_verified'))
+    # page verifies once per SEB session via /api/seb/verify/. It remembers which kind of config
+    # it was ('launch' = this session's one-time launch file, 'admin' = a key from Django admin,
+    # anything else = the shared config), since the shared one has no quit code.
+    verified = hasattr(request, 'session') and request.session.get('seb_js_verified')
+    if not verified:
+        return False
+    quit_code = seb_quit_code_of(assignment)
+    if quit_code:
+        return verified == 'admin' or (verified == 'launch' and bool(_session_launch_keys(request, quit_code)))
+    return True
 
 
-def seb_js_keys_ok(request, urls, values, extra_keys=()):
+def seb_js_keys_ok(request, urls, values, extra_keys=(), keys=None):
     """Checks the values from SEB's JavaScript API (SafeExamBrowser.security.configKey /
     .browserExamKey), which are SHA256(page URL + key) — the same as the request headers, just
     for the page's own URL. `urls` are the page addresses to try (current and as first loaded);
@@ -402,7 +458,7 @@ def seb_js_keys_ok(request, urls, values, extra_keys=()):
     if not received:
         return False
     host = request.get_host()
-    keys = _accepted_seb_keys(request, extra_keys)
+    keys = _accepted_seb_keys(request, extra_keys) if keys is None else set(keys) | set(extra_keys)
     for url in urls:
         url = str(url or '').split('#', 1)[0]
         parts = urlsplit(url)
@@ -413,10 +469,15 @@ def seb_js_keys_ok(request, urls, values, extra_keys=()):
     return False
 
 
-def seb_required_response(request=None):
+def seb_required_response(request=None, assignment=None):
     got_headers = bool(request and (request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH')
-                                    or request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH')))
-    if request is not None and not got_headers:
+                                    or request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH')
+                                    or (hasattr(request, 'session') and request.session.get('seb_js_verified'))))
+    if request is not None and got_headers and seb_quit_code_of(assignment) and seb_lockdown_ok(request):
+        detail = ("This exam has its own Safe Exam Browser settings, and this SEB window was opened for "
+                  "something else. Quit Safe Exam Browser, then open this exam again from Andam.")
+        reason = 'other_exam'
+    elif request is not None and not got_headers:
         detail = ("This assignment must be opened in Safe Exam Browser using Andam's lockdown "
                   "config (from the SEB menu / your teacher's link). This browser didn't identify itself as SEB.")
         reason = 'no_seb_headers'
@@ -442,14 +503,17 @@ def _needs_seb(request, assignment):
     if Submission.objects.filter(recipient__assignment=assignment, status='submitted',
                                  recipient__pupil_email__iexact=request.user.email).exists():
         return False
-    return not seb_lockdown_ok(request)
+    return not seb_lockdown_ok(request, assignment=assignment)
 
 
-def _seb_ok_once(request):
-    """seb_lockdown_ok(), worked out once per request (the assignments list asks per exam)."""
-    if not hasattr(request, '_examhub_seb_ok'):
-        request._examhub_seb_ok = seb_lockdown_ok(request)
-    return request._examhub_seb_ok
+def _seb_ok_once(request, assignment=None):
+    """seb_lockdown_ok(), worked out once per request (the assignments list asks per exam). Exams
+    with a quit code are checked on their own, since each has its own SEB settings."""
+    cache = request.__dict__.setdefault('_examhub_seb_ok', {})
+    key = assignment.id if seb_quit_code_of(assignment) else None
+    if key not in cache:
+        cache[key] = seb_lockdown_ok(request, assignment=assignment if key else None)
+    return cache[key]
 
 
 def pupil_content_withheld(request, assignment, submission):
@@ -463,7 +527,7 @@ def pupil_content_withheld(request, assignment, submission):
         return False
     if assignment.require_join_code and not (submission is not None and submission.started_at):
         return True
-    return assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not _seb_ok_once(request)
+    return assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not _seb_ok_once(request, assignment)
 
 
 def _pupil_join_code_pending(request, assignment):
@@ -798,6 +862,9 @@ def serialize_assignment(assignment, pupil_email=None, request=None):
         # The real code is only ever sent to the teacher's own view — sending it to
         # pupils in the assignments payload would make the "gate" pointless.
         'joinCode': assignment.join_code if is_teacher_view else None,
+        # Same for the Safe Exam Browser quit code: teacher's view only, never the pupil's.
+        'sebQuitCode': seb_quit_code_of(assignment) if is_teacher_view else None,
+        'hasSebQuitCode': bool(seb_quit_code_of(assignment)),
         'allowCalculator': assignment.allow_calculator,
         'allowGraphingCalculator': assignment.allow_graphing_calculator,
         'allowSpellcheck': assignment.allow_spellcheck,
@@ -846,7 +913,7 @@ def item_pdf(request, item_id):
     if _pupil_join_code_pending(request, assignment):
         return join_code_required_response()
     if _needs_seb(request, assignment):
-        return seb_required_response(request)
+        return seb_required_response(request, assignment)
     filename = item.pdf.name.rsplit('/', 1)[-1]
     try:
         handle = item.pdf.open('rb')
@@ -882,7 +949,7 @@ def _serve_item_media(request, item_id, item_type, field_name):
     if _pupil_join_code_pending(request, assignment):
         return join_code_required_response()
     if _needs_seb(request, assignment):
-        return seb_required_response(request)
+        return seb_required_response(request, assignment)
     if item_type == AssignmentItem.ItemType.AUDIO and _audio_play_not_started(request, item):
         return JsonResponse({'code': 'play_not_started',
                              'detail': 'Press Play in the exam to listen to this recording.'}, status=403)
@@ -972,8 +1039,8 @@ def audio_play_api(request, recipient_id, item_id):
         return HttpResponseForbidden('This work is not assigned to your account.')
     item = get_object_or_404(AssignmentItem, id=item_id, assignment=assignment,
                              item_type=AssignmentItem.ItemType.AUDIO)
-    if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not seb_lockdown_ok(request):
-        return seb_required_response(request)
+    if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not seb_lockdown_ok(request, assignment=assignment):
+        return seb_required_response(request, assignment)
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     key = str(item.id)
     if submission.status == 'submitted':
@@ -1105,7 +1172,7 @@ def resource_file(request, resource_id):
     if _pupil_join_code_pending(request, assignment):
         return join_code_required_response()
     if _needs_seb(request, assignment):
-        return seb_required_response(request)
+        return seb_required_response(request, assignment)
     filename = resource.file.name.rsplit('/', 1)[-1]
     content_type = ('application/pdf' if resource.kind == ExamResource.Kind.PDF
                     else mimetypes.guess_type(filename)[0] or 'application/octet-stream')
@@ -1325,6 +1392,7 @@ def create_assignment(request):
         teacher_name=teacher_name, teacher_email=teacher_email,
         opens_at=opens_at, due_at=due_at, is_hidden=(visibility == 'hidden'),
         delivery_mode=delivery_mode, require_join_code=require_join_code, join_code=join_code,
+        seb_quit_code=new_seb_quit_code() if delivery_mode == Assignment.DeliveryMode.LOCKDOWN else '',
         allow_calculator=allow_calculator, allow_graphing_calculator=allow_graphing_calculator,
         allow_spellcheck=allow_spellcheck, allow_text_to_speech=allow_text_to_speech)
     for prepared in prepared_items:
@@ -1419,6 +1487,12 @@ def update_assignment_api(request, assignment_id):
     if assignment.due_at and assignment.opens_at and assignment.due_at <= assignment.opens_at:
         return HttpResponseBadRequest('The closing time must be after the exam becomes visible.')
     assignment.delivery_mode = delivery_mode
+    # Switched to Lockdown (or a Lockdown exam from before quit codes): give it a quit code — but
+    # never once a pupil has started, because a pupil already in SEB has the old settings and
+    # would no longer be let in. An existing code is never changed, for the same reason.
+    if (delivery_mode == Assignment.DeliveryMode.LOCKDOWN and not assignment.seb_quit_code
+            and not Submission.objects.filter(recipient__assignment=assignment, started_at__isnull=False).exists()):
+        assignment.seb_quit_code = new_seb_quit_code()
 
     require_join_code = bool(payload.get('requireJoinCode'))
     if require_join_code and not assignment.require_join_code:
@@ -1552,8 +1626,8 @@ def start_submission(request, recipient_id):
         if recipient.pupil_email.lower() != request.user.email.lower():
             return HttpResponseForbidden('This work is not assigned to your account.')
     assignment = recipient.assignment
-    if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
-        return seb_required_response(request)
+    if assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request, assignment=assignment):
+        return seb_required_response(request, assignment)
     if assignment.require_join_code:
         try:
             payload = json.loads(request.body or '{}')
@@ -1589,8 +1663,9 @@ def submission_from_request(request, recipient_id, final=False):
     if request.user.role == User.Role.PUPIL and not request.user.is_superuser:
         if recipient.pupil_email.lower() != request.user.email.lower():
             return None, HttpResponseForbidden('This work is not assigned to your account.')
-    if recipient.assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) and not seb_lockdown_ok(request):
-        return None, seb_required_response(request)
+    if recipient.assignment.delivery_mode == Assignment.DeliveryMode.LOCKDOWN and is_real_pupil(request) \
+            and not seb_lockdown_ok(request, assignment=recipient.assignment):
+        return None, seb_required_response(request, recipient.assignment)
     payload = json.loads(request.body or '{}')
     submission, _ = Submission.objects.get_or_create(recipient=recipient)
     if submission.status == 'submitted':
@@ -2944,13 +3019,24 @@ def seb_launch_config(request, token):
     """The per-launch .seb file. Deliberately NOT login_required: SEB downloads its config
     with its own HTTP client, which has none of the browser's cookies — the signed token is
     what authorises it."""
-    user, _ = read_seb_launch_token(token)
+    user, aid = read_seb_launch_token(token)
     if not user:
         return HttpResponseForbidden('This exam link has expired. Go back to Andam and click Open again.')
-    settings_dict = seb_config_settings(request.get_host(), _public_scheme(request), reverse('seb-enter', args=[token]))
+    settings_dict = seb_config_settings(request.get_host(), _public_scheme(request), reverse('seb-enter', args=[token]),
+                                        _launch_quit_code(aid))
     response = HttpResponse(plistlib.dumps(settings_dict, fmt=plistlib.FMT_XML), content_type='application/seb')
     response['Content-Disposition'] = 'attachment; filename="andam-exam.seb"'
     return response
+
+
+def _launch_quit_code(assignment_id):
+    """The quit code a one-time launch file for this exam carries ('' if it has none)."""
+    return seb_quit_code_of(Assignment.objects.filter(id=assignment_id).first()) if assignment_id else ''
+
+
+def _remember_seb_launch(request, token_keys, quit_code):
+    request.session['seb_config_keys'] = token_keys
+    request.session['seb_launch_quit'] = seb_quit_hash(quit_code)
 
 
 SEB_ENTER_PAGE = '''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2998,23 +3084,25 @@ def seb_enter(request, token):
                             f'<a href="{reverse("login")}">Sign in</a> and open the paper again.</p>', status=403)
     host = request.get_host()
     start_path = reverse('seb-enter', args=[token])
-    token_keys = [seb_config_key(host, s, start_path) for s in ('https', 'http')]
+    quit_code = _launch_quit_code(aid)
+    token_keys = [seb_config_key(host, s, start_path, quit_code) for s in ('https', 'http')]
     if request.method == 'POST':
         # The page below, inside a newer SEB that only exposes its keys to JavaScript.
         try:
             payload = json.loads(request.body or '{}')
         except json.JSONDecodeError:
             payload = {}
+        # Only this launch file's own keys: the page must really be running in the SEB it opened.
         if not seb_js_keys_ok(request, [payload.get('url')], [payload.get('configKey'), payload.get('browserExamKey')],
-                              extra_keys=token_keys):
+                              keys=token_keys):
             return JsonResponse({'ok': False, 'detail': 'This link only works inside Safe Exam Browser, opened from Andam.'}, status=403)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        request.session['seb_config_keys'] = token_keys
-        request.session['seb_js_verified'] = True
+        _remember_seb_launch(request, token_keys, quit_code)
+        request.session['seb_js_verified'] = 'launch'
         return JsonResponse({'ok': True, 'redirect': open_url(aid)})
-    if seb_lockdown_ok(request, extra_keys=token_keys):
+    if _seb_headers_match(request, token_keys):
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        request.session['seb_config_keys'] = token_keys
+        _remember_seb_launch(request, token_keys, quit_code)
         return redirect(open_url(aid))
     # No SEB headers on this request. Newer SEB versions only expose their keys to JavaScript,
     # so hand back a tiny page that reads them and posts them here; in any other browser it
@@ -3032,11 +3120,17 @@ def seb_verify_api(request):
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
         return HttpResponseBadRequest('Invalid data.')
-    urls = payload.get('urls') if isinstance(payload.get('urls'), list) else [payload.get('url')]
-    ok = seb_js_keys_ok(request, urls[:4], [payload.get('configKey'), payload.get('browserExamKey')])
-    if ok:
-        request.session['seb_js_verified'] = True
-    return JsonResponse({'ok': ok})
+    urls = (payload.get('urls') if isinstance(payload.get('urls'), list) else [payload.get('url')])[:4]
+    values = [payload.get('configKey'), payload.get('browserExamKey')]
+    # Which config proved itself matters for exams with a quit code (see seb_lockdown_ok).
+    kind = None
+    for name, keys in (('launch', _session_launch_keys(request)), ('admin', _admin_seb_keys(request)), ('site', None)):
+        if (keys is None or keys) and seb_js_keys_ok(request, urls, values, keys=keys):
+            kind = name
+            break
+    if kind:
+        request.session['seb_js_verified'] = kind
+    return JsonResponse({'ok': bool(kind)})
 
 
 @login_required
@@ -3047,7 +3141,22 @@ def seb_check_api(request):
     effects. Replaces trusting the browser's User-Agent, which some SEB setups don't mark."""
     has_headers = bool(request.META.get('HTTP_X_SAFEEXAMBROWSER_REQUESTHASH')
                        or request.META.get('HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'))
-    return JsonResponse({'ok': seb_lockdown_ok(request), 'sebHeaders': has_headers})
+    # ?assignment=<id>: is this SEB right for that exam? (One with a quit code needs its own launch file.)
+    assignment = None
+    try:
+        assignment_id = int(request.GET.get('assignment') or 0)
+    except ValueError:
+        assignment_id = 0
+    if assignment_id:
+        assignment = Assignment.objects.filter(id=assignment_id).first()
+        if assignment and getattr(request, 'school', None) and assignment.school_id != request.school.id:
+            assignment = None
+    ok = seb_lockdown_ok(request, assignment=assignment)
+    data = {'ok': ok, 'sebHeaders': has_headers}
+    if assignment is not None:
+        # In a SEB that works for Andam, just not opened for this exam: it has to close and relaunch.
+        data['otherExam'] = bool(not ok and seb_lockdown_ok(request))
+    return JsonResponse(data)
 
 
 @login_required

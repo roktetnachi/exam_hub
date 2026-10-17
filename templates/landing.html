@@ -72,6 +72,11 @@
   .btn-ghost:hover{background:rgba(247,241,228,.1);border-color:var(--egg);}
   .btn-ghost svg{width:18px;height:18px;}
 
+  /* "Want Andam at your school?" — Help chat button + email fallback */
+  .talk-link{color:var(--navy);font-weight:600;font-size:15.5px;}
+  .talk-guide{margin-top:14px;font-size:15px;color:var(--soft);}
+  .talk-guide a{color:var(--navy);font-weight:600;}
+
   /* ---------- header ---------- */
   .top{position:fixed;left:0;right:0;top:14px;z-index:50;padding:0 16px;transition:transform .45s var(--ease);}
   .top.hide{transform:translateY(-130%);}
@@ -420,6 +425,7 @@
       <a href="#fair">Fair and secure</a>
       <a href="#access">Accessibility</a>
       <a href="#faq">FAQ</a>
+      <a href="{% url 'guide' %}">Guide</a>
     </nav>
     <a class="btn small" href="/login/">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
     <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Menu"><span></span><span></span></button>
@@ -430,6 +436,7 @@
     <a href="#fair">Fair and secure</a>
     <a href="#access">Accessibility</a>
     <a href="#faq">FAQ</a>
+    <a href="{% url 'guide' %}">Starter guide</a>
     <a class="btn" href="/login/">Sign in<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>
   </nav>
 </header>
@@ -738,7 +745,11 @@
           <li><svg><use href="#i-check"/></svg>Accounts sent by email. Sign in with a password or a one-time emailed code.</li>
           <li><svg><use href="#i-check"/></svg>School admins see every exam and the activity log. Teachers see their own.</li>
         </ul>
-        {% if contact_email %}<a class="btn" href="mailto:{{ contact_email }}?subject=Andam%20for%20our%20school">Email us about your school<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></a>{% endif %}
+        <div class="cta-row" style="justify-content:center;">
+          <button type="button" class="btn" data-open-support="school_enquiry">Ask about Andam for your school<span class="chip" aria-hidden="true"><svg><use href="#i-arrow"/></svg></span></button>
+          {% if contact_email %}<a class="talk-link" href="mailto:{{ contact_email }}?subject=Andam%20for%20our%20school">or email {{ contact_email }}</a>{% endif %}
+        </div>
+        <p class="talk-guide">See how setup works in the <a href="{% url 'guide' %}#schools">starter guide</a>.</p>
       </div>
     </div>
   </section>
@@ -780,7 +791,8 @@
     <div class="foot-cols">
       <span class="logo"><img src="{% static 'digitalexams/brand/andam-mark-on-blue.svg' %}" alt="" width="34" height="34">Andam</span>
       <nav aria-label="Footer">
-        <a href="#screens">Screens</a><a href="#how">How it works</a><a href="#fair">Fair and secure</a><a href="#access">Accessibility</a><a href="#faq">FAQ</a>
+        <a href="#screens">Screens</a><a href="#how">How it works</a><a href="#fair">Fair and secure</a><a href="#access">Accessibility</a><a href="#faq">FAQ</a><a href="{% url 'guide' %}">Starter guide</a>
+        <a href="#" data-open-support>Help</a>
         {% if contact_email %}<a href="mailto:{{ contact_email }}">Contact</a>{% endif %}
       </nav>
       <span class="copy">© {% now "Y" %} Andam</span>
@@ -1054,5 +1066,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
 });
 </script>
+{% include "_support_chat.html" %}
 </body>
 </html>

@@ -1,5 +1,5 @@
 from django.urls import path
-from . import accounts, bulk_import, pdf_export, views
+from . import accounts, bulk_import, pdf_export, support, views
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
@@ -12,6 +12,8 @@ urlpatterns = [
     path('api/accounts/staff/delete/', accounts.delete_staff_api, name='delete-staff'),
     path('api/account/change-password/', views.change_password_api, name='change-password'),
     path('', views.home, name='home'),
+    path('guide/', support.guide_page, name='guide'),
+    path('support/message/', support.support_message_api, name='support-message'),
     path('classes/', views.classes_page, name='classes-page'),
     path('sections/', views.classes_page, name='sections-page'),
     path('year-groups/', views.classes_page, name='year-groups-page'),

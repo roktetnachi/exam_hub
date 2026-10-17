@@ -203,6 +203,7 @@
         {% endif %}
         <p class="help">No password needed — we'll email a one-time code to the address on your account.</p>
       </div>
+      <p class="help" style="margin-top:18px;">New to Andam? <a href="{% url 'guide' %}">Read the starter guide</a> · <button type="button" class="linkbtn" data-open-support="sign_in">Get help signing in</button></p>
     </div>
   </main>
 </div>
@@ -230,5 +231,6 @@
 })();
 </script>
 {% include "_password_toggle.html" %}
+{% include "_support_chat.html" %}
 </body>
 </html>

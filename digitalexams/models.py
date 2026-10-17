@@ -234,6 +234,12 @@ class Assignment(models.Model):
     delivery_mode = models.CharField(max_length=16, choices=DeliveryMode.choices, default=DeliveryMode.BROWSER)
     require_join_code = models.BooleanField(default=False)
     join_code = models.CharField(max_length=8, blank=True, default='')
+    # Lockdown app only: the quit password built into this exam's Safe Exam Browser launch file.
+    # SEB won't close (Quit button, Ctrl/Cmd-Q, closing the window) until someone types it, so a
+    # pupil can't leave the exam on their own; the teacher sees it on the Monitor tab. Submitting
+    # (or the exam ending) still closes SEB without it, through the quit address. Blank = no quit
+    # code (exams made before quit codes existed), and the shared lockdown config still works.
+    seb_quit_code = models.CharField(max_length=12, blank=True, default='')
     allow_calculator = models.BooleanField(default=False)
     allow_graphing_calculator = models.BooleanField(default=False)
     # Browser spell check (red underlines + suggestions) in pupils' answer boxes, notepad and notes.
@@ -534,3 +540,47 @@ class StoredFile(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SupportRequest(models.Model):
+    """A message sent through the "Help" chat (templates/_support_chat.html). Every one is
+    emailed to SUPPORT_EMAIL and also kept here, so nothing is lost if the email fails —
+    Django admin → Support requests lists them. Signed-out visitors (e.g. a school asking
+    about Andam from the landing page) can send one too, so user and school are optional."""
+
+    class Topic(models.TextChoices):
+        SIGN_IN = 'sign_in', 'Signing in / password'
+        EXAM = 'exam', 'Taking or running an exam'
+        SETUP = 'setup', 'Setting up my school'
+        BUG = 'bug', 'Something is broken'
+        SCHOOL_ENQUIRY = 'school_enquiry', 'Bringing Andam to a school'
+        OTHER = 'other', 'Something else'
+
+    class Status(models.TextChoices):
+        NEW = 'new', 'New'
+        ANSWERED = 'answered', 'Answered'
+        CLOSED = 'closed', 'Closed'
+
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    role = models.CharField(max_length=40, blank=True, help_text='Who they said they are (pupil, teacher, admin, school…).')
+    topic = models.CharField(max_length=20, choices=Topic.choices, default=Topic.OTHER)
+    message = models.TextField()
+    page_url = models.CharField(max_length=300, blank=True, help_text='The page they sent it from.')
+    user_agent = models.CharField(max_length=300, blank=True)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='support_requests')
+    school = models.ForeignKey(School, null=True, blank=True, on_delete=models.SET_NULL, related_name='support_requests')
+    email_sent = models.BooleanField(default=False, help_text='False if the email to support could not be sent.')
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW)
+    notes = models.TextField(blank=True, help_text='Your own notes (never shown to the sender).')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @property
+    def reference(self):
+        return f'AND-{self.pk:05d}' if self.pk else ''
+
+    def __str__(self):
+        return f'{self.reference} · {self.name} · {self.get_topic_display()}'

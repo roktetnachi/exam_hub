@@ -121,6 +121,8 @@ TENANT_EXEMPT_PATHS = (
     '/logout/',
     '/password-reset/',
     '/seb/',
+    '/guide/',     # Starter guide — public, so schools thinking about Andam can read it too
+    '/support/',   # Help chat → emails SUPPORT_EMAIL (works signed in or out)
 )
 
 ROOT_URLCONF = 'examhub.urls'
@@ -227,6 +229,11 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or (
 # Set CONTACT_EMAIL in .env / Railway; without it the page falls back to the sending address
 # (EMAIL_HOST_USER), and with neither the button isn't shown.
 CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', '').strip() or EMAIL_HOST_USER
+# Where messages from the Help chat (templates/_support_chat.html) are emailed. Reply-To is set
+# to the sender, so replying from that inbox goes straight back to them. Every message is also
+# kept in Django admin → Support requests, in case the email fails.
+SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', '').strip() or 'digitalexamhub@gmail.com'
+SUPPORT_MESSAGES_PER_HOUR = int(os.environ.get('SUPPORT_MESSAGES_PER_HOUR', '6'))
 LOGIN_CODE_LIFETIME_MINUTES = 10
 LOGIN_CODE_RESEND_SECONDS = 60
 

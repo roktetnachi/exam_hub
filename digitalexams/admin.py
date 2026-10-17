@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django import forms
-from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, School, SchoolClass, Subject, Submission, User
+from .models import ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, Message, Recipient, School, SchoolClass, Subject, Submission, SupportRequest, User
 
 
 class RequireUniqueEmailMixin:
@@ -153,3 +153,22 @@ class AllowedBrowserExamKeyAdmin(admin.ModelAdmin):
     list_filter = ('school',)
     readonly_fields = ('created_at',)
 
+
+@admin.register(SupportRequest)
+class SupportRequestAdmin(admin.ModelAdmin):
+    """Messages from the Help chat. Each was also emailed to SUPPORT_EMAIL — reply from your
+    inbox (Reply goes to the sender), then set the status here to keep track."""
+    list_display = ('reference', 'created_at', 'name', 'email', 'role', 'topic', 'school', 'status', 'email_sent')
+    list_filter = ('status', 'topic', 'email_sent', 'school')
+    list_editable = ('status',)
+    search_fields = ('name', 'email', 'message')
+    readonly_fields = ('reference', 'created_at', 'name', 'email', 'role', 'topic', 'message', 'page_url',
+                       'user_agent', 'user', 'school', 'email_sent')
+    fields = readonly_fields + ('status', 'notes')
+
+    @admin.display(description='Ref')
+    def reference(self, obj):
+        return obj.reference
+
+    def has_add_permission(self, request):
+        return False

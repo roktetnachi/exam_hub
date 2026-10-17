@@ -34,6 +34,9 @@
   .who form{margin:0;}
   .who button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;color:var(--danger-dark);font-weight:600;}
   .who button.tour-link{color:var(--blue);}
+  .who a.guide-link{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--blue);text-decoration:none;}
+  .who a.guide-link:hover{background:var(--blue-tint);}
+  @media (max-width:760px){ .who a.guide-link{display:none;} }
 
   .page{max-width:1240px;margin:0 auto;padding:28px 24px 48px;}
   .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
@@ -98,6 +101,7 @@
   <div class="who">
     <span class="name">{{ request.user.get_full_name|default:request.user.username }}{% if is_main_admin %} · Main admin{% elif can_manage_classes %} · Admin{% endif %}</span>
     <button type="button" class="tour-link" data-start-tour title="Replay the quick tour">Take the tour</button>
+    <a class="tour-link guide-link" href="{% url 'guide' %}" target="_blank" rel="noopener" title="Starter guide for admins, teachers and pupils">Guide</a>
     <form method="post" action="{{ request.school_url_prefix|default:'' }}{% url 'logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
   </div>
 </header>
@@ -135,5 +139,6 @@ function showToast(message, kind){
 {% include "_tour.html" %}
 {% include "_notifications.html" %}
 {% include "_password_toggle.html" %}
+{% include "_support_chat.html" %}
 </body>
 </html>
