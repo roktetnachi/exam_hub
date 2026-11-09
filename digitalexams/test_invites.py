@@ -30,10 +30,10 @@ class InviteAndFirstLoginTests(TestCase):
         self.assertIn(f"Username: {data['username']}", body)
         self.assertIn('Email me a code', body)
         self.assertIn('Change password', body)
-        self.assertTrue(body.rstrip().splitlines()[-3].startswith('Website: https://digitalexamhub.up.railway.app/'))
+        self.assertTrue(body.rstrip().splitlines()[-3].startswith('Login here: https://andam-exams.up.railway.app/login/'))
         self.assertNotIn('Sign in here', body)
         self.assertEqual(mail.outbox[-1].subject, 'Your Andam account at SSC')
-        self.assertEqual(data['website'], 'https://digitalexamhub.up.railway.app/')
+        self.assertEqual(data['website'], 'https://andam-exams.up.railway.app/')
         # first sign-in with the temporary password
         self.client.logout()
         r = self.client.post('/s/ssc/login/', {'action': 'password', 'username': data['username'], 'password': temp, 'login_as': 'pupil'})

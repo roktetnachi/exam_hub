@@ -16,7 +16,7 @@ Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through i
 | 1.3 | `.env` file exists at project root | Present | |
 | 1.4 | `SECRET_KEY` is set in Railway → Variables. With `DEBUG` off the site refuses to start without it; the built-in default only works locally | Non-default value in prod | |
 | 1.5 | `DEBUG` is `False` in production — automatic on Railway (`RAILWAY_ENVIRONMENT` is set), `True` locally; `DEBUG=1` / `DEBUG=0` overrides | `False` on the live site | |
-| 1.6 | `ALLOWED_HOSTS` accepts the production domain: `.railway.app` (any Railway domain) + `RAILWAY_PUBLIC_DOMAIN` + anything in the `ALLOWED_HOSTS` env var (comma-separated, for a custom domain) | `digitalexamhub.up.railway.app` (or custom domain) not refused with 400 | |
+| 1.6 | `ALLOWED_HOSTS` accepts the production domain: `.railway.app` (any Railway domain) + `RAILWAY_PUBLIC_DOMAIN` + anything in the `ALLOWED_HOSTS` env var (comma-separated, for a custom domain) | `andam-exams.up.railway.app` (or custom domain) not refused with 400 | |
 | 1.7 | `CSRF_TRUSTED_ORIGINS` covers the same hosts (`https://*.railway.app` + each extra host) | Sign-in and form posts accepted on the live domain | |
 | 1.8 | `SchoolTenantMiddleware` is listed in `MIDDLEWARE` (after Session/Auth) | Present and correctly ordered | |
 | 1.9 | `TENANT_EXEMPT_PATHS` (optional) does not accidentally expose school routes | Only safe paths listed | |
@@ -25,7 +25,7 @@ Mark each item `✅ Pass`, `❌ Fail`, or `⚠️ Warning` as you work through i
 | 1.12 | Test email actually arrives (not in spam) from the configured account | Delivered | |
 | 1.13 | Database comes from `DATABASE_URL` (no password in `settings.py`): `.env` locally; Railway web service → Variables → `DATABASE_URL` = reference to `${{Postgres.DATABASE_URL}}`. Password rotated (Postgres → Database → Credentials) after the move, since the old one is in git history | Site starts; old password no longer works | |
 | 1.14 | `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")` is set | Links and `.seb` files built with `https://` | |
-| 1.15 | `SITE_URL` env var (optional) matches the public address used in invite emails | Unset = `https://digitalexamhub.up.railway.app` | |
+| 1.15 | `SITE_URL` env var (optional) matches the public address used in invite emails | Unset = `https://andam-exams.up.railway.app` | |
 | 1.16 | With `DEBUG` off: `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` are `True`; errors still appear in Railway's log (`LOGGING` → console) | Cookies https-only; tracebacks in the log | |
 | 1.17 | A wrong address on the live site (e.g. `/s/<slug>/nope/`) shows a plain "Not Found", **not** Django's yellow page listing every URL | Plain 404 | |
 
@@ -252,7 +252,7 @@ ls staticfiles/
 |---|-------|----------|--------|
 | 11.1 | `Procfile` specifies the correct `web` process | `gunicorn examhub.wsgi` | |
 | 11.2 | Railway build succeeds (no pip install errors) | Build log clean | |
-| 11.3 | Production URL responds with HTTP 200 | `https://digitalexamhub.up.railway.app/` | |
+| 11.3 | Production URL responds with HTTP 200 | `https://andam-exams.up.railway.app/` | |
 | 11.4 | Migrations run automatically on deploy (or via release command) | No unapplied migrations on live DB | |
 | 11.5 | SSL/TLS active on the Railway domain | HTTPS, valid cert | |
 | 11.6 | `sslmode=require` in DB `OPTIONS` when connecting through the public proxy (`*.rlwy.net`); not forced on Railway's private network (`*.railway.internal`) | Connects in both places | |
@@ -337,7 +337,7 @@ python manage.py check --deploy
 | # | Check | Expected | Status |
 |---|-------|----------|--------|
 | 16.1 | New accounts (Roles page, bulk import, superadmin) have `must_change_password=True` | Field set | |
-| 16.2 | Invite (single / selected / "everyone not yet invited") email: subject "Your ExamHub account at <school>"; "Hi <first name>", username, temporary password, how to change the password, forgot-password steps ("Email me a code" with their username), then **Website: https://digitalexamhub.up.railway.app/** (no "Sign in here" link) | Email received, reads correctly | |
+| 16.2 | Invite (single / selected / "everyone not yet invited") email: subject "Your Andam account at <school>"; "Hi <first name>", username, temporary password, how to change the password, forgot-password steps ("Email me a code" with their username), then **Login here: https://andam-exams.up.railway.app/login/** (no "Sign in here" link) | Email received, reads correctly | |
 | 16.3 | Invite sets a **new** temporary password and `invited_at`; status shows "Invited" | Status chip updated | |
 | 16.4 | Re-inviting an Active account warns first, then resets their password | Confirmation shown | |
 | 16.5 | Invite email failure → "Download logins (.csv)" offered | CSV has name, email, username, temp password, link | |

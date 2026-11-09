@@ -47,7 +47,7 @@ def temp_password():
 # The public address of Andam, used in invites so the link always works — even when the
 # invite was sent from a laptop running the site locally. Override with SITE_URL (env or
 # settings) if the site moves to another domain.
-DEFAULT_SITE_URL = 'https://digitalexamhub.up.railway.app'
+DEFAULT_SITE_URL = 'https://andam-exams.up.railway.app'
 
 
 def site_url():
@@ -61,7 +61,7 @@ def login_url(request, user):
 
 
 def invite_email_body(user, school, password):
-    site = site_url() + '/'
+    login = f'{site_url()}/login/'
     return (f'Hi {user.first_name or user.username},\n\n'
             f'Here\'s your Andam account at {school}.\n\n'
             f'Username: {user.username}\n'
@@ -73,7 +73,7 @@ def invite_email_body(user, school, password):
             f'Forgot your password?\n'
             f'On the sign-in page, choose "Email me a code" and enter your username. We\'ll send a code to {user.email}. '
             f'Sign in with that code, then click your name at the top right and choose "Change password" to set a new one.\n\n'
-            f'Website: {site}\n\n'
+            f'Login here: {login}\n\n'
             f'— {school}, sent by Andam')
 
 

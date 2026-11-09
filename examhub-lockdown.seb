@@ -7,12 +7,12 @@
 	<key>hashedQuitPassword</key>
 	<string></string>
 	<key>quitURL</key>
-	<string>https://digitalexamhub.up.railway.app/?sebquit=1</string>
+	<string>https://andam-exams.up.railway.app/?sebquit=1</string>
 	<key>quitURLConfirm</key>
 	<false/>
 	<key>sendBrowserExamKey</key>
 	<true/>
 	<key>startURL</key>
-	<string>https://digitalexamhub.up.railway.app/</string>
+	<string>https://andam-exams.up.railway.app/</string>
 </dict>
 </plist>

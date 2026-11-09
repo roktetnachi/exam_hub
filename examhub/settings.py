@@ -80,11 +80,13 @@ if not _DATABASE_URL:
         'service: Variables -> New Variable -> DATABASE_URL = ${{Postgres.DATABASE_URL}}')
 # Railway's public proxy (*.rlwy.net) needs SSL; its private network (*.railway.internal) doesn't.
 _db_host = urlsplit(_DATABASE_URL).hostname or ''
+_is_postgres = _DATABASE_URL.startswith(('postgres://', 'postgresql://'))
 DATABASES = {
     'default': dj_database_url.parse(
-        _DATABASE_URL, conn_max_age=60, ssl_require=not _db_host.endswith('.railway.internal')),
+        _DATABASE_URL, conn_max_age=60, ssl_require=bool(_is_postgres and not _db_host.endswith('.railway.internal'))),
 }
-DATABASES['default'].setdefault('OPTIONS', {})['connect_timeout'] = 10
+if _is_postgres:
+    DATABASES['default'].setdefault('OPTIONS', {})['connect_timeout'] = 10
 
 # Application definition
 
