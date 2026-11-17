@@ -1942,26 +1942,6 @@
       </div>
     </div>
 
-    <div class="exam-intro-backdrop hidden" id="examIntroBackdrop" role="dialog" aria-modal="true" aria-labelledby="examIntroTitle">
-      <div class="exam-intro">
-        <div class="exam-intro-brand">
-          {% if request.school and request.school.logo %}<img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" class="exam-intro-logo">{% endif %}
-          <div class="exam-intro-school">{{ request.school.name|default:"Andam" }}</div>
-        </div>
-        <h1 id="examIntroTitle"></h1>
-        <div class="exam-intro-facts" id="examIntroFacts"></div>
-        <div class="exam-intro-label">Instructions</div>
-        <div class="exam-intro-text" id="examIntroText"></div>
-        <p class="exam-intro-help" id="examIntroHelp">Need larger text, a reading font or different colours?
-          <button type="button" id="examIntroA11yBtn">Accessibility options</button></p>
-        <div class="exam-intro-actions">
-          <button type="button" class="btn outline" id="examIntroBack">Back to my tasks</button>
-          <button type="button" class="btn exam-intro-start" id="examIntroStart">Start exam</button>
-        </div>
-        <p class="exam-intro-note" id="examIntroNote"></p>
-      </div>
-    </div>
-
     <div class="modal-backdrop hidden" id="joinCodeBackdrop">
       <div class="card" style="width:340px;max-width:90vw;">
         <h2 style="margin-bottom:6px;">Enter join code</h2>
@@ -2151,6 +2131,27 @@
     </div>
 
   </div>
+
+    <!-- Shared between pupil task launch and teacher Create/Edit popup previews (must stay outside #studentView). -->
+    <div class="exam-intro-backdrop hidden" id="examIntroBackdrop" role="dialog" aria-modal="true" aria-labelledby="examIntroTitle">
+      <div class="exam-intro">
+        <div class="exam-intro-brand">
+          {% if request.school and request.school.logo %}<img src="{{ request.school.logo.url }}" alt="{{ request.school.name }}" class="exam-intro-logo">{% endif %}
+          <div class="exam-intro-school">{{ request.school.name|default:"Andam" }}</div>
+        </div>
+        <h1 id="examIntroTitle"></h1>
+        <div class="exam-intro-facts" id="examIntroFacts"></div>
+        <div class="exam-intro-label">Instructions</div>
+        <div class="exam-intro-text" id="examIntroText"></div>
+        <p class="exam-intro-help" id="examIntroHelp">Need larger text, a reading font or different colours?
+          <button type="button" id="examIntroA11yBtn">Accessibility options</button></p>
+        <div class="exam-intro-actions">
+          <button type="button" class="btn outline" id="examIntroBack">Back to my tasks</button>
+          <button type="button" class="btn exam-intro-start" id="examIntroStart">Start exam</button>
+        </div>
+        <p class="exam-intro-note" id="examIntroNote"></p>
+      </div>
+    </div>
 
     <div class="modal-backdrop hidden" id="rosterModal">
       <div class="card" style="width:720px;max-width:94vw;max-height:86vh;overflow:auto;">
@@ -6438,7 +6439,9 @@ function normalizeManilaPreviewIso(raw){
   if(!raw) return '';
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw) ? `${raw}+08:00` : raw;
 }
+let activeExamIntroPreviewCleanup = null;
 function previewExamIntro(draft, closesAt){
+  if(activeExamIntroPreviewCleanup){ activeExamIntroPreviewCleanup(); activeExamIntroPreviewCleanup = null; }
   const backdrop = document.getElementById('examIntroBackdrop');
   document.getElementById('examIntroTitle').textContent = (draft.title || '').trim() || 'Untitled exam';
   document.getElementById('examIntroFacts').innerHTML = buildExamIntroFacts(draft, closesAt).map(f=>`<span>${escapeHtml(f)}</span>`).join('');
@@ -6459,9 +6462,11 @@ function previewExamIntro(draft, closesAt){
     back.removeEventListener('click', closePreview);
     backdrop.removeEventListener('click', onBackdrop);
     document.removeEventListener('keydown', onEsc);
+    if(activeExamIntroPreviewCleanup === closePreview) activeExamIntroPreviewCleanup = null;
   }
   function onBackdrop(e){ if(e.target === backdrop) closePreview(); }
   function onEsc(e){ if(e.key === 'Escape') closePreview(); }
+  activeExamIntroPreviewCleanup = closePreview;
   back.addEventListener('click', closePreview);
   backdrop.addEventListener('click', onBackdrop);
   document.addEventListener('keydown', onEsc);
@@ -6478,30 +6483,29 @@ document.getElementById('previewCreateIntroBtn').addEventListener('click', ()=>{
     items,
     resources: resources.meta || [],
     deliveryMode,
-    hasSebQuitCode: deliveryMode === 'lockdown' && !!(document.getElementById('aSebQuitCode')?.value || '').trim(),
+    hasSebQuitCode: deliveryMode === 'lockdown',
     allowCalculator: document.getElementById('aAllowCalculator').checked,
     allowSpellcheck: document.getElementById('aAllowSpellcheck').checked,
     allowTextToSpeech: document.getElementById('aAllowTextToSpeech').checked,
   }, normalizeManilaPreviewIso(dueRaw));
 });
 document.getElementById('previewEditIntroBtn').addEventListener('click', ()=>{
-  const id = Number(document.getElementById('editAssignmentId').value);
-  const a = state.assignments.find(x=>x.id === id) || {};
-  const modeEl = document.getElementById('editAssignmentMode');
-  const dueEl = document.getElementById('editAssignmentDue');
-  const calcEl = document.getElementById('editAssignmentAllowCalculator');
-  const spellEl = document.getElementById('editAssignmentAllowSpellcheck');
-  const ttsEl = document.getElementById('editAssignmentAllowTextToSpeech');
-  const sebEl = document.getElementById('editAssignmentSebQuitCode');
+  const a = state.assignments.find(x=>x.id === editingAssignmentId) || {};
+  const closeModeEl = document.getElementById('editCloseMode');
+  const dueEl = document.getElementById('editAssignmentDueAt');
+  const modeEl = document.getElementById('editAssignmentDeliveryMode');
+  const calcEl = document.getElementById('editAssignmentCalculator');
+  const spellEl = document.getElementById('editAssignmentSpellcheck');
+  const ttsEl = document.getElementById('editAssignmentTextToSpeech');
   const deliveryMode = modeEl ? modeEl.value : a.deliveryMode;
-  const dueRaw = dueEl ? dueEl.value : a.due;
+  const dueRaw = (!closeModeEl || closeModeEl.value === 'scheduled') ? (dueEl ? dueEl.value : a.dueAt) : '';
   previewExamIntro({
     title: (document.getElementById('editAssignmentTitle')?.value || '').trim() || a.title,
     prompt: readRichEditorHtml(document.getElementById('editAssignmentInstructions')),
     items: a.items || [],
     resources: a.resources || [],
     deliveryMode,
-    hasSebQuitCode: (sebEl && !!sebEl.value.trim()) || !!a.hasSebQuitCode,
+    hasSebQuitCode: deliveryMode === 'lockdown' && (!!a.hasSebQuitCode || a.deliveryMode !== 'lockdown'),
     allowCalculator: calcEl ? calcEl.checked : !!a.allowCalculator,
     allowSpellcheck: spellEl ? spellEl.checked : !!a.allowSpellcheck,
     allowTextToSpeech: ttsEl ? ttsEl.checked : (a.allowTextToSpeech !== false),

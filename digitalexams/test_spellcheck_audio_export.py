@@ -446,6 +446,10 @@ class AccessibilityAndOfflineTests(TestCase):
         for needle in ('id="aPromptToolbar"', 'id="editInstructionsToolbar"',
                        'id="previewCreateIntroBtn"', 'id="previewEditIntroBtn"',
                        'function previewExamIntro', 'function sanitizeRichHtml',
-                       'function renderInstructionsInto'):
+                       'function renderInstructionsInto', 'x.id === editingAssignmentId'):
             self.assertIn(needle, html)
+        # Popup backdrop must live outside #studentView so teacher previews render it visibly.
+        self.assertGreater(html.index('id="examIntroBackdrop"'), html.index('id="calculatorModal"'))
+        self.assertLess(html.index('id="examIntroBackdrop"'), html.index('id="rosterModal"'))
+        self.assertNotIn('editAssignmentId', html)
         self.assertNotIn('(?<', html)
