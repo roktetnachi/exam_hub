@@ -248,6 +248,9 @@ class Assignment(models.Model):
     # Pupils' "Read aloud" (the browser's text-to-speech in the Accessibility menu). On by default;
     # a teacher turns it off where hearing the text would help (reading comprehension, languages).
     allow_text_to_speech = models.BooleanField(default=True)
+    # Multi-colour text highlighting inside pupils' written answer boxes. Off by default; teachers
+    # can turn it on in exam setup when they want pupils to highlight their own answers.
+    allow_answer_highlight = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

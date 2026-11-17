@@ -48,6 +48,8 @@
   .nav-menu a.active{color:var(--blue-dark);background:#eef1f9;}
 
   .app{padding:26px 26px 40px;max-width:1300px;margin:0 auto;}
+  .app:has(#teacherAssignmentDetail:not(.hidden) #detailPanel-grade:not(.hidden)),
+  .app:has(#teacherReview:not(.hidden)){max-width:1560px;}
   .hidden{display:none !important;}
 
   h2{font-size:20px;margin:0 0 4px 0;}
@@ -109,6 +111,14 @@
   .tm-status{font-size:12px;color:var(--muted);margin-left:auto;}
   .tm-block.marking .tm-answer{outline:2px dashed rgba(217,35,26,.45);outline-offset:2px;background:#fff;cursor:text;}
   .tm-block .tm-answer{max-height:60vh;overflow-y:auto;}  /* long answers scroll, so the comments stay close by */
+  .tm-block.expanded .tm-answer,.answer-reader-slot .tm-block .tm-answer{max-height:none;overflow-y:visible;}
+  .tm-bar-actions{display:inline-flex;align-items:center;gap:6px;margin-left:auto;}
+  .tm-bar-btn{border:1px solid var(--border);background:#fff;color:var(--blue-dark);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;line-height:1.4;}
+  .tm-bar-btn:hover{background:#eef1f9;}
+  .tm-bar-btn.active{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
+  .answer-reader-card{width:min(1160px,96vw) !important;max-height:92vh !important;display:flex;flex-direction:column;gap:10px;}
+  .answer-reader-slot{overflow-y:auto;flex:1;padding-right:4px;}
+  .answer-reader-prompt{background:#f8fafd;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;max-height:22vh;overflow-y:auto;}
   .tm-block{container-type:inline-size;}
   .tm-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;}
   @container (min-width: 620px){ .tm-grid{grid-template-columns:minmax(0,1fr) 220px;} }
@@ -715,7 +725,14 @@
   .rv-score{background:#e4f3e4;color:#1f7a35;font-weight:800;border-radius:999px;padding:6px 14px;font-size:14px;}
   .rv-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,1fr);gap:16px;align-items:start;}
   .rv-layout.wide{grid-template-columns:minmax(0,2.2fr) minmax(320px,1fr);}
-  .rv-layout.no-viewer{grid-template-columns:minmax(0,1fr);max-width:900px;}
+  .rv-layout.answers-wide{grid-template-columns:minmax(260px,0.72fr) minmax(520px,1.45fr);}
+  .rv-layout.answers-only{grid-template-columns:minmax(0,1fr);max-width:1200px;margin:0 auto;}
+  .rv-layout.answers-only .rv-viewer{display:none;}
+  .rv-layout.no-viewer{grid-template-columns:minmax(0,1fr);max-width:1140px;margin:0 auto;}
+  .rv-mode-toggle{display:inline-flex;align-items:center;background:var(--page-bg);border:1px solid var(--border);border-radius:999px;padding:2px;gap:2px;}
+  .rv-mode-toggle button{border:none;background:none;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;line-height:1.3;}
+  .rv-mode-toggle button:hover{color:var(--blue-dark);}
+  .rv-mode-toggle button.active{background:#fff;color:var(--blue-dark);box-shadow:0 1px 3px rgba(40,24,111,.14);}
   .rv-viewer{position:sticky;top:12px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:480px;}
   .rv-toolbar{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:#fafbfd;}
   .rv-toolbar select{font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;max-width:220px;}
@@ -749,7 +766,7 @@
   .rv-chip.ok{background:#e4f3e4;color:#1f7a35;} .rv-chip.no{background:#fbeae9;color:#a91c15;}
   .rv-chip.blank{background:#f1f3f6;color:var(--muted);} .rv-chip.pts{background:#eef1f9;color:var(--blue-dark);}
   .rv-chip.notes{background:#fff6cf;color:#7a5d00;}
-  .rv-body{padding:2px 16px 16px 50px;font-size:14px;line-height:1.55;}
+  .rv-body{padding:6px 16px 16px 18px;font-size:14px;line-height:1.55;}
   .rv-body .rv-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px;}
   .rv-body .rv-label:first-child{margin-top:4px;}
   .rv-answer{background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:10px 12px;overflow-x:auto;word-break:break-word;}
@@ -762,7 +779,7 @@
   .rv-ann .sw.y{background:var(--yellow);} .rv-ann .sw.g{background:var(--green);} .rv-ann .sw.c{background:var(--cyan);} .rv-ann .sw.m{background:var(--magenta);} .rv-ann .sw.sw-note{background:#fdf6b2;border:1px solid #d5bd30;}
   .rv-ann .pg{color:var(--muted);font-size:11.5px;white-space:nowrap;margin-left:auto;padding-left:8px;}
   .rv-show-btn{margin-top:10px;}
-  @media (max-width: 1000px){ .rv-layout,.rv-layout.wide{grid-template-columns:minmax(0,1fr);} .rv-viewer{position:relative;top:0;height:70vh;} }
+  @media (max-width: 1000px){ .rv-layout,.rv-layout.wide,.rv-layout.answers-wide{grid-template-columns:minmax(0,1fr);} .rv-viewer{position:relative;top:0;height:70vh;} }
 
   .resp-pane{flex:1;display:flex;flex-direction:column;min-width:0;}
   .resp-top{padding:14px 16px 8px 16px;}
@@ -841,6 +858,24 @@
   .word-count{margin-left:auto;margin-right:14px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
   .color-input-label{display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:#3c4552;cursor:pointer;padding:0 3px;}
   .color-input-label input[type=color]{width:16px;height:16px;border:none;padding:0;background:none;cursor:pointer;}
+  .answer-hilite-tools{display:inline-flex;align-items:center;gap:3px;}
+  .hilite-swatches{display:inline-flex;align-items:center;gap:4px;}
+  .hilite-sw{width:18px !important;height:18px !important;min-width:18px !important;border-radius:50% !important;border:1px solid rgba(0,0,0,.18) !important;padding:0 !important;cursor:pointer;}
+  .hilite-sw:hover{transform:scale(1.12);}
+  .hilite-clear-btn{min-width:22px !important;height:22px !important;font-size:15px !important;line-height:1;color:var(--muted) !important;border:1px dashed var(--border) !important;border-radius:50% !important;}
+  .table-ctx-tools{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;background:#eef5fb;border:1px solid #cfe3ea;border-radius:7px;padding:2px 6px;margin-top:2px;}
+  .table-ctx-tools .tctx-lbl{font-size:11px;font-weight:700;color:var(--blue-dark);text-transform:uppercase;letter-spacing:.03em;margin-right:2px;}
+  .table-ctx-tools button{width:auto !important;min-width:0 !important;height:24px !important;padding:0 7px !important;font-size:12px !important;font-weight:600;background:#fff;border:1px solid var(--border);border-radius:5px;color:var(--text);}
+  .table-ctx-tools button:hover{background:#dfeef9;border-color:var(--blue);}
+  .table-ctx-tools button.danger{color:var(--danger-dark);}
+  .table-picker-pop{position:fixed;z-index:160;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 30px -10px rgba(30,41,59,.45);padding:10px 12px;width:196px;}
+  .table-picker-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:6px;}
+  .table-grid-picker{display:grid;grid-template-columns:repeat(6, 1fr);gap:3px;margin-bottom:8px;}
+  .table-grid-picker button{width:24px;height:20px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:3px;cursor:pointer;padding:0;}
+  .table-grid-picker button.hot{background:#dbeafe;border-color:var(--blue);}
+  .table-picker-custom{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);}
+  .table-picker-custom input{width:46px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:center;}
+  .table-picker-custom .btn{padding:4px 9px;font-size:12px;margin-left:auto;}
 
   .notepad-modal{
     position:fixed;top:90px;right:40px;width:420px;max-width:90vw;background:#fff;border:1px solid var(--border);
@@ -1475,6 +1510,7 @@
             <label class="opt-card"><input type="checkbox" id="aAllowGraphingCalculator"><span><strong>Graphing calculator</strong><small>Y=, graph, trace, table, zero / min / max / intersect.</small></span></label>
             <label class="opt-card"><input type="checkbox" id="aAllowSpellcheck"><span><strong>Spell check</strong><small>Red underlines and suggestions. Leave off for language and writing exams.</small></span></label>
             <label class="opt-card"><input type="checkbox" id="aAllowTextToSpeech" checked><span><strong>Read aloud</strong><small>Questions and selected text read to the pupil. Turn off for reading comprehension and language exams.</small></span></label>
+            <label class="opt-card"><input type="checkbox" id="aAllowAnswerHighlight"><span><strong>Answer highlighting</strong><small>Multi-colour highlighter in written answers. Off by default.</small></span></label>
           </div>
           <p class="sub" style="margin:8px 0 0;font-size:12.5px;">Text size, reading fonts, spacing and colours are always available to pupils from <strong>Accessibility</strong> — they don't change the exam.</p>
         </div>
@@ -1652,9 +1688,16 @@
         <section class="rv-answers">
           <div class="rv-answers-head">
             <strong>Pupil's work</strong>
-            <div class="row" style="gap:6px;">
-              <button class="link-btn" id="reviewExpandAll" type="button">Expand all</button>
-              <button class="link-btn" id="reviewCollapseAll" type="button">Collapse all</button>
+            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+              <div class="rv-mode-toggle hidden" id="reviewLayoutToggle" role="group" aria-label="Reading space">
+                <button type="button" data-rv-mode="split" class="active" aria-pressed="true" title="PDF and answers side by side">Split</button>
+                <button type="button" data-rv-mode="wide" aria-pressed="false" title="Give answers more width">Wide answers</button>
+                <button type="button" data-rv-mode="answers" aria-pressed="false" title="Hide PDF and use full width for answers">Answers only</button>
+              </div>
+              <div class="row" style="gap:6px;">
+                <button class="link-btn" id="reviewExpandAll" type="button">Expand all</button>
+                <button class="link-btn" id="reviewCollapseAll" type="button">Collapse all</button>
+              </div>
             </div>
           </div>
           <div id="reviewResponse"></div>
@@ -1829,6 +1872,17 @@
             <span class="sep"></span>
             <button data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
             <button data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
+            <span class="answer-hilite-tools hidden" id="answerHiliteTools">
+              <span class="sep"></span>
+              <span class="hilite-swatches" role="group" aria-label="Highlight color">
+                <button type="button" class="hilite-sw" data-hilite="#ffe873" title="Highlight yellow" aria-label="Highlight yellow" style="background:#ffe873;"></button>
+                <button type="button" class="hilite-sw" data-hilite="#b8f2b8" title="Highlight green" aria-label="Highlight green" style="background:#b8f2b8;"></button>
+                <button type="button" class="hilite-sw" data-hilite="#b3ecff" title="Highlight blue" aria-label="Highlight blue" style="background:#b3ecff;"></button>
+                <button type="button" class="hilite-sw" data-hilite="#f9c6e2" title="Highlight pink" aria-label="Highlight pink" style="background:#f9c6e2;"></button>
+                <label class="color-input-label" title="Custom highlight color"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg><input type="color" class="hilite-color-input" value="#ffe873" aria-label="Custom highlight color"></label>
+                <button type="button" class="hilite-clear-btn" data-hilite="transparent" title="Remove highlight" aria-label="Remove highlight">&times;</button>
+              </span>
+            </span>
           </div>
           <div id="responseEditables"></div>
         </div>
@@ -2160,6 +2214,7 @@
             <label class="opt-card"><input type="checkbox" id="editAssignmentGraphingCalculator"><span><strong>Graphing calculator</strong></span></label>
             <label class="opt-card"><input type="checkbox" id="editAssignmentSpellcheck"><span><strong>Spell check</strong><small>Red underlines and suggestions</small></span></label>
             <label class="opt-card"><input type="checkbox" id="editAssignmentTextToSpeech"><span><strong>Read aloud</strong><small>Text-to-speech</small></span></label>
+            <label class="opt-card"><input type="checkbox" id="editAssignmentAnswerHighlight"><span><strong>Answer highlighting</strong><small>Multi-colour highlighter</small></span></label>
           </div>
         </div>
         <div class="field" style="margin-top:6px;">
@@ -2248,6 +2303,17 @@
         </div>
         <p class="sub" style="margin:2px 0 8px;">Recent actions across the shared teacher account — not exhaustive.</p>
         <div id="activityLogBody" style="overflow-y:auto;flex:1;"></div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="answerReaderModal" role="dialog" aria-modal="true" aria-labelledby="answerReaderTitle">
+      <div class="card answer-reader-card">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;" id="answerReaderTitle">Pupil's answer</h2>
+          <button type="button" class="btn small outline" id="closeAnswerReaderBtn">Done reading</button>
+        </div>
+        <div class="answer-reader-prompt hidden" id="answerReaderPrompt"></div>
+        <div class="answer-reader-slot" id="answerReaderSlot"></div>
       </div>
     </div>
 
@@ -2374,6 +2440,7 @@ function apiAssignment(a){
     sebQuitCode:a.sebQuitCode||null, hasSebQuitCode:!!a.hasSebQuitCode,
     allowCalculator:!!a.allowCalculator, allowGraphingCalculator:!!a.allowGraphingCalculator,
     allowSpellcheck:!!a.allowSpellcheck, allowTextToSpeech: a.allowTextToSpeech !== false,
+    allowAnswerHighlight:!!a.allowAnswerHighlight,
     resources:a.resources||[]};
 }
 async function loadAssignments(pupilEmail=''){
@@ -2764,6 +2831,7 @@ function buildAssignmentUpdatePayload(a, overrides){
     allowGraphingCalculator: !!a.allowGraphingCalculator,
     allowSpellcheck: !!a.allowSpellcheck,
     allowTextToSpeech: a.allowTextToSpeech !== false,
+    allowAnswerHighlight: !!a.allowAnswerHighlight,
   };
   return Object.assign(base, overrides || {});
 }
@@ -2786,6 +2854,7 @@ function openEditAssignmentModal(id){
   document.getElementById('editAssignmentGraphingCalculator').checked = !!a.allowGraphingCalculator;
   document.getElementById('editAssignmentSpellcheck').checked = !!a.allowSpellcheck;
   document.getElementById('editAssignmentTextToSpeech').checked = a.allowTextToSpeech !== false;
+  document.getElementById('editAssignmentAnswerHighlight').checked = !!a.allowAnswerHighlight;
   const errorEl = document.getElementById('editAssignmentError');
   errorEl.classList.add('hidden'); errorEl.textContent = '';
   document.getElementById('editAssignmentModal').classList.remove('hidden');
@@ -2849,6 +2918,7 @@ document.getElementById('saveEditAssignmentBtn').addEventListener('click', async
     allowGraphingCalculator: document.getElementById('editAssignmentGraphingCalculator').checked,
     allowSpellcheck: document.getElementById('editAssignmentSpellcheck').checked,
     allowTextToSpeech: document.getElementById('editAssignmentTextToSpeech').checked,
+    allowAnswerHighlight: document.getElementById('editAssignmentAnswerHighlight').checked,
   };
   if(!document.querySelector('#editPupilChecklist .pupil-check')){
     // List still loading (or failed): leave who it's assigned to unchanged.
@@ -3388,7 +3458,7 @@ function collectItemsForSubmit(){
 // ---------------- generic pill-picker helper (delivery mode / start-close condition / assign-to) ----------------
 const DELIVERY_MODE_NOTES = {
   browser: 'No extra restrictions — pupils can use any browser normally.',
-  browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click and copying. Enforced by Andam, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
+  browser_secure: 'Opens fullscreen and pauses the exam the moment a pupil leaves it (switches tab or app, opens a new tab or window, or exits fullscreen). They can only continue with a one-word resume code shown to you on the Monitor tab. Also disables right-click, blocks copying questions, and blocks pasting from external tabs/apps (pupils can still copy and paste their own answer). Enforced by Andam, not the device — use Lockdown app (Safe Exam Browser) for full device lockdown.',
   lockdown: 'Pupils open this in Safe Exam Browser (SEB), which locks their device to the exam — Andam checks it on every save and blocks the exam in any other browser. SEB stays open until they submit: closing it early needs a quit code, shown to you on the Monitor tab.',
   paper: 'For a paper-based sitting. The exam is recorded but pupils won\'t open it in Andam.',
 };
@@ -3981,6 +4051,7 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
   document.getElementById('aAllowGraphingCalculator').checked = false;
   document.getElementById('aAllowSpellcheck').checked = false;
   document.getElementById('aAllowTextToSpeech').checked = true;
+  document.getElementById('aAllowAnswerHighlight').checked = false;
   document.getElementById('deliveryModeNote').textContent = DELIVERY_MODE_NOTES.browser;
   ['deliveryModePicker','startConditionPicker','closeConditionPicker'].forEach(id=>{
     const c = document.getElementById(id);
@@ -4047,6 +4118,7 @@ document.getElementById('btnCreateAssignment').addEventListener('click', async (
     form.append('allow_graphing_calculator', document.getElementById('aAllowGraphingCalculator').checked ? 'true' : 'false');
     form.append('allow_spellcheck', document.getElementById('aAllowSpellcheck').checked ? 'true' : 'false');
     form.append('allow_text_to_speech', document.getElementById('aAllowTextToSpeech').checked ? 'true' : 'false');
+    form.append('allow_answer_highlight', document.getElementById('aAllowAnswerHighlight').checked ? 'true' : 'false');
     form.append('items_meta', JSON.stringify(items));
     form.append('recipients', JSON.stringify(picked));
     await request('/api/assignments/create/', {method:'POST', body:form});
@@ -4073,6 +4145,7 @@ function renderDeliverSummary(a){
     deliverRow('Graphing calculator', a.allowGraphingCalculator ? 'Allowed' : 'Not allowed'),
     deliverRow('Spell check', a.allowSpellcheck ? 'On' : 'Off'),
     deliverRow('Read aloud', a.allowTextToSpeech !== false ? 'Allowed' : 'Off'),
+    deliverRow('Answer highlighting', a.allowAnswerHighlight ? 'Allowed' : 'Off'),
     deliverRow('Accessibility (text size, fonts, colours)', 'Always available'),
   ];
   document.getElementById('deliverSummaryCard').innerHTML = `<h2 style="margin-bottom:14px;">Delivery settings</h2>` + rows.join('');
@@ -4900,12 +4973,44 @@ function annotationsFor(sub, itemId){ return (sub.annotations||[]).filter(an=>an
 //  - Grade tab ("grade" mode): the same view with the pen-on-paper marking tools, and each item's
 //    score and feedback, so reading, marking and grading happen in one place.
 // The block is moved (not copied) between the two, so its listeners and the viewer state stay put.
+const REVIEW_LAYOUT_KEY = 'examhub-review-layout';
+function getReviewLayoutMode(){
+  try {
+    const v = localStorage.getItem(REVIEW_LAYOUT_KEY);
+    return (v === 'wide' || v === 'answers') ? v : 'split';
+  } catch(_) { return 'split'; }
+}
+function applyReviewLayoutMode(mode, rerender){
+  const layout = document.getElementById('reviewLayout');
+  if(!layout) return;
+  const effective = (mode === 'wide' || mode === 'answers') ? mode : 'split';
+  try { localStorage.setItem(REVIEW_LAYOUT_KEY, effective); } catch(_) {}
+  layout.classList.remove('answers-wide', 'answers-only');
+  if(effective === 'wide') layout.classList.add('answers-wide');
+  if(effective === 'answers') layout.classList.add('answers-only');
+  if(effective !== 'split'){
+    layout.classList.remove('wide');
+    const expBtn = document.getElementById('reviewExpandViewer');
+    if(expBtn) expBtn.innerHTML = '&#x2922;';
+  }
+  document.querySelectorAll('#reviewLayoutToggle [data-rv-mode]').forEach(btn=>{
+    const on = btn.dataset.rvMode === effective;
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+  if(rerender && effective !== 'answers' && !layout.classList.contains('no-viewer')){
+    reviewState.zoom = null;
+    setTimeout(()=>{ renderReviewPage(); if(reviewState.imgZoom == null) applyReviewImageZoom(); }, 30);
+  }
+}
 function parkReviewLayout(){
+  closeAnswerReader();
   const layout = document.getElementById('reviewLayout'), home = document.getElementById('teacherReview');
   if(layout.parentElement !== home) home.appendChild(layout);
 }
 function reviewEditable(){ return reviewState.mode === 'grade'; }
 async function setupWorkspace(a, pupil, mode, focusItemId){
+  closeAnswerReader();
   const sub = a.submissions[pupil];
   tmClosePop(); tmCloseSpot();
   Object.assign(reviewState, {a, sub, pupil, doc:null, page:1, itemId:null, mode});
@@ -4920,6 +5025,8 @@ async function setupWorkspace(a, pupil, mode, focusItemId){
   const layout = document.getElementById('reviewLayout');
   layout.classList.toggle('no-viewer', refItems.length === 0);
   document.getElementById('reviewPdfPane').classList.toggle('hidden', refItems.length === 0);
+  document.getElementById('reviewLayoutToggle').classList.toggle('hidden', refItems.length === 0);
+  applyReviewLayoutMode(refItems.length ? getReviewLayoutMode() : 'split', false);
   const sel = document.getElementById('reviewTextSelect');
   sel.innerHTML = refItems.map(t=>`<option value="${t.id}">${escapeHtml(t.label)}${annotationsFor(sub, t.id).length ? ` · ${annotationsFor(sub, t.id).length} annotation${annotationsFor(sub, t.id).length === 1 ? '' : 's'}` : ''}</option>`).join('');
   sel.onchange = ()=>loadReviewSource(Number(sel.value));
@@ -5104,13 +5211,52 @@ function tmFlash(container, markId){
 
 // ---------- written answers: the review screen block ----------
 const TM_ANSWER_SOURCE = {};   // itemId -> the pupil's answer HTML, as submitted
+TM.reader = null;              // { block, placeholder } while an answer is popped out wide
+function closeAnswerReader(){
+  const r = TM.reader;
+  if(!r) return;
+  TM.reader = null;
+  if(r.placeholder && r.placeholder.parentNode){
+    r.placeholder.parentNode.replaceChild(r.block, r.placeholder);
+  }
+  r.block.classList.remove('in-reader');
+  const popBtn = r.block.querySelector('.tm-popout-btn');
+  if(popBtn) popBtn.textContent = '⤢ Pop out';
+  document.getElementById('answerReaderSlot').innerHTML = '';
+  document.getElementById('answerReaderModal').classList.add('hidden');
+}
+function openAnswerReader(block, item){
+  if(TM.reader && TM.reader.block === block){ closeAnswerReader(); return; }
+  closeAnswerReader();
+  const placeholder = document.createComment('tm-reader-slot');
+  block.parentNode.insertBefore(placeholder, block);
+  TM.reader = {block, placeholder};
+  block.classList.add('in-reader');
+  const popBtn = block.querySelector('.tm-popout-btn');
+  if(popBtn) popBtn.textContent = '✕ Back to list';
+  document.getElementById('answerReaderTitle').textContent = item ? `${item.label || 'Answer'} — Pupil's response` : "Pupil's answer";
+  const promptEl = document.getElementById('answerReaderPrompt');
+  const promptText = item && item.prompt ? String(item.prompt).trim() : '';
+  promptEl.textContent = promptText;
+  promptEl.classList.toggle('hidden', !promptText);
+  const slot = document.getElementById('answerReaderSlot');
+  slot.innerHTML = '';
+  slot.appendChild(block);
+  document.getElementById('answerReaderModal').classList.remove('hidden');
+}
+document.getElementById('closeAnswerReaderBtn').addEventListener('click', closeAnswerReader);
+document.getElementById('answerReaderModal').addEventListener('click', (e)=>{
+  if(e.target === e.currentTarget) closeAnswerReader();
+});
 function tmAnswerBlockHtml(item){
-  // Grade tab: always in marking mode. Review screen: read-only, so no bar at all.
   return `<div class="tm-block" data-item="${item.id}">
-    ${reviewEditable() ? `<div class="tm-bar">
-      <span class="tm-hint">💬 Select words in the answer to comment on them.</span>
-      <span class="tm-status"></span>
-    </div>` : ''}
+    <div class="tm-bar">
+      ${reviewEditable() ? `<span class="tm-hint">💬 Select words in the answer to comment on them.</span><span class="tm-status"></span>` : ''}
+      <span class="tm-bar-actions">
+        <button type="button" class="tm-bar-btn tm-full-height-btn" aria-pressed="false" title="Show the entire answer without inner scrolling">Full height</button>
+        <button type="button" class="tm-bar-btn tm-popout-btn" title="Open this answer in a wide reading window">⤢ Pop out</button>
+      </span>
+    </div>
     <div class="tm-grid"><div class="rv-answer tm-answer"></div><div class="tm-comments"></div></div>
   </div>`;
 }
@@ -5170,6 +5316,16 @@ function tmInitAnswerBlocks(container, a, sub){
       tmClosePop();
       tmDrawAnswer(block, sub);
     });
+    block.querySelector('.tm-full-height-btn')?.addEventListener('click', (e)=>{
+      const on = block.classList.toggle('expanded');
+      e.currentTarget.classList.toggle('active', on);
+      e.currentTarget.setAttribute('aria-pressed', String(on));
+      e.currentTarget.textContent = on ? 'Compact height' : 'Full height';
+    });
+    block.querySelector('.tm-popout-btn')?.addEventListener('click', ()=>{
+      const item = a.items.find(it=>String(it.id) === block.dataset.item);
+      openAnswerReader(block, item);
+    });
     const answer = block.querySelector('.tm-answer');
     answer.addEventListener('mouseup', ()=>setTimeout(()=>{
       if(!block.classList.contains('marking')) return;
@@ -5207,7 +5363,7 @@ document.addEventListener('click', e=>{
     if(c){ c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); tmFlash(scope, hit.dataset.mark); }
   }
 });
-document.addEventListener('keydown', e=>{ if(e.key === 'Escape') { tmClosePop(); tmCloseSpot(); } });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') { tmClosePop(); tmCloseSpot(); closeAnswerReader(); } });
 
 // ---------- PDF: the teacher's own marks + comments on the pupil's annotations ----------
 function tmAnnFingerprint(an){
@@ -5476,6 +5632,7 @@ function wireReviewAnnRows(container, sub){
   }));
 }
 function renderReviewSections(a, sub){
+  closeAnswerReader();
   const scores = sub.itemScores || {};
   const grading = reviewEditable();
   let n = 0;
@@ -5727,9 +5884,13 @@ document.getElementById('reviewShowAnnotations').addEventListener('change', (e)=
 });
 document.getElementById('reviewExpandViewer').addEventListener('click', ()=>{
   const layout = document.getElementById('reviewLayout');
+  applyReviewLayoutMode('split', false);
   layout.classList.toggle('wide');
   document.getElementById('reviewExpandViewer').innerHTML = layout.classList.contains('wide') ? '&#x2921;' : '&#x2922;';
   reviewState.zoom = null; setTimeout(renderReviewPage, 30);
+});
+document.querySelectorAll('#reviewLayoutToggle [data-rv-mode]').forEach(btn=>{
+  btn.addEventListener('click', ()=>applyReviewLayoutMode(btn.dataset.rvMode, true));
 });
 document.getElementById('reviewExpandAll').addEventListener('click', ()=>document.querySelectorAll('#reviewResponse .rv-sec').forEach(d=>d.open = true));
 document.getElementById('reviewCollapseAll').addEventListener('click', ()=>document.querySelectorAll('#reviewResponse .rv-sec').forEach(d=>d.open = false));
@@ -6551,10 +6712,15 @@ function goToItem(itemId, opts={}){
 }
 // The formatting toolbar and word count only make sense for a written answer (PDF / long answer).
 function syncAnswerToolbar(){
+  closeTablePicker();
   const wrap = document.getElementById('responseEditable_' + state.activeResponseTextId);
-  const written = !!(wrap && wrap.querySelector('.editable'));
+  const ed = wrap && wrap.querySelector('.editable');
+  const written = !!ed;
   document.getElementById('responseToolbar').classList.toggle('hidden', !written);
   document.getElementById('answerWordCount').classList.toggle('hidden', !written);
+  const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
+  document.getElementById('answerHiliteTools')?.classList.toggle('hidden', !written || !(a && a.allowAnswerHighlight));
+  document.querySelector('#responseToolbar .table-ctx-tools')?.classList.add('hidden');
 }
 function switchResponseTab(textId){
   document.querySelectorAll('#responseEditables .response-item').forEach(ed=>{
@@ -6689,6 +6855,8 @@ async function openStudentTask(assignmentId){
   }
   state.currentAssignmentId = assignmentId;
   state.examExpiredHandled = false;
+  state.internalExamClipboard = null;
+  state.internalExamDrag = null;
   // Reset the lock screen from any previous paper (UI only — this paper's own lock state is
   // checked further down, after it's loaded).
   state.examLocked = false;
@@ -7670,44 +7838,6 @@ function renderAnnotationLayers(){
 }
 
 function renderHighlightNoteButton(overlay, an, sub){
-  const rects = an.rects || [];
-  if(!rects.length) return;
-  const last = rects[rects.length-1];
-  const btn = document.createElement('button');
-  btn.className = 'hl-note-btn';
-  btn.type = 'button';
-  btn.textContent = an.note ? '💬' : '+';
-  btn.title = an.note ? 'Edit note on this highlight' : 'Add a note to this highlight';
-  btn.style.left = Math.max(0, last.x + last.w - 8) + 'px';
-  btn.style.top = Math.max(0, last.y - 9) + 'px';
-  btn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    document.querySelectorAll('.hl-note-pop').forEach(p=>p.remove());
-    if(sub.status==='submitted') return;
-    const pop = document.createElement('div');
-    pop.className = 'hl-note-pop';
-    pop.style.left = last.x+'px';
-    pop.style.top = (last.y+last.h+4)+'px';
-    pop.innerHTML = `<textarea placeholder="Note about this highlight…"></textarea>`;
-    const ta = pop.querySelector('textarea');
-    ta.value = an.note || '';
-    ta.addEventListener('input', ()=>{ an.note = ta.value; btn.textContent = an.note ? '💬' : '+'; markInProgress(sub); });
-    function closePop(ev){
-      if(!pop.contains(ev.target) && ev.target!==btn){ pop.remove(); document.removeEventListener('mousedown', closePop); }
-    }
-    document.addEventListener('mousedown', closePop);
-    overlay.appendChild(pop);
-    ta.focus();
-  });
-  overlay.appendChild(btn);
-}
-
-function renderStickyNote(overlay, an, sub){
-  const note = document.createElement('div');
-  note.className='note';
-  note.style.left=an.x+'px'; note.style.top=an.y+'px';
-  note.innerHTML = `<div class="note-head"><button class="min" title="Minimise note">−</button><button class="del" title="Delete note">&times;</button></div><textarea placeholder="Write a note…">${an.text||''}</textarea>`;
-  if(an.minimized) note.classList.add('minimized');
   overlay.appendChild(note);
   const ta = note.querySelector('textarea');
   ta.addEventListener('input', ()=>{ an.text = ta.value; markInProgress(sub); });
@@ -7835,18 +7965,64 @@ function tryCreateHighlightFromSelection(textLayerDiv, sub){
 
 // ---------------- soft anti-copy measures (Deliver mode: "browser with security" / "lockdown app") ----------------
 // This is a deterrent, not real exam security — actual lockdown still needs a tool like Safe Exam
-// Browser configured separately. It only disables right-click and clipboard copy on the exam page
-// itself, and deliberately leaves text selection alone so the highlighting feature keeps working.
+// Browser configured separately. It disables right-click, prevents copying exam questions/PDFs,
+// allows pupils to copy/cut and paste within their own answers, and blocks pasting or dropping
+// text copied from external tabs or apps.
 (function wireSoftSecurityMeasures(){
   const container = document.getElementById('studentTask');
+  const normClipboardText = s => String(s || '').replace(/\r\n?/g, '\n').replace(/\n+/g, '\n');
   function securityActive(){
     const a = state.assignments.find(x=>x.id===state.currentAssignmentId);
     const sub = a && a.submissions[state.currentPupil];
     if(sub && sub.status === 'submitted') return false;  // reviewing submitted work: no copy guard
     return !!a && (a.deliveryMode==='browser_secure' || a.deliveryMode==='lockdown');
   }
+  function ownAnswerEl(target){
+    const el = target && (target.nodeType === 1 ? target : target.parentElement);
+    return el && el.closest ? el.closest('#responseEditables .editable, #responseEditables .fill-input, #responseEditables .answer-table input, #notepadEditable') : null;
+  }
+  function selectedTextIn(el){
+    if(el && el.matches && el.matches('input, textarea')){
+      const s = el.selectionStart ?? 0, end = el.selectionEnd ?? 0;
+      return el.value.slice(s, end);
+    }
+    return (window.getSelection() || '').toString();
+  }
   container.addEventListener('contextmenu', (e)=>{ if(securityActive()) e.preventDefault(); });
-  container.addEventListener('copy', (e)=>{ if(securityActive()) e.preventDefault(); });
+  ['copy', 'cut'].forEach(evName=>{
+    container.addEventListener(evName, (e)=>{
+      if(!securityActive()) return;
+      const own = ownAnswerEl(e.target);
+      if(!own){ e.preventDefault(); return; }
+      const txt = normClipboardText(selectedTextIn(own));
+      if(txt) state.internalExamClipboard = txt;
+    });
+  });
+  container.addEventListener('paste', (e)=>{
+    if(!securityActive()) return;
+    if(!ownAnswerEl(e.target)){ e.preventDefault(); return; }
+    const pasted = normClipboardText(e.clipboardData && e.clipboardData.getData('text/plain'));
+    if(!state.internalExamClipboard || !pasted || pasted !== state.internalExamClipboard){
+      e.preventDefault();
+      showToast("You can copy and paste your own answer, but pasting from external tabs or apps isn't allowed.", 'info', 4000);
+    }
+  });
+  container.addEventListener('dragstart', (e)=>{
+    if(!securityActive()) return;
+    const own = ownAnswerEl(e.target);
+    state.internalExamDrag = own ? normClipboardText(selectedTextIn(own)) : null;
+  });
+  container.addEventListener('drop', (e)=>{
+    if(!securityActive()) return;
+    if(!ownAnswerEl(e.target)){ e.preventDefault(); return; }
+    const files = e.dataTransfer && e.dataTransfer.files;
+    const dropped = normClipboardText(e.dataTransfer && e.dataTransfer.getData('text/plain'));
+    if((files && files.length) || !state.internalExamDrag || !dropped || dropped !== state.internalExamDrag){
+      e.preventDefault();
+      showToast("Dropping text or files from outside your exam answer isn't allowed.", 'info', 4000);
+    }
+    state.internalExamDrag = null;
+  });
 })();
 
 // ---------------- exit lock ("Any browser with security", Phase 10) ----------------
@@ -8517,7 +8693,7 @@ document.addEventListener('selectionchange', ()=>{
   const r = sel.getRangeAt(0);
   const node = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
   const ed = node && node.closest && node.closest('.editable');
-  if(ed && ed.isContentEditable){ savedEditorRanges.set(ed, r.cloneRange()); syncFontSizeSelect(ed, node); }
+  if(ed && ed.isContentEditable){ savedEditorRanges.set(ed, r.cloneRange()); syncFontSizeSelect(ed, node); syncTableTools(ed, node); }
 });
 function restoreEditorSelection(ed){
   ed.focus({preventScroll: true});
@@ -8591,11 +8767,201 @@ function updateAnswerWordCount(){
   el.textContent = describeTextCount(countText(ed.innerHTML));
 }
 document.addEventListener('input', e=>{ if(e.target.closest && e.target.closest('#responseEditables')) updateAnswerWordCount(); });
-const TABLE_HTML = '<table style="border-collapse:collapse;width:100%;margin:8px 0;">' +
-  '<tr><td style="border:1px solid #999;padding:6px;">&nbsp;</td><td style="border:1px solid #999;padding:6px;">&nbsp;</td></tr>' +
-  '<tr><td style="border:1px solid #999;padding:6px;">&nbsp;</td><td style="border:1px solid #999;padding:6px;">&nbsp;</td></tr>' +
-  '</table><p><br></p>';
+function buildRichTableHtml(rows, cols){
+  const rN = Math.max(1, Math.min(30, parseInt(rows, 10) || 2));
+  const cN = Math.max(1, Math.min(15, parseInt(cols, 10) || 2));
+  const td = '<td style="border:1px solid #999;padding:6px;"><br></td>';
+  const tr = '<tr>' + td.repeat(cN) + '</tr>';
+  return '<table style="border-collapse:collapse;width:100%;margin:8px 0;"><tbody>' + tr.repeat(rN) + '</tbody></table><p><br></p>';
+}
+const TABLE_HTML = buildRichTableHtml(2, 2);
+function richToolbarFor(ed){
+  return ed.closest('#notepadModal') ? document.getElementById('notepadToolbar') : document.getElementById('responseToolbar');
+}
+function syncTableTools(ed, node){
+  const bar = ed ? richToolbarFor(ed) : null;
+  const ctx = bar && bar.querySelector('.table-ctx-tools');
+  if(!ctx) return;
+  const cell = node && node.closest ? node.closest('td, th') : null;
+  ctx.classList.toggle('hidden', !(cell && ed.contains(cell)));
+}
+function placeCaretInCell(ed, cell){
+  if(!ed || !cell) return;
+  ed.focus({preventScroll: true});
+  const range = document.createRange();
+  range.selectNodeContents(cell);
+  range.collapse(true);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  savedEditorRanges.set(ed, range.cloneRange());
+  syncTableTools(ed, cell);
+}
+function activeTableCellIn(ed){
+  restoreEditorSelection(ed);
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return null;
+  const n = sel.getRangeAt(0).commonAncestorContainer;
+  const el = n.nodeType === 1 ? n : n.parentElement;
+  const cell = el && el.closest ? el.closest('td, th') : null;
+  return (cell && ed.contains(cell)) ? cell : null;
+}
+function makeRichTableCell(){
+  const td = document.createElement('td');
+  td.setAttribute('style', 'border:1px solid #999;padding:6px;');
+  td.innerHTML = '<br>';
+  return td;
+}
+function insertRichTableRow(table, refRow, after){
+  const cols = Math.max(1, refRow ? refRow.cells.length : (table.rows[0] ? table.rows[0].cells.length : 2));
+  const idx = refRow ? refRow.rowIndex + (after ? 1 : 0) : table.rows.length;
+  const newRow = table.insertRow(idx);
+  for(let i = 0; i < cols; i++) newRow.appendChild(makeRichTableCell());
+  return newRow;
+}
+function applyTableAction(ed, action){
+  const cell = activeTableCellIn(ed);
+  if(!cell) return;
+  const row = cell.parentElement;
+  const table = cell.closest('table');
+  if(!row || !table) return;
+  const colIdx = cell.cellIndex;
+  const rowIdx = row.rowIndex;
+  let nextCell = null;
+  if(action === 'row-above' || action === 'row-below'){
+    const nr = insertRichTableRow(table, row, action === 'row-below');
+    nextCell = nr.cells[Math.min(colIdx, nr.cells.length - 1)];
+  } else if(action === 'col-left' || action === 'col-right'){
+    const insertAt = colIdx + (action === 'col-right' ? 1 : 0);
+    Array.from(table.rows).forEach(r=>{
+      const newTd = makeRichTableCell();
+      if(insertAt >= r.cells.length) r.appendChild(newTd);
+      else r.insertBefore(newTd, r.cells[insertAt]);
+    });
+    nextCell = row.cells[Math.min(insertAt, row.cells.length - 1)];
+  } else if(action === 'del-row'){
+    if(table.rows.length <= 1){
+      table.remove();
+      syncTableTools(ed, ed);
+    } else {
+      table.deleteRow(rowIdx);
+      const targetRow = table.rows[Math.min(rowIdx, table.rows.length - 1)];
+      nextCell = targetRow && targetRow.cells[Math.min(colIdx, targetRow.cells.length - 1)];
+    }
+  } else if(action === 'del-col'){
+    const maxCols = Math.max(...Array.from(table.rows).map(r=>r.cells.length));
+    if(maxCols <= 1){
+      table.remove();
+      syncTableTools(ed, ed);
+    } else {
+      Array.from(table.rows).forEach(r=>{ if(colIdx < r.cells.length) r.deleteCell(colIdx); });
+      nextCell = row.cells[Math.min(colIdx, row.cells.length - 1)];
+    }
+  } else if(action === 'del-table'){
+    table.remove();
+    syncTableTools(ed, ed);
+  }
+  if(nextCell) placeCaretInCell(ed, nextCell);
+  ed.dispatchEvent(new Event('input', {bubbles: true}));
+}
+let tablePickerPop = null;
+function closeTablePicker(){ if(tablePickerPop){ tablePickerPop.remove(); tablePickerPop = null; } }
+function openTablePicker(anchorBtn, ed){
+  if(tablePickerPop && tablePickerPop._anchor === anchorBtn){ closeTablePicker(); return; }
+  closeTablePicker();
+  const pop = document.createElement('div');
+  pop.className = 'table-picker-pop';
+  pop._anchor = anchorBtn;
+  pop.innerHTML = `<div class="table-picker-head"><span>Insert table</span><span class="tp-size">2 × 2</span></div>
+    <div class="table-grid-picker">${Array.from({length: 36}, (_, idx)=>{
+      const r = Math.floor(idx / 6) + 1, c = (idx % 6) + 1;
+      return `<button type="button" data-r="${r}" data-c="${c}" aria-label="${r} rows by ${c} columns"></button>`;
+    }).join('')}</div>
+    <div class="table-picker-custom">
+      <input type="number" class="tp-rows" min="1" max="30" value="3" aria-label="Rows"> &times;
+      <input type="number" class="tp-cols" min="1" max="15" value="3" aria-label="Columns">
+      <button type="button" class="btn small tp-insert">Insert</button>
+    </div>`;
+  document.body.appendChild(pop);
+  tablePickerPop = pop;
+  const br = anchorBtn.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(window.innerWidth - 208, br.left)) + 'px';
+  pop.style.top = Math.min(window.innerHeight - 230, br.bottom + 6) + 'px';
+  const sizeLbl = pop.querySelector('.tp-size');
+  const cells = pop.querySelectorAll('.table-grid-picker button');
+  const doInsert = (rows, cols)=>{
+    closeTablePicker();
+    restoreEditorSelection(ed);
+    document.execCommand('insertHTML', false, buildRichTableHtml(rows, cols));
+    ed.dispatchEvent(new Event('input', {bubbles: true}));
+    const sel = window.getSelection();
+    const n = sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : null;
+    syncTableTools(ed, n && (n.nodeType === 1 ? n : n.parentElement));
+  };
+  cells.forEach(cell=>{
+    cell.addEventListener('mouseenter', ()=>{
+      const rr = Number(cell.dataset.r), cc = Number(cell.dataset.c);
+      sizeLbl.textContent = `${rr} × ${cc}`;
+      cells.forEach(b=>b.classList.toggle('hot', Number(b.dataset.r) <= rr && Number(b.dataset.c) <= cc));
+    });
+    cell.addEventListener('mousedown', e=>e.preventDefault());
+    cell.addEventListener('click', ()=>doInsert(cell.dataset.r, cell.dataset.c));
+  });
+  pop.querySelector('.tp-insert').addEventListener('click', ()=>{
+    doInsert(pop.querySelector('.tp-rows').value, pop.querySelector('.tp-cols').value);
+  });
+}
+document.addEventListener('mousedown', e=>{
+  if(tablePickerPop && !tablePickerPop.contains(e.target) && !e.target.closest('.insert-table-btn')) closeTablePicker();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape') closeTablePicker();
+  if(e.key !== 'Tab') return;
+  const sel = window.getSelection();
+  const node = sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : e.target;
+  const el = node && (node.nodeType === 1 ? node : node.parentElement);
+  const cell = el && el.closest ? el.closest('td, th') : null;
+  const ed = cell && cell.closest('.editable');
+  if(!ed || !ed.isContentEditable) return;
+  const table = cell.closest('table');
+  const cells = table ? Array.from(table.querySelectorAll('td, th')) : [];
+  const idx = cells.indexOf(cell);
+  if(idx < 0) return;
+  e.preventDefault();
+  if(e.shiftKey){
+    if(idx > 0) placeCaretInCell(ed, cells[idx - 1]);
+  } else if(idx + 1 < cells.length){
+    placeCaretInCell(ed, cells[idx + 1]);
+  } else {
+    const newRow = insertRichTableRow(table, cell.parentElement, true);
+    if(newRow.cells[0]) placeCaretInCell(ed, newRow.cells[0]);
+    ed.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+});
 function wireRichToolbar(toolbarEl, getEditable){
+  if(!toolbarEl.querySelector('.table-ctx-tools')){
+    const ctx = document.createElement('span');
+    ctx.className = 'table-ctx-tools hidden';
+    ctx.innerHTML = `<span class="tctx-lbl">Table</span>
+      <button type="button" data-table-act="row-above" title="Insert row above">+ Row ↑</button>
+      <button type="button" data-table-act="row-below" title="Insert row below">+ Row ↓</button>
+      <button type="button" data-table-act="col-left" title="Insert column left">+ Col ←</button>
+      <button type="button" data-table-act="col-right" title="Insert column right">+ Col →</button>
+      <button type="button" data-table-act="del-row" title="Delete current row">− Row</button>
+      <button type="button" data-table-act="del-col" title="Delete current column">− Col</button>
+      <button type="button" class="danger" data-table-act="del-table" title="Delete table">Delete table</button>`;
+    const br = document.createElement('span');
+    br.className = 'tb-break';
+    toolbarEl.appendChild(br);
+    toolbarEl.appendChild(ctx);
+    ctx.querySelectorAll('[data-table-act]').forEach(btn=>{
+      btn.addEventListener('mousedown', e=>e.preventDefault());
+      btn.addEventListener('click', ()=>{
+        const ed = getEditable();
+        if(ed) applyTableAction(ed, btn.dataset.tableAct);
+      });
+    });
+  }
   toolbarEl.querySelectorAll('button[data-cmd]').forEach(btn=>{
     btn.addEventListener('mousedown', e=>e.preventDefault());   // keep the selection in the editor
     btn.addEventListener('click', ()=>{
@@ -8607,11 +8973,13 @@ function wireRichToolbar(toolbarEl, getEditable){
     });
   });
   const insertTableBtn = toolbarEl.querySelector('.insert-table-btn');
-  if(insertTableBtn) insertTableBtn.addEventListener('click', ()=>{
-    const ed = getEditable(); if(!ed) return;
-    ed.focus();
-    document.execCommand('insertHTML', false, TABLE_HTML);
-  });
+  if(insertTableBtn){
+    insertTableBtn.addEventListener('mousedown', e=>e.preventDefault());
+    insertTableBtn.addEventListener('click', ()=>{
+      const ed = getEditable(); if(!ed) return;
+      openTablePicker(insertTableBtn, ed);
+    });
+  }
   const fontFamily = toolbarEl.querySelector('.font-family-select');
   if(fontFamily) fontFamily.addEventListener('change', function(){
     const ed = getEditable(); if(!ed) return;
@@ -8634,6 +9002,16 @@ function wireRichToolbar(toolbarEl, getEditable){
     const ed = getEditable(); if(!ed) return;
     restoreEditorSelection(ed);
     document.execCommand('hiliteColor', false, this.value);
+    ed.dispatchEvent(new Event('input', {bubbles: true}));
+  });
+  toolbarEl.querySelectorAll('[data-hilite]').forEach(btn=>{
+    btn.addEventListener('mousedown', e=>e.preventDefault());
+    btn.addEventListener('click', ()=>{
+      const ed = getEditable(); if(!ed) return;
+      restoreEditorSelection(ed);
+      document.execCommand('hiliteColor', false, btn.dataset.hilite);
+      ed.dispatchEvent(new Event('input', {bubbles: true}));
+    });
   });
 }
 wireRichToolbar(document.getElementById('responseToolbar'), ()=>{

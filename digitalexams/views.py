@@ -869,6 +869,7 @@ def serialize_assignment(assignment, pupil_email=None, request=None):
         'allowGraphingCalculator': assignment.allow_graphing_calculator,
         'allowSpellcheck': assignment.allow_spellcheck,
         'allowTextToSpeech': assignment.allow_text_to_speech,
+        'allowAnswerHighlight': assignment.allow_answer_highlight,
         'recipients': recipients if pupil_email is None else [r for r in recipients if r['email'] == pupil_email]}
 
 
@@ -1383,6 +1384,7 @@ def create_assignment(request):
     allow_graphing_calculator = request.POST.get('allow_graphing_calculator') == 'true'
     allow_spellcheck = request.POST.get('allow_spellcheck') == 'true'
     allow_text_to_speech = request.POST.get('allow_text_to_speech', 'true') != 'false'
+    allow_answer_highlight = request.POST.get('allow_answer_highlight') == 'true'
     due_at = parse_manila_datetime(request.POST.get('due_at'))
     if due_at and opens_at and due_at <= opens_at:
         return HttpResponseBadRequest('The closing time must be after the exam becomes visible.')
@@ -1394,7 +1396,8 @@ def create_assignment(request):
         delivery_mode=delivery_mode, require_join_code=require_join_code, join_code=join_code,
         seb_quit_code=new_seb_quit_code() if delivery_mode == Assignment.DeliveryMode.LOCKDOWN else '',
         allow_calculator=allow_calculator, allow_graphing_calculator=allow_graphing_calculator,
-        allow_spellcheck=allow_spellcheck, allow_text_to_speech=allow_text_to_speech)
+        allow_spellcheck=allow_spellcheck, allow_text_to_speech=allow_text_to_speech,
+        allow_answer_highlight=allow_answer_highlight)
     for prepared in prepared_items:
         AssignmentItem.objects.create(assignment=assignment, **prepared)
     for prepared in prepared_resources:
@@ -1508,6 +1511,8 @@ def update_assignment_api(request, assignment_id):
         assignment.allow_spellcheck = bool(payload.get('allowSpellcheck'))
     if 'allowTextToSpeech' in payload:
         assignment.allow_text_to_speech = bool(payload.get('allowTextToSpeech'))
+    if 'allowAnswerHighlight' in payload:
+        assignment.allow_answer_highlight = bool(payload.get('allowAnswerHighlight'))
     assignment.save()
     actor = request.user.get_full_name() or request.user.username
     if recipient_plan:

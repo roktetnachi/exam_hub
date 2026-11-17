@@ -362,3 +362,36 @@ class AccessibilityAndOfflineTests(TestCase):
         mine = self.client.get('/s/ssc/api/assignments/').json()['assignments'][0]['recipients'][0]
         self.assertEqual(mine['updatedAt'], saved)                     # still "when the work last reached the server"
         self.assertEqual(mine['responses'], {'1': '你好'})
+
+    def test_answer_highlight_setting_defaults_off_and_persists(self):
+        self.client.force_login(self.t)
+        exam = self.create()
+        self.assertFalse(exam.allow_answer_highlight)                  # off by default
+        exam_on = self.create(allow_answer_highlight='true')
+        self.assertTrue(exam_on.allow_answer_highlight)
+        base = {'title': 'Reading', 'deliveryMode': 'browser'}
+        r = self.client.post(f'/s/ssc/api/assignments/{exam.id}/update/',
+                             json.dumps(dict(base, allowAnswerHighlight=True)),
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(r.json()['allowAnswerHighlight'])
+        # Left out = unchanged
+        self.client.post(f'/s/ssc/api/assignments/{exam.id}/update/', json.dumps(base),
+                         content_type='application/json')
+        exam.refresh_from_db()
+        self.assertTrue(exam.allow_answer_highlight)
+        self.client.force_login(self.p)
+        data = self.client.get('/s/ssc/api/assignments/').json()['assignments']
+        by_id = {a['id']: a for a in data}
+        self.assertTrue(by_id[exam.id]['allowAnswerHighlight'])
+
+    def test_page_has_answer_highlight_copy_guard_and_wide_grading_controls(self):
+        self.client.force_login(self.t)
+        html = self.client.get('/s/ssc/').content.decode()
+        for needle in ('id="aAllowAnswerHighlight"', 'id="editAssignmentAnswerHighlight"',
+                       'id="answerHiliteTools"', 'data-hilite="#ffe873"', 'data-hilite="transparent"',
+                       'id="reviewLayoutToggle"', 'data-rv-mode="wide"', 'data-rv-mode="answers"',
+                       'id="answerReaderModal"', 'function openAnswerReader', 'tm-full-height-btn',
+                       'tm-popout-btn', 'internalExamClipboard', 'function buildRichTableHtml',
+                       'function applyTableAction', 'function openTablePicker', 'table-ctx-tools'):
+            self.assertIn(needle, html)
