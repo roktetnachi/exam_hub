@@ -395,3 +395,57 @@ class AccessibilityAndOfflineTests(TestCase):
                        'tm-popout-btn', 'internalExamClipboard', 'function buildRichTableHtml',
                        'function applyTableAction', 'function openTablePicker', 'table-ctx-tools'):
             self.assertIn(needle, html)
+
+    def test_rich_instructions_sanitize_export_and_preview(self):
+        from digitalexams.views import sanitize_rich_html
+        # Plain text is preserved verbatim; visually empty HTML collapses to empty string.
+        self.assertEqual(sanitize_rich_html('Read 1 < 2 & answer carefully.'), 'Read 1 < 2 & answer carefully.')
+        self.assertEqual(sanitize_rich_html('<p><br></p><div>&nbsp;</div>'), '')
+
+        rich = ('<p><b>Read carefully</b> and <span style="font-family: Georgia; font-size: 18px; '
+                'position: fixed;">answer all parts</span>.<script>alert(1)</script></p>'
+                '<font face="Arial" color="#1a2b3c" onclick="bad()">Note</font>')
+        cleaned = sanitize_rich_html(rich)
+        self.assertIn('<b>Read carefully</b>', cleaned)
+        self.assertIn('font-family: Georgia', cleaned)
+        self.assertIn('font-size: 18px', cleaned)
+        self.assertNotIn('position', cleaned)
+        self.assertNotIn('alert(1)', cleaned)
+        self.assertNotIn('onclick', cleaned)
+        self.assertIn('<font face="Arial" color="#1a2b3c">Note</font>', cleaned)
+
+        self.client.force_login(self.t)
+        exam = self.create(instructions=rich)
+        self.assertNotIn('<script>', exam.instructions)
+        self.assertIn('<b>Read carefully</b>', exam.instructions)
+
+        r = self.client.post(
+            f'/s/ssc/api/assignments/{exam.id}/update/',
+            json.dumps({'title': 'Reading', 'deliveryMode': 'browser',
+                        'instructions': '<div><u>Updated</u><img src=x onerror=alert(2)></div>'}),
+            content_type='application/json',
+        )
+        self.assertEqual(r.status_code, 200, r.content)
+        exam.refresh_from_db()
+        self.assertIn('<u>Updated</u>', exam.instructions)
+        self.assertNotIn('onerror', exam.instructions)
+
+        # PDF export handles rich HTML instructions without crashing and includes the text.
+        self.client.force_login(self.p)
+        rec = exam.recipients.get()
+        self.client.post(f'/s/ssc/api/submissions/{rec.id}/start/', '{}', content_type='application/json')
+        self.client.post(f'/s/ssc/api/submissions/{rec.id}/submit/',
+                         json.dumps({'annotations': [], 'outlineHtml': '', 'responses': {'1': 'Done'}}),
+                         content_type='application/json')
+        self.client.force_login(self.t)
+        pdf_resp = self.client.get(f'/s/ssc/api/submissions/{rec.id}/export.pdf')
+        self.assertEqual(pdf_resp.status_code, 200)
+        self.assertIn('Updated', pdf_text(pdf_resp.content))
+
+        html = self.client.get('/s/ssc/').content.decode()
+        for needle in ('id="aPromptToolbar"', 'id="editInstructionsToolbar"',
+                       'id="previewCreateIntroBtn"', 'id="previewEditIntroBtn"',
+                       'function previewExamIntro', 'function sanitizeRichHtml',
+                       'function renderInstructionsInto'):
+            self.assertIn(needle, html)
+        self.assertNotIn('(?<', html)

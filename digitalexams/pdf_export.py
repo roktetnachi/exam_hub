@@ -815,7 +815,10 @@ def build_submission_pdf(ctx, recipient):
     flow.append(t)
     if a.instructions:
         flow.append(Paragraph('INSTRUCTIONS', st['label']))
-        flow.append(Paragraph(rl_lines(a.instructions), st['base']))
+        if re.search(r'<[a-zA-Z!/][^>]*>', a.instructions):
+            flow.extend(answer_flowables(a.instructions, st, ctx.width)[0])
+        else:
+            flow.append(Paragraph(rl_lines(a.instructions), st['base']))
     flow.append(Spacer(1, 10))
 
     # ---- items ----

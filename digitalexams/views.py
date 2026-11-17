@@ -1,12 +1,15 @@
 import datetime
 import hashlib
 import hmac
+import html as html_lib
 import json
 import logging
 import mimetypes
 import plistlib
+import re
 import secrets
 import string
+from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
@@ -33,6 +36,108 @@ from . import email_login
 logger = logging.getLogger(__name__)
 from .models import (ActivityLogEntry, AllowedBrowserExamKey, Assignment, AssignmentItem, ExamResource, Message,
     Recipient, School, SchoolClass, Subject, Submission, User)
+
+
+_SAFE_HTML_TAGS = {
+    'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'sub', 'sup', 'p', 'div', 'br',
+    'ul', 'ol', 'li', 'span', 'font', 'blockquote', 'h1', 'h2', 'h3', 'h4',
+    'table', 'tbody', 'thead', 'tr', 'td', 'th',
+}
+_VOID_HTML_TAGS = {'br'}
+_STRIP_BODY_TAGS = {'script', 'style', 'iframe', 'object', 'embed', 'svg', 'math'}
+_SAFE_CSS_PROPS = {
+    'font-family', 'font-size', 'font-weight', 'font-style',
+    'text-decoration', 'text-decoration-line', 'color', 'background-color',
+    'text-align', 'margin', 'padding', 'border', 'border-collapse', 'width',
+}
+
+
+def _clean_inline_style(style_val):
+    kept = []
+    for part in (style_val or '').split(';'):
+        if ':' not in part:
+            continue
+        prop, val = part.split(':', 1)
+        prop_l = prop.strip().lower()
+        val_s = val.strip()
+        val_l = val_s.lower()
+        if prop_l in _SAFE_CSS_PROPS and val_s and not any(bad in val_l for bad in ('url(', 'expression(', 'javascript:', 'behavior:')):
+            kept.append(f'{prop_l}: {val_s}')
+    return '; '.join(kept)
+
+
+class _RichHtmlSanitizer(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.out = []
+        self.skip_depth = 0
+        self.text_chars = []
+
+    def handle_starttag(self, tag, attrs):
+        t = tag.lower()
+        if t in _STRIP_BODY_TAGS:
+            self.skip_depth += 1
+            return
+        if self.skip_depth or t not in _SAFE_HTML_TAGS:
+            return
+        clean_attrs = []
+        for k, v in attrs:
+            kl = (k or '').lower()
+            if kl == 'style':
+                st = _clean_inline_style(v)
+                if st:
+                    clean_attrs.append(f'style="{html_lib.escape(st, quote=True)}"')
+            elif kl in ('color', 'face', 'size', 'align') and v is not None:
+                vs = str(v).strip()
+                if vs and not any(bad in vs.lower() for bad in ('javascript:', 'expression(', 'url(')):
+                    clean_attrs.append(f'{kl}="{html_lib.escape(vs, quote=True)}"')
+        attr_str = (' ' + ' '.join(clean_attrs)) if clean_attrs else ''
+        self.out.append(f'<{t}{attr_str}>')
+
+    def handle_endtag(self, tag):
+        t = tag.lower()
+        if t in _STRIP_BODY_TAGS:
+            if self.skip_depth:
+                self.skip_depth -= 1
+            return
+        if self.skip_depth or t not in _SAFE_HTML_TAGS or t in _VOID_HTML_TAGS:
+            return
+        self.out.append(f'</{t}>')
+
+    def handle_data(self, data):
+        if self.skip_depth:
+            return
+        self.out.append(html_lib.escape(data, quote=False))
+        self.text_chars.append(data)
+
+    def handle_entityref(self, name):
+        if self.skip_depth:
+            return
+        self.out.append(f'&{name};')
+        if name != 'nbsp':
+            self.text_chars.append(name)
+
+    def handle_charref(self, name):
+        if self.skip_depth:
+            return
+        self.out.append(f'&#{name};')
+        self.text_chars.append(name)
+
+
+def sanitize_rich_html(raw):
+    """Sanitize teacher-authored rich text (preserving plain text verbatim)."""
+    s = (raw or '').strip()
+    if not s:
+        return ''
+    if not re.search(r'<[a-zA-Z!/][^>]*>', s):
+        return s
+    p = _RichHtmlSanitizer()
+    p.feed(s)
+    p.close()
+    visible = ''.join(p.text_chars).replace('\u200b', '').strip()
+    if not visible:
+        return ''
+    return ''.join(p.out).strip()
 
 
 @login_required
@@ -1389,7 +1494,7 @@ def create_assignment(request):
     if due_at and opens_at and due_at <= opens_at:
         return HttpResponseBadRequest('The closing time must be after the exam becomes visible.')
 
-    assignment = Assignment.objects.create(title=request.POST['title'].strip(), instructions=request.POST.get('instructions', '').strip(),
+    assignment = Assignment.objects.create(title=request.POST['title'].strip(), instructions=sanitize_rich_html(request.POST.get('instructions', '')),
         school=getattr(request, 'school', None),
         teacher_name=teacher_name, teacher_email=teacher_email,
         opens_at=opens_at, due_at=due_at, is_hidden=(visibility == 'hidden'),
@@ -1471,7 +1576,7 @@ def update_assignment_api(request, assignment_id):
         return HttpResponseBadRequest('Unrecognised delivery mode.')
 
     assignment.title = title
-    assignment.instructions = (payload.get('instructions') or '').strip()
+    assignment.instructions = sanitize_rich_html(payload.get('instructions') or '')
     visibility = payload.get('visibility')  # optional: 'now' | 'scheduled' | 'hidden'
     if visibility == 'hidden':
         assignment.is_hidden = True

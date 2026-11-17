@@ -821,6 +821,15 @@
   .rich-toolbar select{height:26px;border:1px solid var(--border);border-radius:4px;font-size:12px;margin:0 3px;}
   .rich-toolbar .sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
   .rich-toolbar .tb-break{flex-basis:100%;height:0;}
+  .rich-editor-box{border:1px solid var(--border);border-radius:10px;background:#fbfcfe;overflow:hidden;}
+  .rich-editor-box:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,145,197,.15);background:#fff;}
+  .rich-editor-box .rich-toolbar{border-top:none;background:#f8fafd;padding:5px 8px;gap:2px;}
+  .rich-editor-box .editable.prompt-editable{min-height:110px;max-height:280px;overflow-y:auto;padding:11px 13px;font-size:14px;line-height:1.55;background:transparent;}
+  .rich-editor-box .editable.prompt-editable.compact{min-height:88px;max-height:220px;}
+  .rich-editor-box .editable[data-placeholder]:empty::before{content:attr(data-placeholder);color:var(--muted);pointer-events:none;}
+  .rich-rendered{white-space:normal !important;}
+  .rich-rendered p{margin:0 0 .5em;}
+  .rich-rendered p:last-child{margin-bottom:0;}
   /* Exam instructions screen (before a pupil starts) */
   .exam-intro-backdrop{position:fixed;inset:0;z-index:120;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
   .exam-intro{background:#fff;border-radius:22px;width:min(820px,100%);max-height:calc(100vh - 48px);overflow-y:auto;padding:36px 44px 30px;box-shadow:0 30px 80px -20px rgba(15,23,42,.5);text-align:center;}
@@ -1388,8 +1397,47 @@
           <input type="text" id="aTitle" placeholder="e.g. Paper 1 — Guided Analysis Practice">
         </div>
         <div class="field">
-          <label>Prompt / instructions for pupils</label>
-          <textarea id="aPrompt" placeholder="e.g. Write a guided analysis of text 1 or text 2."></textarea>
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="margin:0;">Prompt / instructions for pupils</label>
+            <button type="button" class="btn small outline" id="previewCreateIntroBtn" title="See how this popup looks on a pupil's screen">👁 Preview pupil popup</button>
+          </div>
+          <div class="rich-editor-box">
+            <div class="rich-toolbar" id="aPromptToolbar">
+              <select class="font-family-select" title="Font">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="'Times New Roman'">Times New Roman</option>
+                <option value="'Courier New'">Courier New</option>
+                <option value="Verdana">Verdana</option>
+                <option value="'Trebuchet MS'">Trebuchet MS</option>
+              </select>
+              <select class="font-size-select" title="Text size">
+                <option value="12">12</option>
+                <option value="14" selected>14</option>
+                <option value="16">16</option>
+                <option value="18">18</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+                <option value="28">28</option>
+              </select>
+              <span class="sep"></span>
+              <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+              <label class="color-input-label" title="Text color">A<input type="color" class="font-color-input" value="#1f2328"></label>
+              <label class="color-input-label" title="Highlight color"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg><input type="color" class="hilite-color-input" value="#ffe873"></label>
+              <span class="sep"></span>
+              <button type="button" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+              <button type="button" data-cmd="insertUnorderedList" title="Bulleted list">&#8226;</button>
+              <button type="button" data-cmd="justifyLeft" title="Align left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg></button>
+              <button type="button" data-cmd="justifyCenter" title="Align center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+              <button type="button" data-cmd="justifyRight" title="Align right"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="6" y1="18" x2="20" y2="18"/></svg></button>
+              <span class="sep"></span>
+              <button type="button" data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
+              <button type="button" data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
+            </div>
+            <div class="editable prompt-editable" id="aPrompt" contenteditable="true" data-placeholder="e.g. Write a guided analysis of text 1 or text 2."></div>
+          </div>
         </div>
         <div class="field">
           <label>Content &amp; questions (add as many as you need, in any mix — a PDF text to annotate, or a question)</label>
@@ -2161,8 +2209,47 @@
           <input type="text" id="editAssignmentTitle">
         </div>
         <div class="field">
-          <label>Instructions (optional)</label>
-          <textarea id="editAssignmentInstructions" rows="2"></textarea>
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="margin:0;">Instructions (optional)</label>
+            <button type="button" class="btn small outline" id="previewEditIntroBtn" title="See how this popup looks on a pupil's screen">👁 Preview pupil popup</button>
+          </div>
+          <div class="rich-editor-box">
+            <div class="rich-toolbar" id="editInstructionsToolbar">
+              <select class="font-family-select" title="Font">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="'Times New Roman'">Times New Roman</option>
+                <option value="'Courier New'">Courier New</option>
+                <option value="Verdana">Verdana</option>
+                <option value="'Trebuchet MS'">Trebuchet MS</option>
+              </select>
+              <select class="font-size-select" title="Text size">
+                <option value="12">12</option>
+                <option value="14" selected>14</option>
+                <option value="16">16</option>
+                <option value="18">18</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+                <option value="28">28</option>
+              </select>
+              <span class="sep"></span>
+              <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+              <label class="color-input-label" title="Text color">A<input type="color" class="font-color-input" value="#1f2328"></label>
+              <label class="color-input-label" title="Highlight color"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg><input type="color" class="hilite-color-input" value="#ffe873"></label>
+              <span class="sep"></span>
+              <button type="button" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+              <button type="button" data-cmd="insertUnorderedList" title="Bulleted list">&#8226;</button>
+              <button type="button" data-cmd="justifyLeft" title="Align left"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg></button>
+              <button type="button" data-cmd="justifyCenter" title="Align center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+              <button type="button" data-cmd="justifyRight" title="Align right"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="6" y1="18" x2="20" y2="18"/></svg></button>
+              <span class="sep"></span>
+              <button type="button" data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
+              <button type="button" data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
+            </div>
+            <div class="editable prompt-editable compact" id="editAssignmentInstructions" contenteditable="true" data-placeholder="Optional instructions shown before pupils start…"></div>
+          </div>
         </div>
         <div class="row" style="gap:10px;">
           <div class="field" style="flex:1;min-width:180px;">
@@ -2842,7 +2929,7 @@ function openEditAssignmentModal(id){
   if(!a) return;
   editingAssignmentId = id;
   document.getElementById('editAssignmentTitle').value = a.title || '';
-  document.getElementById('editAssignmentInstructions').value = a.prompt || '';
+  document.getElementById('editAssignmentInstructions').innerHTML = instructionsToEditorHtml(a.prompt || '');
   document.getElementById('editAssignmentOpensAt').value = toDatetimeLocalValue(a.opensAt);
   document.getElementById('editAssignmentDueAt').value = toDatetimeLocalValue(a.dueAt);
   document.getElementById('editVisibility').value = a.isHidden ? 'hidden' : (a.state === 'scheduled' ? 'scheduled' : 'now');
@@ -2908,7 +2995,7 @@ document.getElementById('saveEditAssignmentBtn').addEventListener('click', async
   if(closeMode === 'scheduled' && !dueAt){ errorEl.textContent = 'Choose the end time, or switch to closing it manually.'; errorEl.classList.remove('hidden'); return; }
   const payload = {
     title,
-    instructions: document.getElementById('editAssignmentInstructions').value.trim(),
+    instructions: readRichEditorHtml(document.getElementById('editAssignmentInstructions')),
     visibility,
     opensAt: visibility === 'scheduled' ? opensAt : null,
     dueAt,
@@ -4043,7 +4130,7 @@ document.getElementById('btnNewAssignment').addEventListener('click', async ()=>
   document.getElementById('teacherIdentityNote').textContent =
     `Creating as ${document.body.dataset.fullname} (${document.body.dataset.email || 'no email on file — ask your admin to add one'})`;
   document.getElementById('aTitle').value='';
-  document.getElementById('aPrompt').value='';
+  document.getElementById('aPrompt').innerHTML='';
   document.getElementById('aOpen').value='';
   document.getElementById('aDue').value='';
   document.getElementById('aRequireJoinCode').checked = false;
@@ -4069,7 +4156,7 @@ document.getElementById('backFromCreate').addEventListener('click', showTeacherD
 
 document.getElementById('btnCreateAssignment').addEventListener('click', async ()=>{
   const title = document.getElementById('aTitle').value.trim();
-  const prompt = document.getElementById('aPrompt').value.trim();
+  const prompt = readRichEditorHtml(document.getElementById('aPrompt'));
   const startCondition = activePillValue('startConditionPicker', 'cond') || 'now';
   const closeCondition = activePillValue('closeConditionPicker', 'cond');
   const opensAt = startCondition === 'scheduled' ? document.getElementById('aOpen').value : '';
@@ -4938,6 +5025,93 @@ function readableAnswer(item, value){
   return '<em>No answer.</em>';
 }
 function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const SAFE_RICH_TAGS = new Set(['B','STRONG','I','EM','U','S','STRIKE','SUB','SUP','P','DIV','BR','UL','OL','LI','SPAN','FONT','BLOCKQUOTE','H1','H2','H3','H4','TABLE','TBODY','THEAD','TR','TD','TH']);
+const SAFE_CSS_PROPS = new Set(['font-family','font-size','font-weight','font-style','text-decoration','text-decoration-line','color','background-color','text-align','margin','padding','border','border-collapse','width']);
+function cleanInlineStyleAttr(rawStyle){
+  return String(rawStyle || '').split(';').map(part=>{
+    const i = part.indexOf(':');
+    if(i < 0) return '';
+    const prop = part.slice(0, i).trim().toLowerCase();
+    const val = part.slice(i + 1).trim();
+    const valL = val.toLowerCase();
+    if(!SAFE_CSS_PROPS.has(prop) || !val || /url\s*\(|expression\s*\(|javascript:|behavior:/i.test(valL)) return '';
+    return `${prop}: ${val}`;
+  }).filter(Boolean).join('; ');
+}
+function sanitizeRichHtml(raw){
+  const s = String(raw || '').trim();
+  if(!s) return '';
+  if(!/<[a-z!/][^>]*>/i.test(s)) return s;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = s;
+  const walk = (node)=>{
+    Array.from(node.childNodes).forEach(ch=>{
+      if(ch.nodeType === 3) return;
+      if(ch.nodeType !== 1){ ch.remove(); return; }
+      const tag = ch.tagName.toUpperCase();
+      if(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','SVG','MATH'].includes(tag)){ ch.remove(); return; }
+      walk(ch);
+      if(!SAFE_RICH_TAGS.has(tag)){
+        while(ch.firstChild) node.insertBefore(ch.firstChild, ch);
+        ch.remove();
+        return;
+      }
+      Array.from(ch.attributes).forEach(attr=>{
+        const name = attr.name.toLowerCase();
+        if(name === 'style'){
+          const cleaned = cleanInlineStyleAttr(attr.value);
+          if(cleaned) ch.setAttribute('style', cleaned);
+          else ch.removeAttribute('style');
+        } else if(['color','face','size','align'].includes(name) && !/javascript:|expression\(|url\s*\(/i.test(attr.value)){
+          // keep safe presentation attribute
+        } else {
+          ch.removeAttribute(attr.name);
+        }
+      });
+    });
+  };
+  walk(tpl.content);
+  return tpl.innerHTML.trim();
+}
+function instructionsToEditorHtml(raw){
+  const s = String(raw || '').trim();
+  if(!s) return '';
+  if(/<[a-z!/][^>]*>/i.test(s)) return sanitizeRichHtml(s);
+  return escapeHtml(s).replace(/\r\n?/g, '\n').replace(/\n/g, '<br>');
+}
+function readRichEditorHtml(el){
+  if(!el) return '';
+  const cleaned = sanitizeRichHtml(el.innerHTML);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = cleaned;
+  const visible = (tmp.textContent || '').replace(/\u200B/g, '').trim();
+  return visible ? cleaned : '';
+}
+function renderInstructionsInto(el, raw, emptyFallback){
+  if(!el) return;
+  const s = String(raw || '').trim();
+  const isHtml = /<[a-z!/][^>]*>/i.test(s);
+  const sanitized = isHtml ? sanitizeRichHtml(s) : s;
+  const tmp = document.createElement('div');
+  if(isHtml) tmp.innerHTML = sanitized;
+  const hasContent = isHtml
+    ? (tmp.textContent || '').replace(/\u200B/g, '').trim().length > 0
+    : sanitized.length > 0;
+  if(!hasContent){
+    el.classList.remove('rich-rendered');
+    el.textContent = emptyFallback || '';
+    el.classList.toggle('empty', !!emptyFallback);
+    return;
+  }
+  el.classList.remove('empty');
+  if(isHtml){
+    el.classList.add('rich-rendered');
+    el.innerHTML = sanitized;
+  } else {
+    el.classList.remove('rich-rendered');
+    el.textContent = sanitized;
+  }
+}
 
 // ---------------- teacher review: annotated source viewer + collapsible per-item answers ----------------
 // Pupils annotate a page rendered at PDF scale 1.2 (see renderPdfPage), and every highlight /
@@ -6239,40 +6413,119 @@ function gateWithSeb(a){
     cancelBtn.addEventListener('click', onCancel);
   });
 }
+// Shared facts builder for both the real pupil exam intro popup and teacher previews.
+function buildExamIntroFacts(a, closesAt){
+  const items = a.items || [];
+  const answerable = items.filter(i=>!isMediaOnly(i));
+  const points = items.reduce((t, i)=>t + (Number(i.points) || 0), 0);
+  const facts = [`${items.length} item${items.length === 1 ? '' : 's'}`];
+  if(answerable.length && points) facts.push(`${points} point${points === 1 ? '' : 's'}`);
+  facts.push(closesAt ? `Ends ${formatManila(closesAt)}` : 'No time limit — your teacher closes it');
+  const recordings = items.filter(i=>i.type === 'audio');
+  if(recordings.length){
+    const limits = [...new Set(recordings.map(i=>i.maxPlays || 0))];
+    facts.push(`${recordings.length} recording${recordings.length === 1 ? '' : 's'}` + (limits.length === 1 && limits[0]
+      ? ` — ${limits[0] === 1 ? 'one play' : limits[0] + ' plays'} each` : ''));
+  }
+  if(a.deliveryMode === 'lockdown' && a.hasSebQuitCode) facts.push('Safe Exam Browser stays on until you submit');
+  if(a.allowCalculator) facts.push('Calculator allowed');
+  if(!a.allowSpellcheck) facts.push('Spell check off');
+  if(a.allowTextToSpeech === false) facts.push('Read aloud off');
+  if((a.resources || []).length) facts.push(`${a.resources.length} resource${a.resources.length === 1 ? '' : 's'} to refer to`);
+  return facts;
+}
+function normalizeManilaPreviewIso(raw){
+  if(!raw) return '';
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw) ? `${raw}+08:00` : raw;
+}
+function previewExamIntro(draft, closesAt){
+  const backdrop = document.getElementById('examIntroBackdrop');
+  document.getElementById('examIntroTitle').textContent = (draft.title || '').trim() || 'Untitled exam';
+  document.getElementById('examIntroFacts').innerHTML = buildExamIntroFacts(draft, closesAt).map(f=>`<span>${escapeHtml(f)}</span>`).join('');
+  const text = document.getElementById('examIntroText');
+  renderInstructionsInto(text, draft.prompt, 'No special instructions. Answer every item, then press Submit when you are finished.');
+  const startBtn = document.getElementById('examIntroStart');
+  const back = document.getElementById('examIntroBack');
+  startBtn.disabled = true;
+  startBtn.textContent = 'Start exam (preview)';
+  back.textContent = 'Close preview';
+  document.getElementById('examIntroNote').textContent = 'Teacher preview — this is how your title, exam facts, and formatted instructions appear to pupils before they begin.';
+  backdrop.classList.remove('hidden');
+  setTimeout(()=>back.focus(), 30);
+  function closePreview(){
+    backdrop.classList.add('hidden');
+    startBtn.disabled = false;
+    back.textContent = 'Back to my tasks';
+    back.removeEventListener('click', closePreview);
+    backdrop.removeEventListener('click', onBackdrop);
+    document.removeEventListener('keydown', onEsc);
+  }
+  function onBackdrop(e){ if(e.target === backdrop) closePreview(); }
+  function onEsc(e){ if(e.key === 'Escape') closePreview(); }
+  back.addEventListener('click', closePreview);
+  backdrop.addEventListener('click', onBackdrop);
+  document.addEventListener('keydown', onEsc);
+}
+document.getElementById('previewCreateIntroBtn').addEventListener('click', ()=>{
+  const {items} = collectItemsForSubmit();
+  const resources = collectResourcesForSubmit();
+  const closeCondition = activePillValue('closeConditionPicker', 'cond');
+  const dueRaw = closeCondition === 'scheduled' ? document.getElementById('aDue').value : '';
+  const deliveryMode = activePillValue('deliveryModePicker', 'mode') || 'browser';
+  previewExamIntro({
+    title: document.getElementById('aTitle').value.trim(),
+    prompt: readRichEditorHtml(document.getElementById('aPrompt')),
+    items,
+    resources: resources.meta || [],
+    deliveryMode,
+    hasSebQuitCode: deliveryMode === 'lockdown' && !!(document.getElementById('aSebQuitCode')?.value || '').trim(),
+    allowCalculator: document.getElementById('aAllowCalculator').checked,
+    allowSpellcheck: document.getElementById('aAllowSpellcheck').checked,
+    allowTextToSpeech: document.getElementById('aAllowTextToSpeech').checked,
+  }, normalizeManilaPreviewIso(dueRaw));
+});
+document.getElementById('previewEditIntroBtn').addEventListener('click', ()=>{
+  const id = Number(document.getElementById('editAssignmentId').value);
+  const a = state.assignments.find(x=>x.id === id) || {};
+  const modeEl = document.getElementById('editAssignmentMode');
+  const dueEl = document.getElementById('editAssignmentDue');
+  const calcEl = document.getElementById('editAssignmentAllowCalculator');
+  const spellEl = document.getElementById('editAssignmentAllowSpellcheck');
+  const ttsEl = document.getElementById('editAssignmentAllowTextToSpeech');
+  const sebEl = document.getElementById('editAssignmentSebQuitCode');
+  const deliveryMode = modeEl ? modeEl.value : a.deliveryMode;
+  const dueRaw = dueEl ? dueEl.value : a.due;
+  previewExamIntro({
+    title: (document.getElementById('editAssignmentTitle')?.value || '').trim() || a.title,
+    prompt: readRichEditorHtml(document.getElementById('editAssignmentInstructions')),
+    items: a.items || [],
+    resources: a.resources || [],
+    deliveryMode,
+    hasSebQuitCode: (sebEl && !!sebEl.value.trim()) || !!a.hasSebQuitCode,
+    allowCalculator: calcEl ? calcEl.checked : !!a.allowCalculator,
+    allowSpellcheck: spellEl ? spellEl.checked : !!a.allowSpellcheck,
+    allowTextToSpeech: ttsEl ? ttsEl.checked : (a.allowTextToSpeech !== false),
+  }, normalizeManilaPreviewIso(dueRaw));
+});
 // Wide white instructions card with the school's logo; resolves true on Start, false on Back.
 function showExamIntro(a, sub){
   return new Promise(resolve=>{
     const backdrop = document.getElementById('examIntroBackdrop');
     document.getElementById('examIntroTitle').textContent = a.title;
-    const answerable = a.items.filter(i=>!isMediaOnly(i));
-    const points = a.items.reduce((t, i)=>t + (Number(i.points) || 0), 0);
-    const facts = [`${a.items.length} item${a.items.length === 1 ? '' : 's'}`];
-    if(answerable.length && points) facts.push(`${points} point${points === 1 ? '' : 's'}`);
-    facts.push(sub.closesAt ? `Ends ${formatManila(sub.closesAt)}` : 'No time limit — your teacher closes it');
-    const recordings = a.items.filter(i=>i.type === 'audio');
-    if(recordings.length){
-      const limits = [...new Set(recordings.map(i=>i.maxPlays || 0))];
-      facts.push(`${recordings.length} recording${recordings.length === 1 ? '' : 's'}` + (limits.length === 1 && limits[0]
-        ? ` — ${limits[0] === 1 ? 'one play' : limits[0] + ' plays'} each` : ''));
-    }
-    if(a.deliveryMode === 'lockdown' && a.hasSebQuitCode) facts.push('Safe Exam Browser stays on until you submit');
-    if(a.allowCalculator) facts.push('Calculator allowed');
-    if(!a.allowSpellcheck) facts.push('Spell check off');
-    if(a.allowTextToSpeech === false) facts.push('Read aloud off');
-    if((a.resources || []).length) facts.push(`${a.resources.length} resource${a.resources.length === 1 ? '' : 's'} to refer to`);
-    document.getElementById('examIntroFacts').innerHTML = facts.map(f=>`<span>${escapeHtml(f)}</span>`).join('');
+    document.getElementById('examIntroFacts').innerHTML = buildExamIntroFacts(a, sub.closesAt).map(f=>`<span>${escapeHtml(f)}</span>`).join('');
     const text = document.getElementById('examIntroText');
-    text.textContent = (a.prompt || '').trim() || 'No special instructions. Answer every item, then press Submit when you are finished.';
-    text.classList.toggle('empty', !(a.prompt || '').trim());
+    renderInstructionsInto(text, a.prompt, 'No special instructions. Answer every item, then press Submit when you are finished.');
     const started = !!sub.startedAt || sub.status === 'progress';
     const startBtn = document.getElementById('examIntroStart');
+    const back = document.getElementById('examIntroBack');
+    startBtn.disabled = false;
     startBtn.textContent = started ? 'Continue exam' : 'Start exam';
+    back.textContent = 'Back to my tasks';
     document.getElementById('examIntroNote').textContent = started
       ? 'Your answers so far are saved. The clock kept running while you were away.'
       : 'Your work saves automatically. When you finish, press Submit — you can’t change your answers after that.';
     backdrop.classList.remove('hidden');
     setTimeout(()=>startBtn.focus(), 30);
-    const back = document.getElementById('examIntroBack');
     function done(ok){
       backdrop.classList.add('hidden');
       startBtn.removeEventListener('click', onStart); back.removeEventListener('click', onBack);
@@ -6871,7 +7124,7 @@ async function openStudentTask(assignmentId){
   const a = state.assignments.find(x=>x.id===assignmentId);
   const sub = a.submissions[state.currentPupil];
   document.getElementById('taskTitle').textContent = a.title;
-  document.getElementById('taskPrompt').textContent = a.prompt;
+  renderInstructionsInto(document.getElementById('taskPrompt'), a.prompt, '');
   document.getElementById('openChatFromTaskDot').classList.toggle('hidden', !sub.hasUnreadFromTeacher);
   document.getElementById('openCalculatorBtn').classList.toggle('hidden', !a.allowCalculator);
   document.getElementById('openGraphCalcBtn').classList.toggle('hidden', !a.allowGraphingCalculator);
@@ -8705,7 +8958,7 @@ function restoreEditorSelection(ed){
 }
 // Show the size of the text at the caret in the toolbar's size box.
 function syncFontSizeSelect(ed, node){
-  const bar = ed.closest('#notepadModal') ? document.getElementById('notepadToolbar') : document.getElementById('responseToolbar');
+  const bar = richToolbarFor(ed);
   const select = bar && bar.querySelector('.font-size-select');
   if(!select || document.activeElement === select) return;
   const px = Math.round(parseFloat(getComputedStyle(node.nodeType === 1 ? node : ed).fontSize));
@@ -8776,7 +9029,12 @@ function buildRichTableHtml(rows, cols){
 }
 const TABLE_HTML = buildRichTableHtml(2, 2);
 function richToolbarFor(ed){
-  return ed.closest('#notepadModal') ? document.getElementById('notepadToolbar') : document.getElementById('responseToolbar');
+  const box = ed && ed.closest ? ed.closest('.rich-editor-box') : null;
+  if(box){
+    const bar = box.querySelector('.rich-toolbar');
+    if(bar) return bar;
+  }
+  return ed && ed.closest && ed.closest('#notepadModal') ? document.getElementById('notepadToolbar') : document.getElementById('responseToolbar');
 }
 function syncTableTools(ed, node){
   const bar = ed ? richToolbarFor(ed) : null;
@@ -8996,6 +9254,7 @@ function wireRichToolbar(toolbarEl, getEditable){
     const ed = getEditable(); if(!ed) return;
     restoreEditorSelection(ed);
     document.execCommand('foreColor', false, this.value);
+    ed.dispatchEvent(new Event('input', {bubbles: true}));
   });
   const hiliteColor = toolbarEl.querySelector('.hilite-color-input');
   if(hiliteColor) hiliteColor.addEventListener('input', function(){
@@ -9021,6 +9280,17 @@ wireRichToolbar(document.getElementById('responseToolbar'), ()=>{
   return wrap ? wrap.querySelector('.editable') : null;
 });
 wireRichToolbar(document.getElementById('notepadToolbar'), ()=>document.getElementById('notepadEditable'));
+wireRichToolbar(document.getElementById('aPromptToolbar'), ()=>document.getElementById('aPrompt'));
+wireRichToolbar(document.getElementById('editInstructionsToolbar'), ()=>document.getElementById('editAssignmentInstructions'));
+document.querySelectorAll('.prompt-editable').forEach(ed=>{
+  const clearEmptyPlaceholder = ()=>{
+    const html = ed.innerHTML.trim().toLowerCase();
+    const text = (ed.textContent || '').replace(/\u200B/g, '').trim();
+    if(!text && (!html || html === '<br>' || html === '<p><br></p>' || html === '<div><br></div>')) ed.innerHTML = '';
+  };
+  ed.addEventListener('input', clearEmptyPlaceholder);
+  ed.addEventListener('blur', clearEmptyPlaceholder);
+});
 
 // Which items still have no answer — shown in the submit confirmation so pupils don't hand in
 // by accident with questions left blank. Image/video items are reference material with nothing
